@@ -1,6 +1,6 @@
 import React from 'react';
-import { ProductionCourseBuilder } from './ProductionCourseBuilder';
+import { GeminiCourseBuilder } from './GeminiCourseBuilder';
 
 export const CourseBuilder: React.FC = () => {
-  return <ProductionCourseBuilder />;
+  return <GeminiCourseBuilder />;
 };
