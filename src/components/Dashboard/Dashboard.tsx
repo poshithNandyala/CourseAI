@@ -13,19 +13,30 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUserCourses();
+    console.log('📊 Dashboard mounted, user:', user?.email || 'none');
+    if (user) {
+      loadUserCourses();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
   const loadUserCourses = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('❌ No user found, cannot load courses');
+      setLoading(false);
+      return;
+    }
 
     try {
+      console.log('📚 Loading courses for user:', user.email);
       setLoading(true);
       const allCourses = await fetchCourses();
       const userCourses = allCourses.filter(course => course.creator_id === user.id);
+      console.log('✅ Loaded', userCourses.length, 'courses for user');
       setCourses(userCourses);
     } catch (error) {
-      console.error('Error loading courses:', error);
+      console.error('❌ Error loading courses:', error);
     } finally {
       setLoading(false);
     }
@@ -58,16 +69,26 @@ export const Dashboard: React.FC = () => {
     }
   ];
 
+  // Show loading state while checking authentication
   if (!user) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Please sign in to view your dashboard</h1>
-        <Link
-          to="/signin"
-          className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200"
-        >
-          <span>Sign In</span>
-        </Link>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-soft border border-gray-200 dark:border-gray-800">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Please sign in to view your dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              You need to be signed in to access your course dashboard and manage your content.
+            </p>
+            <Link
+              to="/signin"
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+            >
+              <span>Sign In</span>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -81,12 +102,16 @@ export const Dashboard: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Welcome back, {user.name}!</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your courses and track your progress</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+              Welcome back, {user.name}!
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage your courses and track your progress
+            </p>
           </div>
           <Link
             to="/create"
-            className="flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
             <Plus className="h-5 w-5" />
             <span>Create Course</span>
@@ -137,7 +162,7 @@ export const Dashboard: React.FC = () => {
             <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first course to get started</p>
             <Link
               to="/create"
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200"
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 font-medium"
             >
               <Plus className="h-5 w-5" />
               <span>Create Course</span>

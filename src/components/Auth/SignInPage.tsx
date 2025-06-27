@@ -44,7 +44,7 @@ export const SignInPage: React.FC = () => {
   // Redirect if already signed in
   useEffect(() => {
     if (user) {
-      console.log('User is signed in, redirecting to dashboard');
+      console.log('✅ User detected, redirecting to dashboard:', user.email);
       navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
@@ -60,20 +60,24 @@ export const SignInPage: React.FC = () => {
     e.preventDefault();
     if (loading) return;
 
+    console.log('📧 Starting email auth:', authMode, formData.email);
     setLoading(true);
+    
     try {
       if (authMode === 'signin') {
         await signInWithEmail(formData.email, formData.password);
-        // Navigation will happen automatically when user state updates
+        console.log('✅ Email sign-in completed');
+        // Navigation will happen automatically via useEffect when user state updates
       } else if (authMode === 'signup') {
         await signUpWithEmail(formData.email, formData.password, formData.name);
-        // Navigation will happen automatically when user state updates
+        console.log('✅ Email sign-up completed');
+        // Navigation will happen automatically via useEffect when user state updates
       } else if (authMode === 'reset') {
         await resetPassword(formData.email);
         setAuthMode('signin');
       }
     } catch (error) {
-      console.error('Email auth failed:', error);
+      console.error('❌ Email auth failed:', error);
       // Error is already handled in the service with toast
     } finally {
       setLoading(false);
@@ -83,19 +87,15 @@ export const SignInPage: React.FC = () => {
   const handleGoogleSignIn = async () => {
     if (loading) return;
     
+    console.log('🔍 Starting Google sign-in');
     setLoading(true);
+    
     try {
       await signInWithGoogle();
-      // For demo mode, navigation happens immediately
-      // For real Supabase, navigation happens via auth state change
-      setTimeout(() => {
-        const currentUser = useAuthStore.getState().user;
-        if (currentUser) {
-          navigate('/dashboard', { replace: true });
-        }
-      }, 100);
+      console.log('✅ Google sign-in completed');
+      // Navigation will happen automatically via useEffect when user state updates
     } catch (error) {
-      console.error('Google sign-in failed:', error);
+      console.error('❌ Google sign-in failed:', error);
       // Error is already handled in the service with toast
     } finally {
       setLoading(false);
@@ -105,19 +105,15 @@ export const SignInPage: React.FC = () => {
   const handleGitHubSignIn = async () => {
     if (loading) return;
     
+    console.log('🐙 Starting GitHub sign-in');
     setLoading(true);
+    
     try {
       await signInWithGitHub();
-      // For demo mode, navigation happens immediately
-      // For real Supabase, navigation happens via auth state change
-      setTimeout(() => {
-        const currentUser = useAuthStore.getState().user;
-        if (currentUser) {
-          navigate('/dashboard', { replace: true });
-        }
-      }, 100);
+      console.log('✅ GitHub sign-in completed');
+      // Navigation will happen automatically via useEffect when user state updates
     } catch (error) {
-      console.error('GitHub sign-in failed:', error);
+      console.error('❌ GitHub sign-in failed:', error);
       // Error is already handled in the service with toast
     } finally {
       setLoading(false);

@@ -15,15 +15,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     console.log('👤 Setting user in store:', user?.email || 'null');
     set({ user });
     
-    // Force a re-render by updating the store
-    if (user) {
-      console.log('✅ User successfully set in store');
-    } else {
-      console.log('🚪 User cleared from store');
-    }
+    // Log the current state after setting
+    const currentState = get();
+    console.log('📊 Current auth state:', {
+      hasUser: !!currentState.user,
+      userEmail: currentState.user?.email,
+      loading: currentState.loading
+    });
   },
   setLoading: (loading) => {
-    console.log('⏳ Setting loading:', loading);
+    console.log('⏳ Setting loading state:', loading);
     set({ loading });
   },
 }));

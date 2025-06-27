@@ -21,7 +21,8 @@ const createDemoUser = (email: string, name?: string, provider: 'email' | 'googl
     id: 'demo-user-' + Math.random().toString(36).substr(2, 9),
     email,
     name: name || email.split('@')[0],
-    avatar_url: provider === 'google' ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face' : undefined,
+    avatar_url: provider === 'google' ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face' : 
+                provider === 'github' ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face' : undefined,
     provider,
     created_at: new Date().toISOString(),
   };
@@ -32,11 +33,26 @@ const createDemoUser = (email: string, name?: string, provider: 'email' | 'googl
   return demoUser;
 };
 
+// Set user and handle navigation
+const setUserAndNavigate = (user: User) => {
+  console.log('🔄 Setting user and preparing navigation:', user.email);
+  useAuthStore.getState().setUser(user);
+  
+  // Force a small delay to ensure state is updated
+  setTimeout(() => {
+    console.log('✅ User state should be updated, navigation ready');
+    // The component will handle navigation via useEffect
+  }, 50);
+};
+
 export const signInWithEmail = async (email: string, password: string) => {
+  console.log('📧 Email sign-in attempt:', email);
+  
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate successful login
+    console.log('🎭 Demo mode: Creating email user');
     const demoUser = createDemoUser(email);
-    useAuthStore.getState().setUser(demoUser);
+    setUserAndNavigate(demoUser);
     toast.success('Successfully signed in! (Demo mode)');
     return { user: demoUser, session: null };
   }
@@ -48,12 +64,13 @@ export const signInWithEmail = async (email: string, password: string) => {
     });
 
     if (error) {
+      console.error('❌ Email sign-in error:', error.message);
       toast.error(error.message);
       throw error;
     }
 
     if (data.user) {
-      // Create or update user in our database
+      console.log('✅ Email sign-in successful:', data.user.email);
       await createOrUpdateUser(data.user);
     }
 
@@ -66,10 +83,13 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 export const signUpWithEmail = async (email: string, password: string, name: string) => {
+  console.log('📝 Email sign-up attempt:', email);
+  
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate successful signup
+    console.log('🎭 Demo mode: Creating new user');
     const demoUser = createDemoUser(email, name);
-    useAuthStore.getState().setUser(demoUser);
+    setUserAndNavigate(demoUser);
     toast.success('Account created successfully! (Demo mode)');
     return { user: demoUser, session: null };
   }
@@ -87,6 +107,7 @@ export const signUpWithEmail = async (email: string, password: string, name: str
     });
 
     if (error) {
+      console.error('❌ Email sign-up error:', error.message);
       toast.error(error.message);
       throw error;
     }
@@ -94,6 +115,7 @@ export const signUpWithEmail = async (email: string, password: string, name: str
     if (data.user && !data.session) {
       toast.success('Please check your email to confirm your account!');
     } else if (data.user) {
+      console.log('✅ Email sign-up successful:', data.user.email);
       await createOrUpdateUser(data.user);
       toast.success('Account created successfully!');
     }
@@ -129,15 +151,13 @@ export const resetPassword = async (email: string) => {
 };
 
 export const signInWithGoogle = async () => {
+  console.log('🔍 Google sign-in attempt');
+  
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate Google login
-    console.log('🔄 Demo Google login starting...');
+    console.log('🎭 Demo mode: Creating Google user');
     const demoUser = createDemoUser('demo@google.com', 'Google User', 'google');
-    
-    // Set user immediately
-    useAuthStore.getState().setUser(demoUser);
-    console.log('✅ Demo Google user set in store');
-    
+    setUserAndNavigate(demoUser);
     toast.success('Successfully signed in with Google! (Demo mode)');
     return { user: demoUser, session: null };
   }
@@ -151,10 +171,12 @@ export const signInWithGoogle = async () => {
     });
 
     if (error) {
+      console.error('❌ Google sign-in error:', error.message);
       toast.error(error.message);
       throw error;
     }
 
+    console.log('✅ Google OAuth initiated');
     return data;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
@@ -163,15 +185,13 @@ export const signInWithGoogle = async () => {
 };
 
 export const signInWithGitHub = async () => {
+  console.log('🐙 GitHub sign-in attempt');
+  
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate GitHub login
-    console.log('🔄 Demo GitHub login starting...');
+    console.log('🎭 Demo mode: Creating GitHub user');
     const demoUser = createDemoUser('demo@github.com', 'GitHub User', 'github');
-    
-    // Set user immediately
-    useAuthStore.getState().setUser(demoUser);
-    console.log('✅ Demo GitHub user set in store');
-    
+    setUserAndNavigate(demoUser);
     toast.success('Successfully signed in with GitHub! (Demo mode)');
     return { user: demoUser, session: null };
   }
@@ -185,10 +205,12 @@ export const signInWithGitHub = async () => {
     });
 
     if (error) {
+      console.error('❌ GitHub sign-in error:', error.message);
       toast.error(error.message);
       throw error;
     }
 
+    console.log('✅ GitHub OAuth initiated');
     return data;
   } catch (error: any) {
     console.error('GitHub sign-in error:', error);
@@ -197,6 +219,8 @@ export const signInWithGitHub = async () => {
 };
 
 export const signOut = async () => {
+  console.log('🚪 Sign-out attempt');
+  
   try {
     if (isSupabaseConfigured()) {
       const { error } = await supabase.auth.signOut();
@@ -208,6 +232,7 @@ export const signOut = async () => {
     console.log('🧹 Demo user cleared from localStorage');
     
     useAuthStore.getState().setUser(null);
+    console.log('✅ User signed out successfully');
     toast.success('Successfully signed out');
   } catch (error: any) {
     console.error('Sign-out error:', error);
@@ -242,6 +267,7 @@ const createOrUpdateUser = async (supabaseUser: any): Promise<User> => {
       throw error;
     }
 
+    console.log('✅ User created/updated in database:', data.email);
     useAuthStore.getState().setUser(data);
     return data;
   } catch (error) {
@@ -262,21 +288,28 @@ export const initializeAuth = () => {
     if (demoUserData) {
       try {
         const demoUser = JSON.parse(demoUserData);
-        console.log('✅ Found demo user:', demoUser.email);
+        console.log('✅ Found existing demo user:', demoUser.email);
         useAuthStore.getState().setUser(demoUser);
       } catch (error) {
         console.error('Error parsing demo user:', error);
         localStorage.removeItem('demo_user');
       }
+    } else {
+      console.log('ℹ️ No existing demo user found');
     }
     
+    // Always set loading to false in demo mode
     setTimeout(() => {
       useAuthStore.getState().setLoading(false);
-    }, 500);
+      console.log('✅ Demo mode initialization complete');
+    }, 300);
     
     return () => {}; // Return empty cleanup function
   }
 
+  // Real Supabase mode
+  console.log('🔗 Connecting to Supabase...');
+  
   // Listen for auth state changes
   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user');
@@ -312,6 +345,7 @@ export const initializeAuth = () => {
       toast.error('Authentication error occurred');
     } finally {
       useAuthStore.getState().setLoading(false);
+      console.log('✅ Auth initialization complete');
     }
   });
 
