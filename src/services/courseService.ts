@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { Course, Lesson, Comment, Rating } from '../types';
 import { useAuthStore } from '../store/authStore';
+import { generateAICourse, GeneratedCourse } from './aiCourseGenerator';
 import toast from 'react-hot-toast';
 
 // Mock data for demo mode
@@ -50,67 +51,105 @@ const isSupabaseConfigured = () => {
          url.startsWith('http');
 };
 
-export const generateCourseWithAI = async (prompt: string): Promise<{ course: Partial<Course>; lessons: Lesson[] }> => {
-  // Simulate AI course generation
-  await new Promise(resolve => setTimeout(resolve, 2000));
+export const generateCourseWithAI = async (prompt: string): Promise<{ course: Partial<Course>; lessons: Lesson[]; generatedContent: GeneratedCourse }> => {
+  console.log('🤖 Generating AI course for prompt:', prompt);
   
-  const courseTitle = `Complete Guide to ${prompt}`;
-  const mockCourse: Partial<Course> = {
-    title: courseTitle,
-    description: `A comprehensive course covering all aspects of ${prompt}. This course includes practical examples, hands-on exercises, and real-world applications.`,
-    difficulty: 'intermediate' as const,
-    estimated_duration: 180,
-    tags: [prompt.toLowerCase(), 'programming', 'tutorial'],
-    is_published: false,
-  };
+  try {
+    // Generate comprehensive course content using AI
+    const generatedContent = await generateAICourse(prompt);
+    
+    // Convert generated content to our course format
+    const courseData: Partial<Course> = {
+      title: generatedContent.title,
+      description: generatedContent.overview,
+      difficulty: 'beginner' as const,
+      estimated_duration: generatedContent.lessons.length * 45, // 45 minutes per lesson
+      tags: extractTagsFromTopic(prompt),
+      is_published: false,
+    };
 
-  const mockLessons: Lesson[] = [
-    {
-      id: '1',
+    // Convert lessons to our lesson format
+    const lessons: Lesson[] = generatedContent.lessons.map((lesson, index) => ({
+      id: `lesson-${index + 1}`,
       course_id: '',
-      title: `Introduction to ${prompt}`,
-      content: `# Introduction to ${prompt}\n\nWelcome to your comprehensive course on ${prompt}. In this lesson, we'll cover the fundamentals and set up your learning environment.\n\n## What you'll learn:\n- Basic concepts and terminology\n- Setting up your development environment\n- Your first practical example`,
-      type: 'article',
-      order: 1,
-      resources: [
-        {
-          id: '1',
-          title: 'Official Documentation',
-          url: 'https://example.com/docs',
-          type: 'documentation'
-        }
-      ]
-    },
-    {
-      id: '2',
-      course_id: '',
-      title: `Practical Examples in ${prompt}`,
-      content: `# Practical Examples\n\nLet's dive into some hands-on examples to solidify your understanding.\n\n\`\`\`javascript\n// Example code here\nconsole.log('Hello, ${prompt}!');\n\`\`\``,
-      type: 'code',
-      order: 2,
-    },
-    {
-      id: '3',
-      course_id: '',
-      title: 'Knowledge Check',
-      content: 'Test your understanding with this quick quiz.',
-      type: 'quiz',
-      order: 3,
-      quiz_questions: [
-        {
-          id: '1',
-          question: `What is the main benefit of using ${prompt}?`,
-          type: 'multiple_choice',
-          options: ['Easy to learn', 'High performance', 'Great community', 'All of the above'],
-          correct_answer: 'All of the above',
-          explanation: `${prompt} offers multiple benefits including ease of learning, performance, and community support.`
-        }
-      ]
-    }
-  ];
+      title: lesson.title,
+      content: formatLessonContent(lesson),
+      type: index === 0 ? 'article' : (index % 3 === 0 ? 'quiz' : 'article') as 'article' | 'quiz',
+      order: index + 1,
+      video_url: lesson.videos[0]?.url,
+      quiz_questions: lesson.quiz.map(q => ({
+        id: `q-${index}-${Math.random().toString(36).substr(2, 9)}`,
+        question: q.question,
+        type: 'multiple_choice' as const,
+        options: q.options,
+        correct_answer: q.options[q.correctAnswer],
+        explanation: q.explanation
+      })),
+      resources: lesson.furtherReading.map(r => ({
+        id: `r-${Math.random().toString(36).substr(2, 9)}`,
+        title: r.title,
+        url: r.url,
+        type: r.type as 'article' | 'documentation' | 'video'
+      })),
+      created_at: new Date().toISOString()
+    }));
 
-  return { course: mockCourse, lessons: mockLessons };
+    console.log('✅ AI course generation completed');
+    return { course: courseData, lessons, generatedContent };
+  } catch (error) {
+    console.error('❌ AI course generation failed:', error);
+    throw error;
+  }
 };
+
+function extractTagsFromTopic(topic: string): string[] {
+  const topicLower = topic.toLowerCase();
+  const tags: string[] = [];
+  
+  // Add the main topic
+  tags.push(topic.toLowerCase().replace(/\s+/g, '-'));
+  
+  // Add related tags based on content
+  if (topicLower.includes('react')) tags.push('react', 'javascript', 'frontend');
+  if (topicLower.includes('python')) tags.push('python', 'programming', 'backend');
+  if (topicLower.includes('javascript')) tags.push('javascript', 'programming', 'web');
+  if (topicLower.includes('machine learning')) tags.push('ml', 'ai', 'data-science');
+  if (topicLower.includes('web development')) tags.push('html', 'css', 'javascript');
+  if (topicLower.includes('data science')) tags.push('python', 'analytics', 'statistics');
+  
+  // Add general tags
+  tags.push('tutorial', 'beginner-friendly');
+  
+  return [...new Set(tags)]; // Remove duplicates
+}
+
+function formatLessonContent(lesson: any): string {
+  let content = `# ${lesson.title}\n\n`;
+  
+  content += `## Lesson Objective\n${lesson.objective}\n\n`;
+  
+  if (lesson.videos && lesson.videos.length > 0) {
+    content += `## Video Resources\n\n`;
+    lesson.videos.forEach((video: any) => {
+      content += `### ${video.title}\n`;
+      content += `**Duration:** ${video.duration}\n\n`;
+      content += `${video.description}\n\n`;
+      content += `[Watch Video](${video.url})\n\n`;
+    });
+  }
+  
+  content += `## Summary\n\n${lesson.summary}\n\n`;
+  
+  if (lesson.furtherReading && lesson.furtherReading.length > 0) {
+    content += `## Further Reading\n\n`;
+    lesson.furtherReading.forEach((resource: any) => {
+      content += `- [${resource.title}](${resource.url}) - ${resource.description}\n`;
+    });
+    content += '\n';
+  }
+  
+  return content;
+}
 
 export const createCourse = async (courseData: Partial<Course>): Promise<Course> => {
   const user = useAuthStore.getState().user;
