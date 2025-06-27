@@ -120,7 +120,7 @@ class RealYouTubeService {
     }
 
     // Step 2: Get detailed video information
-    const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
+    const videoIds = searchData.items.map((item: { id: { videoId: string } }) => item.id.videoId).join(',');
 
     const detailsParams = new URLSearchParams({
       part: 'snippet,contentDetails,statistics',
@@ -138,7 +138,27 @@ class RealYouTubeService {
 
     const detailsData = await detailsResponse.json();
 
-    return detailsData.items.map((item: any) => ({
+    return detailsData.items.map((item: {
+      id: string;
+      snippet: {
+        title: string;
+        description: string;
+        thumbnails: {
+          high?: { url: string };
+          medium?: { url: string };
+          default: { url: string };
+        };
+        channelTitle: string;
+        publishedAt: string;
+      };
+      contentDetails: {
+        duration: string;
+      };
+      statistics: {
+        viewCount?: string;
+        likeCount?: string;
+      };
+    }) => ({
       id: item.id,
       title: item.snippet.title,
       description: item.snippet.description || '',
