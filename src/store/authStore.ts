@@ -11,11 +11,17 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   firebaseUser: null,
   loading: true,
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    console.log('Setting user:', user?.email || 'null');
+    set({ user });
+  },
   setFirebaseUser: (firebaseUser) => set({ firebaseUser }),
-  setLoading: (loading) => set({ loading }),
+  setLoading: (loading) => {
+    console.log('Setting loading:', loading);
+    set({ loading });
+  },
 }));

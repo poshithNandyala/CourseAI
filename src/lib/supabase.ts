@@ -13,7 +13,11 @@ const isConfigured = supabaseUrl &&
                     supabaseUrl.startsWith('http');
 
 if (!isConfigured) {
-  console.warn('Supabase environment variables are not configured. Running in demo mode.');
+  console.warn('⚠️ Supabase environment variables are not configured. Running in demo mode.');
+  console.log('To connect to Supabase:');
+  console.log('1. Create a Supabase project at https://supabase.com');
+  console.log('2. Copy your project URL and anon key');
+  console.log('3. Update your .env file with the correct values');
   
   // Create a mock client to prevent crashes during development
   supabase = {
@@ -25,7 +29,10 @@ if (!isConfigured) {
       resetPasswordForEmail: () => Promise.resolve({ error: new Error('Supabase not configured') }),
       onAuthStateChange: (callback: any) => {
         // Immediately call with no session to indicate no user
-        setTimeout(() => callback('SIGNED_OUT', null), 0);
+        setTimeout(() => {
+          console.log('Mock auth: calling callback with SIGNED_OUT');
+          callback('SIGNED_OUT', null);
+        }, 100);
         return { data: { subscription: { unsubscribe: () => {} } } };
       },
       getUser: () => Promise.resolve({ data: { user: null }, error: null })
@@ -52,6 +59,7 @@ if (!isConfigured) {
     })
   };
 } else {
+  console.log('✅ Supabase configured successfully');
   supabase = createClient(supabaseUrl, supabaseAnonKey);
 }
 
