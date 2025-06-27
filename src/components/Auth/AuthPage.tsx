@@ -18,7 +18,7 @@ export const AuthPage: React.FC = () => {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      // Note: User will be redirected to Google, then back to dashboard
+      // User will be redirected to Google, then back to dashboard
     } catch (error) {
       console.error('Google sign-in failed:', error);
     }
@@ -27,7 +27,7 @@ export const AuthPage: React.FC = () => {
   const handleGitHubSignIn = async () => {
     try {
       await signInWithGitHub();
-      // Note: User will be redirected to GitHub, then back to dashboard
+      // User will be redirected to GitHub, then back to dashboard
     } catch (error) {
       console.error('GitHub sign-in failed:', error);
     }

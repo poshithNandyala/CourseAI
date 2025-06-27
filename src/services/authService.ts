@@ -9,15 +9,12 @@ export const signInWithGoogle = async () => {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/dashboard`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
       }
     });
 
     if (error) {
       console.error('Supabase OAuth error:', error);
+      toast.error(error.message || 'Failed to sign in with Google');
       throw error;
     }
 
@@ -41,6 +38,7 @@ export const signInWithGitHub = async () => {
 
     if (error) {
       console.error('Supabase OAuth error:', error);
+      toast.error(error.message || 'Failed to sign in with GitHub');
       throw error;
     }
 
