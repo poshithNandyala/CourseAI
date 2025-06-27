@@ -1,50 +1,60 @@
-📚 CourseAI — One Prompt to Learn Anything
-CourseAI is an AI-powered course generator that transforms a single prompt into a full-fledged educational experience — complete with curated YouTube videos, interactive comments, and sleek UI.
+# 📚 CourseAI — *One Prompt to Learn Anything*
 
-🚧 Under active development: For best results, run locally to avoid API quota issues.
+**CourseAI** is an AI-powered course generator that transforms a single prompt into a full-fledged educational experience—complete with curated YouTube videos, interactive comments, and a sleek user interface.
 
-🚀 Features
-✨ Generate complete educational courses using a single prompt via Gemini AI
+> 🚧 **Under active development:** For the best results, it is recommended to **run the application locally** to avoid potential API quota issues.
 
-🎥 Curated YouTube video content for each topic using the YouTube Data API
+-----
 
-💬 Built-in commenting system powered by Supabase
+## 🚀 Features
 
-🌗 Beautiful UI with Dark/Light Mode
+  - ✨ **Generate Complete Educational Courses:** Utilizes **Gemini AI** to create comprehensive course content from a single prompt.
+  - 🎥 **Curated YouTube Video Content:** Integrates relevant YouTube videos for each topic using the **YouTube Data API**.
+  - 💬 **Built-in Commenting System:** Powered by **Supabase** to facilitate user discussions.
+  - 🌗 **Beautiful UI with Dark/Light Mode:** Offers a visually appealing and customizable user interface.
+  - ⚡ **Instant Deployment-Ready:** Includes a Vercel configuration for seamless deployment.
 
-⚡ Instant deployment-ready (Vercel config included)
+-----
 
-🔧 Tech Stack
-Layer	Tech
-Frontend	React + TypeScript + Vite
-Styling	Tailwind CSS
-AI API	Gemini (Google DeepMind)
-Video API	YouTube Data API
-Backend	Supabase (no auth yet)
-Hosting	Vercel
+## 🔧 Tech Stack
 
-⚙️ Getting Started – Local Development
-1️⃣ Clone the Repo
-bash
-Copy
-Edit
+| Layer | Tech |
+| :--- | :--- |
+| **Frontend** | React + TypeScript + Vite |
+| **Styling** | Tailwind CSS |
+| **AI API** | Gemini (Google DeepMind) |
+| **Video API** | YouTube Data API |
+| **Backend** | Supabase (Authentication not yet implemented) |
+| **Hosting** | Vercel |
+
+-----
+
+## ⚙️ Getting Started – Local Development
+
+### 1️⃣ Clone the Repo
+
+```bash
 git clone https://github.com/poshithNandyala/CourseAI.git
 cd CourseAI
-2️⃣ Install Dependencies
-bash
-Copy
-Edit
-npm install
-3️⃣ Setup Environment Variables
-bash
-Copy
-Edit
-cp .env.example .env
-Then fill in your credentials in .env:
+```
 
-env
-Copy
-Edit
+### 2️⃣ Install Dependencies
+
+```bash
+npm install
+```
+
+### 3️⃣ Setup Environment Variables
+
+Create a `.env` file by copying the example file:
+
+```bash
+cp .env.example .env
+```
+
+Then, fill in your credentials in the `.env` file:
+
+```env
 # Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -54,79 +64,97 @@ VITE_YOUTUBE_API_KEY=your_youtube_api_key
 
 # Gemini AI API Configuration
 VITE_GEMINI_API_KEY=your_gemini_api_key
-4️⃣ Run the App
-bash
-Copy
-Edit
+```
+
+### 4️⃣ Run the App
+
+```bash
 npm run dev
-Open your browser: 👉 http://localhost:5173
+```
 
-🌐 Vercel Deployment
-🔑 Add Environment Variables
-In Vercel Dashboard:
-Project → Settings → Environment Variables
+Open your browser and navigate to: 👉 `http://localhost:5173`
 
-Add:
+-----
 
-env
-Copy
-Edit
+## 🌐 Vercel Deployment
+
+### 🔑 Add Environment Variables
+
+In your Vercel Dashboard, navigate to:
+**Project → Settings → Environment Variables**
+
+Add the following variables:
+
+```
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
 VITE_YOUTUBE_API_KEY
 VITE_GEMINI_API_KEY
-🔁 Enable SPA Routing
-Create vercel.json in the root:
+```
 
-json
-Copy
-Edit
+### 🔁 Enable SPA Routing
+
+Create a `vercel.json` file in the root of your project with the following content:
+
+```json
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ]
 }
-🚀 Push to Deploy
-bash
-Copy
-Edit
+```
+
+### 🚀 Push to Deploy
+
+Commit your changes and push to your Git repository:
+
+```bash
 git add .
 git commit -m "Add Vercel config and env setup"
 git push
-Vercel will auto-deploy your app 🎉
+```
 
-📁 Project Structure
-bash
-Copy
-Edit
+Vercel will automatically deploy your application. 🎉
+
+-----
+
+## 📁 Project Structure
+
+```
 .
 ├── src/
-│   ├── components/        # UI components
-│   ├── pages/             # Views (Home, Course)
-│   ├── services/          # API integrations (YouTube, Gemini, Supabase)
-│   └── App.tsx            # Main app structure
+│   ├── components/      # UI components
+│   ├── pages/           # Views (Home, Course)
+│   ├── services/        # API integrations (YouTube, Gemini, Supabase)
+│   └── App.tsx          # Main app structure
 ├── public/
-│   └── _redirects         # SPA fallback for Netlify
-├── vercel.json            # Vercel routing config
-└── .env.example           # Example env file
-📝 Notes & Recommendations
-⚠️ API Quotas: YouTube and Gemini APIs have rate limits — expect failures if exceeded.
+│   └── _redirects       # SPA fallback for Netlify
+├── vercel.json          # Vercel routing config
+└── .env.example         # Example env file
+```
 
-🔐 Auth: Sign-in/Sign-up features coming soon.
+-----
 
-🧪 Best Tip: Use local development for smooth experience (no API quota throttling).
+## 📝 Notes & Recommendations
 
-🙏 Credits
-🤖 Course generation: Gemini AI (Google DeepMind)
+  - ⚠️ **API Quotas:** The YouTube and Gemini APIs have rate limits. Expect potential failures if these limits are exceeded.
+  - 🔐 **Authentication:** Sign-in/Sign-up features are planned for a future release.
+  - 🧪 **Best Tip:** For the smoothest experience and to avoid API quota throttling, use the local development environment.
 
-📺 Video curation: YouTube Data API
+-----
 
-💬 Comments backend: Supabase
+## 🙏 Credits
 
-⚡ Architecture: Bolt AI
+  - 🤖 **Course Generation:** Gemini AI (Google DeepMind)
+  - 📺 **Video Curation:** YouTube Data API
+  - 💬 **Comments Backend:** Supabase
+  - ⚡ **Architecture Inspiration:** Bolt AI
 
-💡 Contributing
-We welcome contributions!
-🛠 Feel free to open issues or submit pull requests.
-This project is in active development — your ideas matter!
+-----
 
+## 💡 Contributing
+
+We welcome contributions to CourseAI\!
+
+  - 🛠 Feel free to open issues or submit pull requests.
+  - This project is in active development, and your ideas are valuable\!
