@@ -83,7 +83,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
         )}
       </div>
 
-      {/* Video Info - Only show if not fullscreen */}
+      {/* Video Info - Only show if not fullscreen - FIXED TEXT COLORS */}
       {!isFullscreen && (
         <div className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">

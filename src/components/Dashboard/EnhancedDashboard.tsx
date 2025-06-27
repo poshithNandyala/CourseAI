@@ -76,8 +76,8 @@ export const EnhancedDashboard: React.FC = () => {
     try {
       const courseWithContent = await courseManagementService.fetchCourseWithContent(courseId);
       if (courseWithContent) {
-        // Navigate to course view with the fetched content
-        navigate(`/course/${courseId}`, { state: { courseData: courseWithContent } });
+        // Navigate to private course view with the fetched content
+        navigate(`/my-course/${courseId}`, { state: { courseData: courseWithContent } });
       } else {
         toast.error('Failed to load course content');
       }
