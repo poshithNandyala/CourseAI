@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Eye, EyeOff, Users, Star, Calendar, Edit, Trash2, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, BookOpen, Eye, EyeOff, Users, Star, Calendar, Edit, Trash2, ExternalLink, Play } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Course } from '../../types';
-import { fetchCourses } from '../../services/courseService';
-import { enhancedCourseService } from '../../services/enhancedCourseService';
+import { courseManagementService } from '../../services/courseManagementService';
 import { useAuthStore } from '../../store/authStore';
 import { useCourseStore } from '../../store/courseStore';
 import toast from 'react-hot-toast';
 
 export const EnhancedDashboard: React.FC = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const { courses, setCourses } = useCourseStore();
   const [loading, setLoading] = useState(true);
 
@@ -33,12 +33,12 @@ export const EnhancedDashboard: React.FC = () => {
     try {
       console.log('📚 Loading courses for user:', user.email);
       setLoading(true);
-      const allCourses = await fetchCourses();
-      const userCourses = allCourses.filter(course => course.creator_id === user.id);
+      const userCourses = await courseManagementService.fetchUserCourses();
       console.log('✅ Loaded', userCourses.length, 'courses for user');
       setCourses(userCourses);
     } catch (error) {
       console.error('❌ Error loading courses:', error);
+      toast.error('Failed to load your courses');
     } finally {
       setLoading(false);
     }
@@ -47,9 +47,9 @@ export const EnhancedDashboard: React.FC = () => {
   const handlePublishToggle = async (courseId: string, isCurrentlyPublished: boolean) => {
     try {
       if (isCurrentlyPublished) {
-        await enhancedCourseService.unpublishCourse(courseId);
+        await courseManagementService.unpublishCourse(courseId);
       } else {
-        await enhancedCourseService.publishCourse(courseId);
+        await courseManagementService.publishCourse(courseId);
       }
       
       // Refresh courses
@@ -59,18 +59,31 @@ export const EnhancedDashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteCourse = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+  const handleDeleteCourse = async (courseId: string, courseTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${courseTitle}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      // In a real implementation, you'd call a delete API
-      toast.success('Course deleted successfully');
+      await courseManagementService.deleteCourse(courseId);
       await loadUserCourses();
     } catch (error) {
       console.error('Error deleting course:', error);
-      toast.error('Failed to delete course');
+    }
+  };
+
+  const handleViewCourse = async (courseId: string) => {
+    try {
+      const courseWithContent = await courseManagementService.fetchCourseWithContent(courseId);
+      if (courseWithContent) {
+        // Navigate to course view with the fetched content
+        navigate(`/course/${courseId}`, { state: { courseData: courseWithContent } });
+      } else {
+        toast.error('Failed to load course content');
+      }
+    } catch (error) {
+      console.error('Error fetching course content:', error);
+      toast.error('Failed to load course content');
     }
   };
 
@@ -88,15 +101,15 @@ export const EnhancedDashboard: React.FC = () => {
       color: 'from-accent-500 to-accent-600'
     },
     {
-      label: 'Total Likes',
-      value: courses.reduce((sum, c) => sum + c.likes_count, 0),
-      icon: Star,
+      label: 'Drafts',
+      value: courses.filter(c => !c.is_published).length,
+      icon: EyeOff,
       color: 'from-warning-500 to-warning-600'
     },
     {
-      label: 'Avg Rating',
-      value: courses.length > 0 ? (courses.reduce((sum, c) => sum + c.rating, 0) / courses.length).toFixed(1) : '0.0',
-      icon: Users,
+      label: 'Total Likes',
+      value: courses.reduce((sum, c) => sum + c.likes_count, 0),
+      icon: Star,
       color: 'from-success-500 to-success-600'
     }
   ];
@@ -107,6 +120,7 @@ export const EnhancedDashboard: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center py-12">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-soft border border-gray-200 dark:border-gray-800">
+            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Please sign in to view your dashboard
             </h1>
@@ -135,7 +149,7 @@ export const EnhancedDashboard: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-              Welcome back, {user.name}!
+              My Courses
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Manage your courses, track performance, and create new content
@@ -178,10 +192,6 @@ export const EnhancedDashboard: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your Courses</h2>
-        </div>
-
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto"></div>
@@ -252,33 +262,37 @@ export const EnhancedDashboard: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="flex space-x-2">
-                  <Link
-                    to={`/course/${course.id}/edit`}
-                    className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white text-center px-3 py-2.5 rounded-xl text-sm font-medium hover:from-brand-600 hover:to-accent-600 transition-all duration-200 flex items-center justify-center space-x-1"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span>Edit</span>
-                  </Link>
-                  
+                <div className="space-y-2">
+                  {/* View Course Button */}
                   <button
-                    onClick={() => handlePublishToggle(course.id, course.is_published)}
-                    className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-1 ${
-                      course.is_published
-                        ? 'bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-300 hover:bg-warning-200 dark:hover:bg-warning-800/50'
-                        : 'bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-300 hover:bg-success-200 dark:hover:bg-success-800/50'
-                    }`}
+                    onClick={() => handleViewCourse(course.id)}
+                    className="w-full bg-gradient-to-r from-brand-500 to-accent-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:from-brand-600 hover:to-accent-600 transition-all duration-200 flex items-center justify-center space-x-2"
                   >
-                    {course.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    <span>{course.is_published ? 'Unpublish' : 'Publish'}</span>
+                    <Play className="h-4 w-4" />
+                    <span>View Course</span>
                   </button>
-                  
-                  <Link
-                    to={`/course/${course.id}`}
-                    className="px-3 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 flex items-center justify-center"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handlePublishToggle(course.id, course.is_published)}
+                      className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-1 ${
+                        course.is_published
+                          ? 'bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-300 hover:bg-warning-200 dark:hover:bg-warning-800/50'
+                          : 'bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-300 hover:bg-success-200 dark:hover:bg-success-800/50'
+                      }`}
+                    >
+                      {course.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <span>{course.is_published ? 'Unpublish' : 'Publish'}</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDeleteCourse(course.id, course.title)}
+                      className="px-3 py-2 bg-error-100 dark:bg-error-900/30 text-error-700 dark:text-error-300 rounded-xl text-sm font-medium hover:bg-error-200 dark:hover:bg-error-800/50 transition-all duration-200 flex items-center justify-center"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}

@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Star, Users, Clock, BookOpen } from 'lucide-react';
+import { Search, Filter, Star, Users, Clock, BookOpen, Play } from 'lucide-react';
 import { Course } from '../../types';
-import { fetchCourses } from '../../services/courseService';
+import { courseManagementService } from '../../services/courseManagementService';
+import { useAuthStore } from '../../store/authStore';
 import { Card } from '../UI/Card';
 import { Button } from '../UI/Button';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export const ExplorePage: React.FC = () => {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,13 +24,29 @@ export const ExplorePage: React.FC = () => {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const publishedCourses = await fetchCourses(true);
+      const publishedCourses = await courseManagementService.fetchPublishedCourses(searchTerm, selectedDifficulty);
       setCourses(publishedCourses);
     } catch (error) {
       console.error('Error loading courses:', error);
+      toast.error('Failed to load courses');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    loadCourses();
+  };
+
+  const handleViewCourse = (courseId: string) => {
+    if (!user) {
+      toast.error('Please sign in to view course content');
+      navigate('/signin');
+      return;
+    }
+    
+    // For public courses, we can navigate directly
+    navigate(`/course/${courseId}`);
   };
 
   const filteredCourses = courses.filter(course => {
@@ -68,6 +89,7 @@ export const ExplorePage: React.FC = () => {
                 placeholder="Search courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               />
             </div>
@@ -85,6 +107,9 @@ export const ExplorePage: React.FC = () => {
                 ))}
               </select>
             </div>
+            <Button onClick={handleSearch} variant="primary">
+              Search
+            </Button>
           </div>
         </Card>
       </motion.div>
@@ -107,6 +132,14 @@ export const ExplorePage: React.FC = () => {
               : 'Be the first to create and publish a course!'
             }
           </p>
+          {user && (
+            <Button 
+              onClick={() => navigate('/create')}
+              variant="primary"
+            >
+              Create Course
+            </Button>
+          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -178,7 +211,12 @@ export const ExplorePage: React.FC = () => {
                     ))}
                   </div>
 
-                  <Button variant="primary" className="w-full">
+                  <Button 
+                    variant="primary" 
+                    className="w-full"
+                    onClick={() => handleViewCourse(course.id)}
+                    icon={<Play className="h-4 w-4" />}
+                  >
                     View Course
                   </Button>
                 </div>
