@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Course, Lesson } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { geminiCourseService, GeminiCourseData } from './geminiCourseService';
-import { YouTubeVideo } from './realYouTubeService';
+import { supabaseYouTubeService, YouTubeVideo } from './supabaseYouTubeService';
 import toast from 'react-hot-toast';
 
 export interface CourseWithLessons extends Course {
@@ -25,14 +25,14 @@ class CourseManagementService {
            url.startsWith('http');
   }
 
-  // Auto-save course during generation
+  // Auto-save course during generation with proper video storage
   async autoSaveCourse(courseData: GeminiCourseData): Promise<Course> {
     const user = useAuthStore.getState().user;
     if (!user) {
       throw new Error('User must be signed in to create courses');
     }
 
-    console.log('💾 Auto-saving course with video data to database...');
+    console.log('💾 Auto-saving course with video data to Supabase...');
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - create mock course with video data
@@ -92,7 +92,7 @@ class CourseManagementService {
 
       if (courseError) throw courseError;
 
-      // Create lessons in database with ALL video information stored
+      // Create lessons in database with ALL video information stored in video_data column
       const lessonsToInsert = courseData.lessons.map(lesson => ({
         course_id: course.id,
         title: lesson.title,
@@ -102,7 +102,7 @@ class CourseManagementService {
         video_url: lesson.video_url,
         quiz_questions: lesson.quiz_questions,
         resources: lesson.resources,
-        // Store complete video data for retrieval
+        // CRITICAL: Store complete video data in the video_data JSONB column
         video_data: lesson.videos
       }));
 
@@ -112,12 +112,12 @@ class CourseManagementService {
 
       if (lessonsError) throw lessonsError;
 
-      console.log('✅ Course with video data auto-saved successfully');
+      console.log('✅ Course with video data auto-saved successfully to Supabase');
       toast.success('Course with video content automatically saved to your library!');
       return course;
 
     } catch (error) {
-      console.error('❌ Error auto-saving course with videos:', error);
+      console.error('❌ Error auto-saving course with videos to Supabase:', error);
       toast.error('Failed to save course automatically');
       throw error;
     }
@@ -131,7 +131,7 @@ class CourseManagementService {
       return [];
     }
 
-    console.log('📚 Fetching courses for user:', user.email);
+    console.log('📚 Fetching courses for user from Supabase:', user.email);
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - get from localStorage
@@ -156,22 +156,22 @@ class CourseManagementService {
 
       if (error) throw error;
 
-      console.log('✅ Loaded', data?.length || 0, 'courses for user');
+      console.log('✅ Loaded', data?.length || 0, 'courses for user from Supabase');
       return data || [];
     } catch (error) {
-      console.error('❌ Error fetching user courses:', error);
+      console.error('❌ Error fetching user courses from Supabase:', error);
       return [];
     }
   }
 
-  // Fetch course with all lessons and video content
+  // Fetch course with all lessons and video content from Supabase
   async fetchCourseWithContent(courseId: string): Promise<CourseWithLessons | null> {
     const user = useAuthStore.getState().user;
     if (!user) {
       throw new Error('User must be signed in to view course content');
     }
 
-    console.log('📖 Fetching course content with videos for:', courseId);
+    console.log('📖 Fetching course content with videos from Supabase for:', courseId);
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - get course with video data
@@ -186,11 +186,12 @@ class CourseManagementService {
         videos: lesson.video_data || [] // Restore video data
       }));
 
+      console.log('✅ Retrieved course from demo storage with', enhancedLessons.length, 'lessons');
       return { ...course, lessons: enhancedLessons };
     }
 
     try {
-      // Fetch course
+      // Fetch course from Supabase
       const { data: course, error: courseError } = await supabase
         .from('courses')
         .select(`
@@ -203,7 +204,7 @@ class CourseManagementService {
 
       if (courseError) throw courseError;
 
-      // Fetch lessons with video data
+      // Fetch lessons with video data from Supabase
       const { data: lessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('*')
@@ -212,29 +213,31 @@ class CourseManagementService {
 
       if (lessonsError) throw lessonsError;
 
-      // Enhance lessons with video data
+      // Enhance lessons with video data from the video_data column
       const enhancedLessons: EnhancedLesson[] = (lessons || []).map(lesson => ({
         ...lesson,
-        videos: lesson.video_data || [] // Restore stored video data
+        videos: lesson.video_data || [] // Restore stored video data from JSONB column
       }));
 
-      console.log('✅ Fetched course with', enhancedLessons.length, 'lessons and video data');
+      console.log('✅ Fetched course from Supabase with', enhancedLessons.length, 'lessons and video data');
+      console.log('🎥 Total videos found:', enhancedLessons.reduce((sum, lesson) => sum + lesson.videos.length, 0));
+      
       return { ...course, lessons: enhancedLessons };
 
     } catch (error) {
-      console.error('❌ Error fetching course content with videos:', error);
+      console.error('❌ Error fetching course content with videos from Supabase:', error);
       return null;
     }
   }
 
-  // Publish course
+  // Publish course in Supabase
   async publishCourse(courseId: string): Promise<void> {
     const user = useAuthStore.getState().user;
     if (!user) {
       throw new Error('User must be signed in to publish courses');
     }
 
-    console.log('📢 Publishing course:', courseId);
+    console.log('📢 Publishing course in Supabase:', courseId);
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - update localStorage
@@ -262,23 +265,23 @@ class CourseManagementService {
 
       if (error) throw error;
       
-      console.log('✅ Course published successfully');
+      console.log('✅ Course published successfully in Supabase');
       toast.success('Course published! It\'s now discoverable by other users.');
     } catch (error) {
-      console.error('❌ Error publishing course:', error);
+      console.error('❌ Error publishing course in Supabase:', error);
       toast.error('Failed to publish course');
       throw error;
     }
   }
 
-  // Unpublish course
+  // Unpublish course in Supabase
   async unpublishCourse(courseId: string): Promise<void> {
     const user = useAuthStore.getState().user;
     if (!user) {
       throw new Error('User must be signed in to unpublish courses');
     }
 
-    console.log('📝 Unpublishing course:', courseId);
+    console.log('📝 Unpublishing course in Supabase:', courseId);
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - update localStorage
@@ -306,23 +309,23 @@ class CourseManagementService {
 
       if (error) throw error;
       
-      console.log('✅ Course unpublished successfully');
+      console.log('✅ Course unpublished successfully in Supabase');
       toast.success('Course unpublished successfully!');
     } catch (error) {
-      console.error('❌ Error unpublishing course:', error);
+      console.error('❌ Error unpublishing course in Supabase:', error);
       toast.error('Failed to unpublish course');
       throw error;
     }
   }
 
-  // Delete course
+  // Delete course from Supabase
   async deleteCourse(courseId: string): Promise<void> {
     const user = useAuthStore.getState().user;
     if (!user) {
       throw new Error('User must be signed in to delete courses');
     }
 
-    console.log('🗑️ Deleting course:', courseId);
+    console.log('🗑️ Deleting course from Supabase:', courseId);
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - remove from localStorage
@@ -344,10 +347,10 @@ class CourseManagementService {
 
       if (error) throw error;
       
-      console.log('✅ Course deleted successfully');
+      console.log('✅ Course deleted successfully from Supabase');
       toast.success('Course deleted successfully!');
     } catch (error) {
-      console.error('❌ Error deleting course:', error);
+      console.error('❌ Error deleting course from Supabase:', error);
       toast.error('Failed to delete course');
       throw error;
     }
@@ -355,7 +358,7 @@ class CourseManagementService {
 
   // Fetch published courses for exploration (public access)
   async fetchPublishedCourses(searchQuery?: string, difficulty?: string): Promise<Course[]> {
-    console.log('🌍 Fetching published courses for exploration');
+    console.log('🌍 Fetching published courses for exploration from Supabase');
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - return mock published courses
@@ -417,10 +420,10 @@ class CourseManagementService {
 
       if (error) throw error;
       
-      console.log('✅ Fetched', data?.length || 0, 'published courses');
+      console.log('✅ Fetched', data?.length || 0, 'published courses from Supabase');
       return data || [];
     } catch (error) {
-      console.error('❌ Error fetching published courses:', error);
+      console.error('❌ Error fetching published courses from Supabase:', error);
       return [];
     }
   }

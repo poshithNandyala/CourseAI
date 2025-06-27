@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Course, Lesson } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { geminiAPI, ExtractedTopic, GeminiCourseStructure } from './geminiApi';
-import { realYouTubeService, YouTubeVideo } from './realYouTubeService';
+import { supabaseYouTubeService, YouTubeVideo } from './supabaseYouTubeService';
 import { quizService } from './quizService';
 import toast from 'react-hot-toast';
 
@@ -29,6 +29,17 @@ export interface GeminiLesson extends Lesson {
 }
 
 class GeminiCourseService {
+  private isSupabaseConfigured(): boolean {
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    return url && 
+           key && 
+           !url.includes('your_supabase_project_url') && 
+           !key.includes('your_supabase_anon_key') &&
+           url.startsWith('http');
+  }
+
   async generateCourseWithGemini(
     userPrompt: string,
     options: {
@@ -119,9 +130,9 @@ class GeminiCourseService {
       console.log(`🔄 Processing lesson ${i + 1}/${courseStructure.subtopics.length}: "${subtopic.title}"`);
 
       try {
-        // Fetch REAL YouTube videos using the new service
+        // Fetch REAL YouTube videos using the Supabase service
         console.log(`  🎬 Searching for REAL videos...`);
-        const videos = await realYouTubeService.searchVideosForTopic(
+        const videos = await supabaseYouTubeService.searchAndStoreVideos(
           courseStructure.mainTopic,
           subtopic.title,
           maxVideosPerSubtopic
@@ -302,18 +313,9 @@ class GeminiCourseService {
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('User must be authenticated');
 
-    const isSupabaseConfigured = () => {
-      const url = import.meta.env.VITE_SUPABASE_URL;
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      return url && 
-             key && 
-             !url.includes('your_supabase_project_url') && 
-             !key.includes('your_supabase_anon_key') &&
-             url.startsWith('http');
-    };
+    console.log('💾 Saving course with video data to Supabase...');
 
-    if (!isSupabaseConfigured()) {
+    if (!this.isSupabaseConfigured()) {
       // Return mock course for demo
       const mockCourse: Course = {
         id: Math.random().toString(36).substr(2, 9),
@@ -362,8 +364,8 @@ class GeminiCourseService {
         video_url: lesson.video_url,
         quiz_questions: lesson.quiz_questions,
         resources: lesson.resources,
-        // Store complete video data in a custom field
-        video_data: lesson.videos // This stores all YouTube video information
+        // Store complete video data in the video_data column
+        video_data: lesson.videos
       }));
 
       const { error: lessonsError } = await supabase
@@ -372,29 +374,19 @@ class GeminiCourseService {
 
       if (lessonsError) throw lessonsError;
 
+      console.log('✅ Course with video data saved successfully to Supabase');
       toast.success('Course saved successfully to database!');
       return course;
 
     } catch (error) {
-      console.error('Error saving course:', error);
+      console.error('❌ Error saving course with video data:', error);
       toast.error('Failed to save course to database');
       throw error;
     }
   }
 
   async publishCourse(courseId: string): Promise<void> {
-    const isSupabaseConfigured = () => {
-      const url = import.meta.env.VITE_SUPABASE_URL;
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      return url && 
-             key && 
-             !url.includes('your_supabase_project_url') && 
-             !key.includes('your_supabase_anon_key') &&
-             url.startsWith('http');
-    };
-
-    if (!isSupabaseConfigured()) {
+    if (!this.isSupabaseConfigured()) {
       toast.success('Course published successfully! (Demo mode)');
       return;
     }
