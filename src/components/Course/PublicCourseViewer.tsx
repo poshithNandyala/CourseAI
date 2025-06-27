@@ -617,7 +617,7 @@ export const PublicCourseViewer: React.FC = () => {
                   comments.map((comment) => (
                     <div key={comment.id} className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                       <div className="flex items-start space-x-4">
-                        {comment.user?.avatar_url ? (
+                        {comment.user && comment.user.avatar_url ? (
                           <img
                             src={comment.user.avatar_url}
                             alt={comment.user.name || 'Anonymous'}
