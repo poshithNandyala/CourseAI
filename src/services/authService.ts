@@ -216,8 +216,11 @@ export const initializeAuth = () => {
   // If using mock client, just set loading to false and return
   if (isMockClient) {
     console.warn('Supabase not configured - running in demo mode');
-    useAuthStore.getState().setLoading(false);
-    useAuthStore.getState().setUser(null);
+    // Use setTimeout to ensure this runs after the component mounts
+    setTimeout(() => {
+      useAuthStore.getState().setLoading(false);
+      useAuthStore.getState().setUser(null);
+    }, 100);
     return () => {}; // Return empty unsubscribe function
   }
 
