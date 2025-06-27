@@ -1,34 +1,37 @@
-# 📚 CourseAI – One Prompt to Learn Anything
+📚 CourseAI – One Prompt to Learn Anything
+CourseAI is an AI-powered course generator that turns a single prompt into a complete educational course — complete with real YouTube video integration. No login required.
 
-**CourseAI** is an AI-powered course generator that turns a single prompt into a full educational course with real YouTube video integration — no login required.
+🚧 Note: The platform is under active development. Sign-in and sign-up features are being added, but there are deployment issues due to limited API credits. For now, we recommend running it locally for the best experience.
 
----
+🚀 Features
+✨ Generate entire educational courses from a single prompt using Gemini AI
 
-## 🚀 Features
+🎥 Curated YouTube videos integrated for each topic via YouTube Data API
 
-- ✨ Generate entire courses with a single prompt using **Gemini AI**
-- 🎥 Integrates YouTube videos relevant to each topic
-- 💬 Comment system for each course (powered by Supabase)
-- 🌗 Beautiful UI with Light/Dark mode support
-- ⚡ Deployed on **Vercel** for instant access
+💬 Built-in comment system powered by Supabase
 
----
+🌗 Beautiful UI with Light/Dark Mode support
 
-## 🔧 Tech Stack
+⚡ Instant access with Vercel deployment-ready configuration
 
-- **React + TypeScript + Vite**
-- **Tailwind CSS** for styling
-- **Gemini AI API** for intelligent content generation
-- **YouTube Data API** for real video recommendations
-- **Supabase** for backend & comments (auth removed)
+🔧 Tech Stack
+Frontend: React + TypeScript + Vite
 
----
+Styling: Tailwind CSS
 
-## ⚙️ Getting Started (Local Development)
+AI Integration: Gemini AI API (Google DeepMind)
 
-### 1. Clone the Repository
+Video Integration: YouTube Data API
 
-```bash
+Backend & Comments: Supabase (no auth currently)
+
+Deployment: Vercel
+
+⚙️ Getting Started (Local Development)
+1. Clone the Repository
+bash
+Copy
+Edit
 git clone https://github.com/poshithNandyala/CourseAI.git
 cd CourseAI
 2. Install Dependencies
@@ -37,13 +40,13 @@ Copy
 Edit
 npm install
 3. Setup Environment Variables
-Create a .env file:
+Copy the example env file and add your API keys:
 
 bash
 Copy
 Edit
 cp .env.example .env
-Then fill it with your API keys:
+Then fill in the values:
 
 env
 Copy
@@ -57,22 +60,24 @@ VITE_YOUTUBE_API_KEY=your_youtube_api_key
 
 # Gemini AI API Configuration
 VITE_GEMINI_API_KEY=your_gemini_api_key
-4. Run Locally
+4. Run the App Locally
 bash
 Copy
 Edit
 npm run dev
-Visit http://localhost:5173 in your browser.
+Open your browser and visit: http://localhost:5173
 
 🌐 Deployment on Vercel
-CourseAI is Vercel-ready. To deploy:
+CourseAI is ready for deployment on Vercel.
 
 1. Add Environment Variables
-In your Vercel Dashboard:
+In your Vercel dashboard, go to:
 
-Go to Project → Settings → Environment Variables
-
-Add:
+mathematica
+Copy
+Edit
+Project → Settings → Environment Variables
+Add the following:
 
 nginx
 Copy
@@ -81,8 +86,8 @@ VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
 VITE_YOUTUBE_API_KEY
 VITE_GEMINI_API_KEY
-2. SPA Routing (Client-side routing support)
-Create a vercel.json file in your project root:
+2. Enable SPA Routing
+Create a vercel.json file in the root directory:
 
 json
 Copy
@@ -92,15 +97,15 @@ Edit
     { "source": "/(.*)", "destination": "/" }
   ]
 }
-3. Push and Deploy
-Vercel auto-deploys on every push:
-
+3. Push & Deploy
 bash
 Copy
 Edit
 git add .
-git commit -m "Add vercel config and env setup"
+git commit -m "Add Vercel config and env setup"
 git push
+Vercel will auto-deploy your project on every push.
+
 📁 Project Structure
 graphql
 Copy
@@ -109,17 +114,27 @@ Edit
 ├── src/
 │   ├── components/        # Reusable UI components
 │   ├── pages/             # Home and Course detail views
-│   ├── services/          # API functions for YouTube, Gemini, Supabase
-│   └── App.tsx            # App structure
+│   ├── services/          # API functions (YouTube, Gemini, Supabase)
+│   └── App.tsx            # Main App structure
 ├── public/
-│   └── _redirects         # For SPA routing (Netlify)
-├── vercel.json            # For Vercel SPA routing
-└── .env.example           # Sample env vars
+│   └── _redirects         # Netlify SPA routing fallback
+├── vercel.json            # Vercel SPA routing config
+└── .env.example           # Example env variables
+📝 Notes & Recommendations
+⚠️ API Limits: The YouTube Data API and Gemini AI API have usage quotas. If you exceed them, some features may not work.
+
+🔐 Authentication: Sign-in/Sign-up functionality is under development. Expect breaking changes during future updates.
+
+🧪 Development Tip: For now, run locally for best results and to avoid quota limitations.
+
 🙏 Credits
-🛠️ Prompted and generated using Bolt AI
+🤖 Course generation powered by Gemini AI (Google DeepMind)
 
-🤖 Course generation powered by Gemini AI (by Google DeepMind)
+📺 Video content fetched using the YouTube Data API
 
-📺 Real video content fetched from the YouTube Data API
+🔧 Backend and comment system via Supabase
 
-🔧 Backend & comments via Supabase
+⚡ Prompt and architecture powered by Bolt AI
+
+📣 Contributing
+Feel free to open issues or submit PRs! This project is a work in progress and contributions are welcome.
