@@ -54,14 +54,18 @@ export const CourseViewer: React.FC = () => {
       // Check if course data was passed via navigation state
       const courseData = location.state?.courseData as CourseWithLessons;
       if (courseData) {
+        console.log('📖 Using course data from navigation state');
         setCourse(courseData);
         setLoading(false);
         return;
       }
 
-      // Otherwise fetch from database
+      // Otherwise fetch from database with video data
+      console.log('📖 Fetching course with video data from database');
       const fetchedCourse = await courseManagementService.fetchCourseWithContent(id);
       if (fetchedCourse) {
+        console.log('✅ Course loaded with', fetchedCourse.lessons.length, 'lessons');
+        console.log('🎥 Video data available:', fetchedCourse.lessons.some(l => l.videos && l.videos.length > 0));
         setCourse(fetchedCourse);
       } else {
         toast.error('Course not found or you don\'t have access to it');
@@ -81,7 +85,7 @@ export const CourseViewer: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading course...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading course content...</p>
         </div>
       </div>
     );
@@ -107,6 +111,7 @@ export const CourseViewer: React.FC = () => {
 
   const selectedLesson = course.lessons[selectedLessonIndex];
   const hasQuizQuestions = selectedLesson?.quiz_questions && selectedLesson.quiz_questions.length > 0;
+  const hasVideos = selectedLesson?.videos && selectedLesson.videos.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -152,6 +157,10 @@ export const CourseViewer: React.FC = () => {
                 <span className="flex items-center space-x-1">
                   <BookOpen className="h-4 w-4" />
                   <span>{course.lessons.length} lessons</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                  <Youtube className="h-4 w-4 text-red-500" />
+                  <span>{course.lessons.reduce((sum, lesson) => sum + (lesson.videos?.length || 0), 0)} videos</span>
                 </span>
               </div>
             </div>
@@ -213,7 +222,7 @@ export const CourseViewer: React.FC = () => {
                         <h4 className="font-semibold text-gray-900 dark:text-white">{lesson.title}</h4>
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        {lesson.quiz_questions?.length || 0} quiz questions available
+                        {lesson.videos?.length || 0} videos • {lesson.quiz_questions?.length || 0} quiz questions
                       </p>
                     </div>
                     <button
@@ -257,6 +266,16 @@ export const CourseViewer: React.FC = () => {
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       {selectedLesson.title}
                     </h3>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center space-x-1">
+                        <Youtube className="h-4 w-4 text-red-500" />
+                        <span>{selectedLesson.videos?.length || 0} videos</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <HelpCircle className="h-4 w-4 text-green-500" />
+                        <span>{selectedLesson.quiz_questions?.length || 0} quiz questions</span>
+                      </span>
+                    </div>
                   </div>
 
                   {/* Lesson Content */}
@@ -279,26 +298,31 @@ export const CourseViewer: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Video Player if available */}
-                  {selectedLesson.video_url && (
+                  {/* Real YouTube Videos */}
+                  {hasVideos && (
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                         <Youtube className="h-5 w-5 text-red-500" />
-                        <span>Video Content</span>
+                        <span>Real YouTube Videos ({selectedLesson.videos.length})</span>
                       </h4>
-                      <VideoPlayer 
-                        video={{
-                          id: selectedLesson.id,
-                          title: selectedLesson.title,
-                          description: 'Course lesson video',
-                          duration: '10:00',
-                          thumbnailUrl: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-                          channelTitle: 'Course Creator',
-                          viewCount: 1000,
-                          embedUrl: selectedLesson.video_url,
-                          watchUrl: selectedLesson.video_url.replace('/embed/', '/watch?v=')
-                        }}
-                      />
+                      <div className="grid gap-6">
+                        {selectedLesson.videos.map((video, videoIndex) => (
+                          <VideoPlayer 
+                            key={videoIndex} 
+                            video={video}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No Videos Message */}
+                  {!hasVideos && (
+                    <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-2xl">
+                      <Youtube className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400">
+                        No videos available for this lesson
+                      </p>
                     </div>
                   )}
                 </div>

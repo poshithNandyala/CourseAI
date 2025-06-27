@@ -2,10 +2,15 @@ import { supabase } from '../lib/supabase';
 import { Course, Lesson } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { geminiCourseService, GeminiCourseData } from './geminiCourseService';
+import { YouTubeVideo } from './realYouTubeService';
 import toast from 'react-hot-toast';
 
 export interface CourseWithLessons extends Course {
-  lessons: Lesson[];
+  lessons: EnhancedLesson[];
+}
+
+export interface EnhancedLesson extends Lesson {
+  videos: YouTubeVideo[];
 }
 
 class CourseManagementService {
@@ -27,10 +32,10 @@ class CourseManagementService {
       throw new Error('User must be signed in to create courses');
     }
 
-    console.log('💾 Auto-saving course to database...');
+    console.log('💾 Auto-saving course with video data to database...');
 
     if (!this.isSupabaseConfigured()) {
-      // Demo mode - create mock course
+      // Demo mode - create mock course with video data
       const mockCourse: Course = {
         id: Math.random().toString(36).substr(2, 9),
         title: courseData.course.title || 'Untitled Course',
@@ -48,12 +53,21 @@ class CourseManagementService {
         updated_at: new Date().toISOString(),
       };
       
-      // Store in localStorage for demo
-      const existingCourses = JSON.parse(localStorage.getItem('user_courses') || '[]');
-      existingCourses.unshift(mockCourse);
-      localStorage.setItem('user_courses', JSON.stringify(existingCourses));
+      // Store course and lesson data with videos in localStorage for demo
+      const courseWithLessons = {
+        ...mockCourse,
+        lessons: courseData.lessons.map(lesson => ({
+          ...lesson,
+          course_id: mockCourse.id,
+          video_data: lesson.videos // Store complete video information
+        }))
+      };
       
-      toast.success('Course automatically saved! (Demo mode)');
+      const existingCourses = JSON.parse(localStorage.getItem('user_courses_with_videos') || '[]');
+      existingCourses.unshift(courseWithLessons);
+      localStorage.setItem('user_courses_with_videos', JSON.stringify(existingCourses));
+      
+      toast.success('Course with video data automatically saved! (Demo mode)');
       return mockCourse;
     }
 
@@ -78,7 +92,7 @@ class CourseManagementService {
 
       if (courseError) throw courseError;
 
-      // Create lessons in database with all generated content
+      // Create lessons in database with ALL video information stored
       const lessonsToInsert = courseData.lessons.map(lesson => ({
         course_id: course.id,
         title: lesson.title,
@@ -87,7 +101,9 @@ class CourseManagementService {
         order: lesson.order,
         video_url: lesson.video_url,
         quiz_questions: lesson.quiz_questions,
-        resources: lesson.resources
+        resources: lesson.resources,
+        // Store complete video data for retrieval
+        video_data: lesson.videos
       }));
 
       const { error: lessonsError } = await supabase
@@ -96,12 +112,12 @@ class CourseManagementService {
 
       if (lessonsError) throw lessonsError;
 
-      console.log('✅ Course auto-saved successfully');
-      toast.success('Course automatically saved to your library!');
+      console.log('✅ Course with video data auto-saved successfully');
+      toast.success('Course with video content automatically saved to your library!');
       return course;
 
     } catch (error) {
-      console.error('❌ Error auto-saving course:', error);
+      console.error('❌ Error auto-saving course with videos:', error);
       toast.error('Failed to save course automatically');
       throw error;
     }
@@ -119,7 +135,11 @@ class CourseManagementService {
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - get from localStorage
-      const courses = JSON.parse(localStorage.getItem('user_courses') || '[]');
+      const coursesWithVideos = JSON.parse(localStorage.getItem('user_courses_with_videos') || '[]');
+      const courses = coursesWithVideos.map((courseData: any) => {
+        const { lessons, ...course } = courseData;
+        return course;
+      });
       console.log('✅ Loaded', courses.length, 'courses from demo storage');
       return courses;
     }
@@ -144,53 +164,29 @@ class CourseManagementService {
     }
   }
 
-  // Fetch course with all lessons and content
+  // Fetch course with all lessons and video content
   async fetchCourseWithContent(courseId: string): Promise<CourseWithLessons | null> {
     const user = useAuthStore.getState().user;
     if (!user) {
       throw new Error('User must be signed in to view course content');
     }
 
-    console.log('📖 Fetching course content for:', courseId);
+    console.log('📖 Fetching course content with videos for:', courseId);
 
     if (!this.isSupabaseConfigured()) {
-      // Demo mode - mock course with content
-      const courses = JSON.parse(localStorage.getItem('user_courses') || '[]');
-      const course = courses.find((c: Course) => c.id === courseId);
-      if (!course) return null;
+      // Demo mode - get course with video data
+      const coursesWithVideos = JSON.parse(localStorage.getItem('user_courses_with_videos') || '[]');
+      const courseData = coursesWithVideos.find((c: any) => c.id === courseId);
+      if (!courseData) return null;
 
-      // Mock lessons for demo
-      const mockLessons: Lesson[] = [
-        {
-          id: 'lesson-1',
-          course_id: courseId,
-          title: 'Introduction to the Topic',
-          content: '# Introduction\n\nThis is the first lesson of the course...',
-          type: 'article',
-          order: 1,
-          video_url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-          quiz_questions: [
-            {
-              id: 'q1',
-              question: 'What is the main topic of this course?',
-              type: 'multiple_choice',
-              options: ['Option A', 'Option B', 'Option C', 'Option D'],
-              correct_answer: 'Option A',
-              explanation: 'This is the correct answer because...'
-            }
-          ],
-          resources: [
-            {
-              id: 'r1',
-              title: 'Additional Reading',
-              url: 'https://example.com',
-              type: 'article'
-            }
-          ]
-        }
-      ];
+      // Return course with enhanced lessons containing video data
+      const { lessons, ...course } = courseData;
+      const enhancedLessons: EnhancedLesson[] = lessons.map((lesson: any) => ({
+        ...lesson,
+        videos: lesson.video_data || [] // Restore video data
+      }));
 
-      return { ...course, lessons: mockLessons };
+      return { ...course, lessons: enhancedLessons };
     }
 
     try {
@@ -207,7 +203,7 @@ class CourseManagementService {
 
       if (courseError) throw courseError;
 
-      // Fetch lessons
+      // Fetch lessons with video data
       const { data: lessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('*')
@@ -216,11 +212,17 @@ class CourseManagementService {
 
       if (lessonsError) throw lessonsError;
 
-      console.log('✅ Fetched course with', lessons?.length || 0, 'lessons');
-      return { ...course, lessons: lessons || [] };
+      // Enhance lessons with video data
+      const enhancedLessons: EnhancedLesson[] = (lessons || []).map(lesson => ({
+        ...lesson,
+        videos: lesson.video_data || [] // Restore stored video data
+      }));
+
+      console.log('✅ Fetched course with', enhancedLessons.length, 'lessons and video data');
+      return { ...course, lessons: enhancedLessons };
 
     } catch (error) {
-      console.error('❌ Error fetching course content:', error);
+      console.error('❌ Error fetching course content with videos:', error);
       return null;
     }
   }
@@ -236,12 +238,12 @@ class CourseManagementService {
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - update localStorage
-      const courses = JSON.parse(localStorage.getItem('user_courses') || '[]');
-      const courseIndex = courses.findIndex((c: Course) => c.id === courseId);
+      const coursesWithVideos = JSON.parse(localStorage.getItem('user_courses_with_videos') || '[]');
+      const courseIndex = coursesWithVideos.findIndex((c: any) => c.id === courseId);
       if (courseIndex !== -1) {
-        courses[courseIndex].is_published = true;
-        courses[courseIndex].updated_at = new Date().toISOString();
-        localStorage.setItem('user_courses', JSON.stringify(courses));
+        coursesWithVideos[courseIndex].is_published = true;
+        coursesWithVideos[courseIndex].updated_at = new Date().toISOString();
+        localStorage.setItem('user_courses_with_videos', JSON.stringify(coursesWithVideos));
       }
       
       toast.success('Course published successfully! (Demo mode)');
@@ -280,12 +282,12 @@ class CourseManagementService {
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - update localStorage
-      const courses = JSON.parse(localStorage.getItem('user_courses') || '[]');
-      const courseIndex = courses.findIndex((c: Course) => c.id === courseId);
+      const coursesWithVideos = JSON.parse(localStorage.getItem('user_courses_with_videos') || '[]');
+      const courseIndex = coursesWithVideos.findIndex((c: any) => c.id === courseId);
       if (courseIndex !== -1) {
-        courses[courseIndex].is_published = false;
-        courses[courseIndex].updated_at = new Date().toISOString();
-        localStorage.setItem('user_courses', JSON.stringify(courses));
+        coursesWithVideos[courseIndex].is_published = false;
+        coursesWithVideos[courseIndex].updated_at = new Date().toISOString();
+        localStorage.setItem('user_courses_with_videos', JSON.stringify(coursesWithVideos));
       }
       
       toast.success('Course unpublished successfully! (Demo mode)');
@@ -324,9 +326,9 @@ class CourseManagementService {
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - remove from localStorage
-      const courses = JSON.parse(localStorage.getItem('user_courses') || '[]');
-      const filteredCourses = courses.filter((c: Course) => c.id !== courseId);
-      localStorage.setItem('user_courses', JSON.stringify(filteredCourses));
+      const coursesWithVideos = JSON.parse(localStorage.getItem('user_courses_with_videos') || '[]');
+      const filteredCourses = coursesWithVideos.filter((c: any) => c.id !== courseId);
+      localStorage.setItem('user_courses_with_videos', JSON.stringify(filteredCourses));
       
       toast.success('Course deleted successfully! (Demo mode)');
       return;

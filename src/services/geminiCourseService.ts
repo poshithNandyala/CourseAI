@@ -154,7 +154,7 @@ class GeminiCourseService {
           console.log(`  ✅ Generated ${quizQuestions.length} interactive quiz questions`);
         }
 
-        // Create lesson
+        // Create lesson with STORED video information
         const lesson: GeminiLesson = {
           id: `lesson-${i + 1}`,
           course_id: '',
@@ -163,7 +163,7 @@ class GeminiCourseService {
           type: 'article', // Always article type, quiz is separate
           order: subtopic.order,
           video_url: videos[0]?.embedUrl,
-          videos,
+          videos, // Store complete video information
           articles,
           estimatedDuration: subtopic.estimatedDuration,
           keyPoints: subtopic.keyPoints,
@@ -224,7 +224,7 @@ class GeminiCourseService {
       content += '\n';
     }
 
-    // Video Resources
+    // Video Resources - Store video information for database
     if (videos.length > 0) {
       content += `## Video Resources\n\n`;
       videos.forEach((video, index) => {
@@ -234,6 +234,7 @@ class GeminiCourseService {
         content += `**Views:** ${video.viewCount.toLocaleString()}\n`;
         content += `**Relevance Score:** ${video.relevanceScore.toFixed(1)}/100\n\n`;
         content += `${video.description.slice(0, 200)}...\n\n`;
+        // Don't include direct links in content - videos will be embedded via stored data
       });
     }
 
@@ -351,7 +352,7 @@ class GeminiCourseService {
 
       if (courseError) throw courseError;
 
-      // Create lessons in database
+      // Create lessons in database with ALL video information stored
       const lessonsToInsert = courseData.lessons.map(lesson => ({
         course_id: course.id,
         title: lesson.title,
@@ -360,7 +361,9 @@ class GeminiCourseService {
         order: lesson.order,
         video_url: lesson.video_url,
         quiz_questions: lesson.quiz_questions,
-        resources: lesson.resources
+        resources: lesson.resources,
+        // Store complete video data in a custom field
+        video_data: lesson.videos // This stores all YouTube video information
       }));
 
       const { error: lessonsError } = await supabase
