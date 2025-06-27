@@ -33,6 +33,11 @@ class CourseManagementService {
     }
 
     console.log('💾 Auto-saving course with video data to Supabase...');
+    console.log('🎥 Video data to save:', courseData.lessons.map(l => ({ 
+      title: l.title, 
+      videoCount: l.videos.length,
+      firstVideo: l.videos[0]?.title 
+    })));
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - create mock course with video data
@@ -67,6 +72,7 @@ class CourseManagementService {
       existingCourses.unshift(courseWithLessons);
       localStorage.setItem('user_courses_with_videos', JSON.stringify(existingCourses));
       
+      console.log('✅ Demo course saved with video data');
       toast.success('Course with video data automatically saved! (Demo mode)');
       return mockCourse;
     }
@@ -93,18 +99,39 @@ class CourseManagementService {
       if (courseError) throw courseError;
 
       // Create lessons in database with ALL video information stored in video_data column
-      const lessonsToInsert = courseData.lessons.map(lesson => ({
-        course_id: course.id,
-        title: lesson.title,
-        content: lesson.content,
-        type: lesson.type,
-        order: lesson.order,
-        video_url: lesson.video_url,
-        quiz_questions: lesson.quiz_questions,
-        resources: lesson.resources,
-        // CRITICAL: Store complete video data in the video_data JSONB column
-        video_data: lesson.videos
-      }));
+      const lessonsToInsert = courseData.lessons.map(lesson => {
+        console.log(`📝 Preparing lesson "${lesson.title}" with ${lesson.videos.length} videos`);
+        return {
+          course_id: course.id,
+          title: lesson.title,
+          content: lesson.content,
+          type: lesson.type,
+          order: lesson.order,
+          video_url: lesson.video_url,
+          quiz_questions: lesson.quiz_questions,
+          resources: lesson.resources,
+          // CRITICAL: Store complete video data in the video_data JSONB column
+          video_data: lesson.videos.map(video => ({
+            id: video.id,
+            title: video.title,
+            description: video.description,
+            duration: video.duration,
+            thumbnailUrl: video.thumbnailUrl,
+            channelTitle: video.channelTitle,
+            publishedAt: video.publishedAt,
+            viewCount: video.viewCount,
+            likeCount: video.likeCount,
+            embedUrl: video.embedUrl,
+            watchUrl: video.watchUrl,
+            relevanceScore: video.relevanceScore
+          }))
+        };
+      });
+
+      console.log('📊 Inserting lessons with video data:', lessonsToInsert.map(l => ({
+        title: l.title,
+        videoCount: l.video_data.length
+      })));
 
       const { error: lessonsError } = await supabase
         .from('lessons')
@@ -171,13 +198,16 @@ class CourseManagementService {
       throw new Error('User must be signed in to view course content');
     }
 
-    console.log('📖 Fetching course content with videos from Supabase for:', courseId);
+    console.log('📖 Fetching course content with videos from database for:', courseId);
 
     if (!this.isSupabaseConfigured()) {
       // Demo mode - get course with video data
       const coursesWithVideos = JSON.parse(localStorage.getItem('user_courses_with_videos') || '[]');
       const courseData = coursesWithVideos.find((c: any) => c.id === courseId);
-      if (!courseData) return null;
+      if (!courseData) {
+        console.log('❌ Course not found in demo storage');
+        return null;
+      }
 
       // Return course with enhanced lessons containing video data
       const { lessons, ...course } = courseData;
@@ -187,6 +217,7 @@ class CourseManagementService {
       }));
 
       console.log('✅ Retrieved course from demo storage with', enhancedLessons.length, 'lessons');
+      console.log('🎥 Video data restored:', enhancedLessons.map(l => ({ title: l.title, videoCount: l.videos.length })));
       return { ...course, lessons: enhancedLessons };
     }
 
@@ -213,14 +244,50 @@ class CourseManagementService {
 
       if (lessonsError) throw lessonsError;
 
-      // Enhance lessons with video data from the video_data column
-      const enhancedLessons: EnhancedLesson[] = (lessons || []).map(lesson => ({
-        ...lesson,
-        videos: lesson.video_data || [] // Restore stored video data from JSONB column
-      }));
+      console.log('📊 Raw lessons from database:', lessons?.map(l => ({
+        title: l.title,
+        hasVideoData: !!l.video_data,
+        videoDataType: typeof l.video_data,
+        videoDataLength: Array.isArray(l.video_data) ? l.video_data.length : 'not array'
+      })));
 
-      console.log('✅ Fetched course from Supabase with', enhancedLessons.length, 'lessons and video data');
-      console.log('🎥 Total videos found:', enhancedLessons.reduce((sum, lesson) => sum + lesson.videos.length, 0));
+      // Enhance lessons with video data from the video_data column
+      const enhancedLessons: EnhancedLesson[] = (lessons || []).map(lesson => {
+        let videos: YouTubeVideo[] = [];
+        
+        try {
+          // Parse video data from JSONB column
+          if (lesson.video_data && Array.isArray(lesson.video_data)) {
+            videos = lesson.video_data.map((videoData: any) => ({
+              id: videoData.id || '',
+              title: videoData.title || 'Untitled Video',
+              description: videoData.description || '',
+              duration: videoData.duration || '0:00',
+              thumbnailUrl: videoData.thumbnailUrl || '',
+              channelTitle: videoData.channelTitle || '',
+              publishedAt: videoData.publishedAt || '',
+              viewCount: videoData.viewCount || 0,
+              likeCount: videoData.likeCount || 0,
+              embedUrl: videoData.embedUrl || '',
+              watchUrl: videoData.watchUrl || '',
+              relevanceScore: videoData.relevanceScore || 0
+            }));
+          }
+        } catch (error) {
+          console.error(`❌ Error parsing video data for lesson "${lesson.title}":`, error);
+          videos = [];
+        }
+
+        console.log(`📹 Lesson "${lesson.title}": restored ${videos.length} videos`);
+        
+        return {
+          ...lesson,
+          videos
+        };
+      });
+
+      const totalVideos = enhancedLessons.reduce((sum, lesson) => sum + lesson.videos.length, 0);
+      console.log('✅ Fetched course from Supabase with', enhancedLessons.length, 'lessons and', totalVideos, 'total videos');
       
       return { ...course, lessons: enhancedLessons };
 

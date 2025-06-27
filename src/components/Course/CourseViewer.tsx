@@ -11,7 +11,8 @@ import {
   CheckCircle,
   Youtube,
   FileText,
-  HelpCircle
+  HelpCircle,
+  AlertCircle
 } from 'lucide-react';
 import { courseManagementService, CourseWithLessons } from '../../services/courseManagementService';
 import { useAuthStore } from '../../store/authStore';
@@ -55,6 +56,10 @@ export const CourseViewer: React.FC = () => {
       const courseData = location.state?.courseData as CourseWithLessons;
       if (courseData) {
         console.log('📖 Using course data from navigation state');
+        console.log('🎥 Course has video data:', courseData.lessons.map(l => ({ 
+          title: l.title, 
+          videoCount: l.videos?.length || 0 
+        })));
         setCourse(courseData);
         setLoading(false);
         return;
@@ -65,7 +70,11 @@ export const CourseViewer: React.FC = () => {
       const fetchedCourse = await courseManagementService.fetchCourseWithContent(id);
       if (fetchedCourse) {
         console.log('✅ Course loaded with', fetchedCourse.lessons.length, 'lessons');
-        console.log('🎥 Video data available:', fetchedCourse.lessons.some(l => l.videos && l.videos.length > 0));
+        console.log('🎥 Video data loaded:', fetchedCourse.lessons.map(l => ({ 
+          title: l.title, 
+          videoCount: l.videos?.length || 0,
+          hasVideos: l.videos && l.videos.length > 0
+        })));
         setCourse(fetchedCourse);
       } else {
         toast.error('Course not found or you don\'t have access to it');
@@ -85,7 +94,7 @@ export const CourseViewer: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading course content...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading course content with videos...</p>
         </div>
       </div>
     );
@@ -112,6 +121,14 @@ export const CourseViewer: React.FC = () => {
   const selectedLesson = course.lessons[selectedLessonIndex];
   const hasQuizQuestions = selectedLesson?.quiz_questions && selectedLesson.quiz_questions.length > 0;
   const hasVideos = selectedLesson?.videos && selectedLesson.videos.length > 0;
+  const totalVideos = course.lessons.reduce((sum, lesson) => sum + (lesson.videos?.length || 0), 0);
+
+  console.log('🎬 Current lesson video status:', {
+    lessonTitle: selectedLesson?.title,
+    hasVideos,
+    videoCount: selectedLesson?.videos?.length || 0,
+    firstVideoTitle: selectedLesson?.videos?.[0]?.title
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -160,7 +177,7 @@ export const CourseViewer: React.FC = () => {
                 </span>
                 <span className="flex items-center space-x-1">
                   <Youtube className="h-4 w-4 text-red-500" />
-                  <span>{course.lessons.reduce((sum, lesson) => sum + (lesson.videos?.length || 0), 0)} videos</span>
+                  <span>{totalVideos} videos</span>
                 </span>
               </div>
             </div>
@@ -205,6 +222,20 @@ export const CourseViewer: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Course Structure</h3>
+              
+              {/* Video Status Summary */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center space-x-3">
+                  <Youtube className="h-5 w-5 text-red-500" />
+                  <div>
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100">Video Content Status</h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      This course contains {totalVideos} real YouTube videos across {course.lessons.length} lessons
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid gap-4">
                 {course.lessons.map((lesson, index) => (
                   <div
@@ -220,6 +251,12 @@ export const CourseViewer: React.FC = () => {
                           <FileText className="h-4 w-4" />
                         </div>
                         <h4 className="font-semibold text-gray-900 dark:text-white">{lesson.title}</h4>
+                        {lesson.videos && lesson.videos.length > 0 && (
+                          <div className="flex items-center space-x-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded-full text-xs">
+                            <Youtube className="h-3 w-3" />
+                            <span>{lesson.videos.length} videos</span>
+                          </div>
+                        )}
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 text-sm">
                         {lesson.videos?.length || 0} videos • {lesson.quiz_questions?.length || 0} quiz questions
@@ -248,13 +285,19 @@ export const CourseViewer: React.FC = () => {
                   <button
                     key={index}
                     onClick={() => setSelectedLessonIndex(index)}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
                       selectedLessonIndex === index
                         ? 'bg-brand-500 text-white'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                   >
-                    Lesson {index + 1}
+                    <span>Lesson {index + 1}</span>
+                    {lesson.videos && lesson.videos.length > 0 && (
+                      <div className="flex items-center space-x-1">
+                        <Youtube className="h-3 w-3" />
+                        <span className="text-xs">({lesson.videos.length})</span>
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -299,30 +342,40 @@ export const CourseViewer: React.FC = () => {
                   </div>
 
                   {/* Real YouTube Videos */}
-                  {hasVideos && (
+                  {hasVideos ? (
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                         <Youtube className="h-5 w-5 text-red-500" />
                         <span>Real YouTube Videos ({selectedLesson.videos.length})</span>
                       </h4>
                       <div className="grid gap-6">
-                        {selectedLesson.videos.map((video, videoIndex) => (
-                          <VideoPlayer 
-                            key={videoIndex} 
-                            video={video}
-                          />
-                        ))}
+                        {selectedLesson.videos.map((video, videoIndex) => {
+                          console.log(`🎥 Rendering video ${videoIndex + 1}:`, {
+                            title: video.title,
+                            id: video.id,
+                            embedUrl: video.embedUrl
+                          });
+                          return (
+                            <VideoPlayer 
+                              key={`${selectedLesson.id}-video-${videoIndex}`}
+                              video={video}
+                            />
+                          );
+                        })}
                       </div>
                     </div>
-                  )}
-
-                  {/* No Videos Message */}
-                  {!hasVideos && (
-                    <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-2xl">
-                      <Youtube className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600 dark:text-gray-400">
-                        No videos available for this lesson
+                  ) : (
+                    <div className="text-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-200 dark:border-yellow-800">
+                      <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
+                      <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">No Videos Available</h4>
+                      <p className="text-yellow-700 dark:text-yellow-300">
+                        No video content was found for this lesson. This might be due to:
                       </p>
+                      <ul className="text-sm text-yellow-600 dark:text-yellow-400 mt-2 space-y-1">
+                        <li>• Video data not properly stored during course generation</li>
+                        <li>• YouTube API limitations during content creation</li>
+                        <li>• This lesson was created without video content</li>
+                      </ul>
                     </div>
                   )}
                 </div>
