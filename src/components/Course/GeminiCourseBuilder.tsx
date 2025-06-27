@@ -678,7 +678,7 @@ export const GeminiCourseBuilder: React.FC = () => {
               className="px-8 py-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 text-lg"
             >
               Generate New
-            </button>
+            </motion.button>
           </div>
         </motion.div>
       )}
