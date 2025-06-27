@@ -36,35 +36,35 @@ export const Dashboard: React.FC = () => {
       label: 'Total Courses',
       value: courses.length,
       icon: BookOpen,
-      color: 'from-purple-500 to-purple-600'
+      color: 'from-brand-500 to-brand-600'
     },
     {
       label: 'Published',
       value: courses.filter(c => c.is_published).length,
       icon: Eye,
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-accent-500 to-accent-600'
     },
     {
       label: 'Total Likes',
       value: courses.reduce((sum, c) => sum + c.likes_count, 0),
       icon: Star,
-      color: 'from-yellow-500 to-yellow-600'
+      color: 'from-warning-500 to-warning-600'
     },
     {
       label: 'Avg Rating',
       value: courses.length > 0 ? (courses.reduce((sum, c) => sum + c.rating, 0) / courses.length).toFixed(1) : '0.0',
       icon: Users,
-      color: 'from-green-500 to-green-600'
+      color: 'from-success-500 to-success-600'
     }
   ];
 
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Please sign in to view your dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Please sign in to view your dashboard</h1>
         <Link
-          to="/auth"
-          className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
+          to="/signin"
+          className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200"
         >
           <span>Sign In</span>
         </Link>
@@ -81,12 +81,12 @@ export const Dashboard: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name}!</h1>
-            <p className="text-gray-600">Manage your courses and track your progress</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Welcome back, {user.name}!</h1>
+            <p className="text-gray-600 dark:text-gray-400">Manage your courses and track your progress</p>
           </div>
           <Link
             to="/create"
-            className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
+            className="flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             <Plus className="h-5 w-5" />
             <span>Create Course</span>
@@ -100,14 +100,14 @@ export const Dashboard: React.FC = () => {
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20"
+              className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-soft border border-gray-200 dark:border-gray-800"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
                 </div>
-                <div className={`bg-gradient-to-r ${stat.color} p-3 rounded-lg`}>
+                <div className={`bg-gradient-to-r ${stat.color} p-3 rounded-xl`}>
                   <stat.icon className="h-6 w-6 text-white" />
                 </div>
               </div>
@@ -122,22 +122,22 @@ export const Dashboard: React.FC = () => {
         transition={{ delay: 0.2 }}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Your Courses</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your Courses</h2>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading your courses...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto"></div>
+            <p className="text-gray-600 dark:text-gray-400 mt-4">Loading your courses...</p>
           </div>
         ) : courses.length === 0 ? (
-          <div className="text-center py-12 bg-white/60 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
-            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No courses yet</h3>
-            <p className="text-gray-600 mb-6">Create your first course to get started</p>
+          <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-2xl shadow-soft border border-gray-200 dark:border-gray-800">
+            <BookOpen className="h-16 w-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No courses yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first course to get started</p>
             <Link
               to="/create"
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all"
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200"
             >
               <Plus className="h-5 w-5" />
               <span>Create Course</span>
@@ -151,23 +151,23 @@ export const Dashboard: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-200"
+                className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-soft border border-gray-200 dark:border-gray-800 hover:shadow-soft-lg hover:border-brand-200 dark:hover:border-brand-800 transition-all duration-200"
               >
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900 line-clamp-1">{course.title}</h3>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
+                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1">{course.title}</h3>
+                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                       course.is_published 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-yellow-100 text-yellow-700'
+                        ? 'bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-400' 
+                        : 'bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-400'
                     }`}>
                       {course.is_published ? 'Published' : 'Draft'}
                     </span>
                   </div>
-                  <p className="text-gray-600 text-sm line-clamp-2">{course.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">{course.description}</p>
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-4">
                   <span className="flex items-center space-x-1">
                     <Star className="h-4 w-4" />
                     <span>{course.rating.toFixed(1)}</span>
@@ -185,13 +185,13 @@ export const Dashboard: React.FC = () => {
                 <div className="flex space-x-2">
                   <Link
                     to={`/course/${course.id}/edit`}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-center px-4 py-2 rounded-lg text-sm hover:from-purple-700 hover:to-blue-700 transition-all"
+                    className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white text-center px-4 py-2.5 rounded-xl text-sm font-medium hover:from-brand-600 hover:to-accent-600 transition-all duration-200"
                   >
                     Edit
                   </Link>
                   <Link
                     to={`/course/${course.id}`}
-                    className="flex-1 bg-white/60 backdrop-blur-sm text-gray-700 text-center px-4 py-2 rounded-lg text-sm hover:bg-white/80 transition-all border border-white/20"
+                    className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-center px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
                   >
                     View
                   </Link>

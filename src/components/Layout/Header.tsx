@@ -13,7 +13,8 @@ import {
   X,
   BookOpen,
   BarChart3,
-  Settings
+  Settings,
+  ChevronDown
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -41,18 +42,18 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-200/50 dark:border-neutral-700/50 sticky top-0 z-50 transition-colors duration-300">
+    <header className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to="/" className="flex items-center space-x-3 group">
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="bg-gradient-to-r from-primary-500 to-secondary-500 p-2 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow duration-200"
+              className="bg-gradient-to-r from-brand-500 to-accent-500 p-2.5 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-200"
             >
               <Brain className="h-6 w-6 text-white" />
             </motion.div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
               CourseAI
             </span>
           </Link>
@@ -66,10 +67,10 @@ export const Header: React.FC = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive(item.path)
-                      ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                      : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                      ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                 >
                   <item.icon className="h-4 w-4" />
@@ -86,7 +87,7 @@ export const Header: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleTheme}
-              className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200"
+              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200"
             >
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </motion.button>
@@ -96,33 +97,34 @@ export const Header: React.FC = () => {
                 {/* Create Button */}
                 <Link
                   to="/create"
-                  className="hidden sm:flex items-center space-x-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-4 py-2 rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="hidden sm:flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-4 py-2.5 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
                 >
                   <Plus className="h-4 w-4" />
-                  <span className="font-medium">Create</span>
+                  <span>Create</span>
                 </Link>
 
                 {/* Profile Dropdown */}
                 <div className="relative">
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.02 }}
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-200"
+                    className="flex items-center space-x-2 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                   >
                     {user.avatar_url ? (
                       <img
                         src={user.avatar_url}
                         alt={user.name}
-                        className="h-8 w-8 rounded-full ring-2 ring-primary-500/20"
+                        className="h-8 w-8 rounded-full ring-2 ring-brand-500/20"
                       />
                     ) : (
-                      <div className="h-8 w-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
+                      <div className="h-8 w-8 bg-gradient-to-r from-brand-500 to-accent-500 rounded-full flex items-center justify-center">
                         <User className="h-4 w-4 text-white" />
                       </div>
                     )}
-                    <span className="hidden sm:block text-neutral-700 dark:text-neutral-300 font-medium">
+                    <span className="hidden sm:block text-gray-700 dark:text-gray-300 font-medium">
                       {user.name}
                     </span>
+                    <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   </motion.button>
                   
                   <AnimatePresence>
@@ -132,13 +134,13 @@ export const Header: React.FC = () => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-800 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700 py-2"
+                        className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-soft-lg border border-gray-200 dark:border-gray-800 py-2"
                       >
-                        <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
-                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
                             {user.name}
                           </p>
-                          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                             {user.email}
                           </p>
                         </div>
@@ -147,7 +149,7 @@ export const Header: React.FC = () => {
                           <Link
                             to="/dashboard"
                             onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center space-x-3 px-4 py-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+                            className="flex items-center space-x-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                           >
                             <BarChart3 className="h-4 w-4" />
                             <span>Dashboard</span>
@@ -155,14 +157,14 @@ export const Header: React.FC = () => {
                           <Link
                             to="/profile"
                             onClick={() => setIsProfileOpen(false)}
-                            className="flex items-center space-x-3 px-4 py-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+                            className="flex items-center space-x-3 px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                           >
                             <Settings className="h-4 w-4" />
                             <span>Settings</span>
                           </Link>
                           <button
                             onClick={handleSignOut}
-                            className="flex items-center space-x-3 px-4 py-2 text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors w-full text-left"
+                            className="flex items-center space-x-3 px-4 py-2.5 text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors duration-200 w-full text-left"
                           >
                             <LogOut className="h-4 w-4" />
                             <span>Sign Out</span>
@@ -176,7 +178,7 @@ export const Header: React.FC = () => {
             ) : (
               <Link
                 to="/signin"
-                className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-6 py-2 rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                className="bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-2.5 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
               >
                 Sign In
               </Link>
@@ -185,7 +187,7 @@ export const Header: React.FC = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              className="md:hidden p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
             >
               {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -200,7 +202,7 @@ export const Header: React.FC = () => {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden border-t border-neutral-200 dark:border-neutral-700 py-4"
+              className="md:hidden border-t border-gray-200 dark:border-gray-800 py-4"
             >
               <nav className="space-y-2">
                 {navItems.map((item) => {
@@ -211,10 +213,10 @@ export const Header: React.FC = () => {
                       key={item.path}
                       to={item.path}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors duration-200 ${
                         isActive(item.path)
-                          ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                          : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                          ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                     >
                       <item.icon className="h-5 w-5" />
@@ -227,7 +229,7 @@ export const Header: React.FC = () => {
                   <Link
                     to="/create"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-medium"
+                    className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-accent-500 text-white font-medium"
                   >
                     <Plus className="h-5 w-5" />
                     <span>Create Course</span>

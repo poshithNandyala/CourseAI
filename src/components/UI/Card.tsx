@@ -21,16 +21,15 @@ export const Card: React.FC<CardProps> = ({
   };
 
   const baseClasses = `
-    bg-white/80 dark:bg-neutral-800/80 
-    backdrop-blur-sm 
-    rounded-xl 
-    shadow-lg 
-    border border-white/20 dark:border-neutral-700/50
+    bg-white dark:bg-gray-900 
+    rounded-2xl 
+    shadow-soft 
+    border border-gray-200 dark:border-gray-800
     transition-all duration-200
     ${paddingClasses[padding]}
   `;
 
-  const hoverClasses = hover ? 'hover:shadow-xl hover:bg-white/90 dark:hover:bg-neutral-800/90' : '';
+  const hoverClasses = hover ? 'hover:shadow-soft-lg hover:border-brand-200 dark:hover:border-brand-800' : '';
 
   if (hover) {
     return (
