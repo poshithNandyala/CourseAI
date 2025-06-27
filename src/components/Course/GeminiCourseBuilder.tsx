@@ -26,13 +26,16 @@ import {
 import { geminiCourseService, GeminiCourseData } from '../../services/geminiCourseService';
 import { useCourseStore } from '../../store/courseStore';
 import { useNavigate } from 'react-router-dom';
+import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
+import { VideoPlayer } from './VideoPlayer';
 import toast from 'react-hot-toast';
 
 export const GeminiCourseBuilder: React.FC = () => {
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCourse, setGeneratedCourse] = useState<GeminiCourseData | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'lessons' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'lessons' | 'quiz' | 'settings'>('overview');
+  const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
   const [courseSettings, setCourseSettings] = useState({
     maxVideosPerSubtopic: 3,
     includeQuizzes: true
@@ -43,12 +46,13 @@ export const GeminiCourseBuilder: React.FC = () => {
   const navigate = useNavigate();
 
   const generationSteps = [
+    'Checking YouTube API connection...',
     'Analyzing your course request with Gemini AI...',
     'Extracting main topic and subtopics...',
     'Generating detailed course structure...',
     'Searching YouTube for relevant educational videos...',
     'Evaluating video quality and relevance...',
-    'Creating quiz questions and assessments...',
+    'Creating interactive quiz questions...',
     'Finalizing course content and structure...'
   ];
 
@@ -173,7 +177,7 @@ export const GeminiCourseBuilder: React.FC = () => {
             <Sparkles className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
-            Gemini AI Course Builder
+            AI Course Builder
           </h1>
         </div>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
@@ -224,31 +228,6 @@ export const GeminiCourseBuilder: React.FC = () => {
                     <li>Create credentials (API key)</li>
                     <li>Add <code className="bg-warning-200 dark:bg-warning-800 px-1 rounded">VITE_YOUTUBE_API_KEY=your_api_key</code> to your .env file</li>
                   </ol>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Gemini API Info */}
-          {!import.meta.env.VITE_GEMINI_API_KEY && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6">
-              <div className="flex items-start space-x-3">
-                <Sparkles className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                    Gemini API Key (Optional)
-                  </h3>
-                  <p className="text-blue-700 dark:text-blue-300 mb-3">
-                    For enhanced AI course generation, add your Gemini API key:
-                  </p>
-                  <ol className="list-decimal list-inside space-y-1 text-sm text-blue-600 dark:text-blue-400">
-                    <li>Go to <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a></li>
-                    <li>Create a new API key</li>
-                    <li>Add <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">VITE_GEMINI_API_KEY=your_api_key</code> to your .env file</li>
-                  </ol>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                    Without Gemini API, the system will use intelligent fallback logic.
-                  </p>
                 </div>
               </div>
             </div>
@@ -315,7 +294,7 @@ export const GeminiCourseBuilder: React.FC = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Include Quizzes
+                  Include Interactive Quizzes
                 </label>
                 <div className="flex items-center space-x-3 pt-3">
                   <button
@@ -335,7 +314,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Generate quiz questions for each lesson
+                  Generate interactive quiz questions for each lesson
                 </p>
               </div>
             </div>
@@ -480,6 +459,7 @@ export const GeminiCourseBuilder: React.FC = () => {
               {[
                 { id: 'overview', label: 'Course Overview', icon: BookOpen },
                 { id: 'lessons', label: 'Lessons & Videos', icon: Play },
+                { id: 'quiz', label: 'Interactive Quiz', icon: HelpCircle },
                 { id: 'settings', label: 'Publish Settings', icon: Settings }
               ].map((tab) => (
                 <button
@@ -531,105 +511,82 @@ export const GeminiCourseBuilder: React.FC = () => {
               )}
 
               {activeTab === 'lessons' && (
-                <div className="space-y-6">
-                  {generatedCourse.lessons.map((lesson, index) => (
-                    <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-                      <div className="flex items-start space-x-4 mb-4">
-                        <div className="bg-gradient-to-r from-brand-500 to-accent-500 w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{lesson.title}</h4>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            <span className="flex items-center space-x-1">
-                              <Clock className="h-4 w-4" />
-                              <span>{lesson.estimatedDuration} minutes</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <Video className="h-4 w-4" />
-                              <span>{lesson.videos.length} real videos</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <FileText className="h-4 w-4" />
-                              <span>{lesson.articles.length} articles</span>
-                            </span>
-                          </div>
+                <div className="space-y-8">
+                  {/* Lesson Selector */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {generatedCourse.lessons.map((lesson, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedLessonIndex(index)}
+                        className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                          selectedLessonIndex === index
+                            ? 'bg-brand-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        Lesson {index + 1}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Selected Lesson Content */}
+                  {generatedCourse.lessons[selectedLessonIndex] && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                          {generatedCourse.lessons[selectedLessonIndex].title}
+                        </h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{generatedCourse.lessons[selectedLessonIndex].estimatedDuration} minutes</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Video className="h-4 w-4" />
+                            <span>{generatedCourse.lessons[selectedLessonIndex].videos.length} real videos</span>
+                          </span>
                         </div>
                       </div>
 
-                      {lesson.videos.length > 0 && (
-                        <div className="mb-4">
-                          <h5 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+                      {/* Videos */}
+                      {generatedCourse.lessons[selectedLessonIndex].videos.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                             <Youtube className="h-5 w-5 text-red-500" />
                             <span>Real YouTube Videos (AI Selected)</span>
-                          </h5>
-                          <div className="space-y-3">
-                            {lesson.videos.map((video, videoIndex) => (
-                              <div key={videoIndex} className="flex items-start space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                                <img
-                                  src={video.thumbnailUrl}
-                                  alt={video.title}
-                                  className="w-32 h-20 object-cover rounded-lg"
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium text-gray-900 dark:text-white mb-1">{video.title}</div>
-                                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                                    {video.channelTitle} • {video.duration} • {video.viewCount.toLocaleString()} views
-                                  </div>
-                                  <div className="text-xs text-green-600 dark:text-green-400 mb-1">
-                                    Relevance Score: {video.relevanceScore.toFixed(1)}/100
-                                  </div>
-                                  <div className="text-sm text-gray-500 dark:text-gray-500">
-                                    {video.description.slice(0, 150)}...
-                                  </div>
-                                </div>
-                                <a
-                                  href={video.watchUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </a>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {lesson.quiz_questions && lesson.quiz_questions.length > 0 && (
-                        <div>
-                          <h5 className="font-semibold text-gray-900 dark:text-white mb-3">AI Generated Quiz Questions</h5>
-                          <div className="space-y-3">
-                            {lesson.quiz_questions.map((question, qIndex) => (
-                              <div key={qIndex} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                                <div className="font-medium text-gray-900 dark:text-white mb-2">{question.question}</div>
-                                <div className="space-y-1">
-                                  {question.options?.map((option, oIndex) => (
-                                    <div
-                                      key={oIndex}
-                                      className={`text-sm p-2 rounded ${
-                                        option === question.correct_answer
-                                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                          : 'text-gray-600 dark:text-gray-400'
-                                      }`}
-                                    >
-                                      {option}
-                                    </div>
-                                  ))}
-                                </div>
-                                {question.explanation && (
-                                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic">
-                                    {question.explanation}
-                                  </div>
-                                )}
-                              </div>
+                          </h4>
+                          <div className="grid gap-6">
+                            {generatedCourse.lessons[selectedLessonIndex].videos.map((video, videoIndex) => (
+                              <VideoPlayer key={videoIndex} video={video} />
                             ))}
                           </div>
                         </div>
                       )}
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'quiz' && (
+                <div>
+                  {generatedCourse.lessons[selectedLessonIndex]?.quiz_questions && 
+                   generatedCourse.lessons[selectedLessonIndex].quiz_questions.length > 0 ? (
+                    <InteractiveQuiz
+                      questions={generatedCourse.lessons[selectedLessonIndex].quiz_questions}
+                      title={`${generatedCourse.lessons[selectedLessonIndex].title} - Quiz`}
+                      onComplete={(score, total) => {
+                        toast.success(`Quiz completed! You scored ${score}/${total} (${Math.round((score/total)*100)}%)`);
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center py-12">
+                      <HelpCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Quiz Available</h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Select a lesson with quiz questions to take an interactive quiz.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -670,6 +627,10 @@ export const GeminiCourseBuilder: React.FC = () => {
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Real Video Content:</span>
                         <span className="font-medium text-gray-900 dark:text-white">{generatedCourse.metadata.videoCount} videos</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Interactive Quizzes:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{generatedCourse.metadata.quizCount} quizzes</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Estimated Duration:</span>
@@ -717,7 +678,7 @@ export const GeminiCourseBuilder: React.FC = () => {
               className="px-8 py-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 text-lg"
             >
               Generate New
-            </motion.button>
+            </button>
           </div>
         </motion.div>
       )}

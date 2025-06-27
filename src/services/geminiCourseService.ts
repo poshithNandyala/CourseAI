@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Course, Lesson } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { geminiAPI, ExtractedTopic, GeminiCourseStructure } from './geminiApi';
-import { enhancedYouTubeAPI, YouTubeVideo } from './enhancedYouTubeApi';
+import { realYouTubeService, YouTubeVideo } from './realYouTubeService';
 import { quizService } from './quizService';
 import toast from 'react-hot-toast';
 
@@ -46,6 +46,7 @@ class GeminiCourseService {
       toast.error('YouTube API key is required! Please add VITE_YOUTUBE_API_KEY to your .env file');
       throw new Error('YouTube API key is required');
     }
+    console.log('✅ YouTube API key found');
     
     try {
       // Step 1: Extract topic and structure using Gemini
@@ -59,7 +60,7 @@ class GeminiCourseService {
       const courseStructure = await geminiAPI.generateCourseStructure(extractedTopic);
       console.log('✅ Course structure generated with', courseStructure.subtopics.length, 'lessons');
 
-      // Step 3: Fetch REAL YouTube videos for each subtopic with retry logic
+      // Step 3: Fetch REAL YouTube videos for each subtopic
       console.log('🎥 Step 3: Fetching REAL YouTube videos for each subtopic...');
       const enrichedLessons = await this.enrichLessonsWithRealVideos(
         courseStructure,
@@ -118,12 +119,11 @@ class GeminiCourseService {
       console.log(`🔄 Processing lesson ${i + 1}/${courseStructure.subtopics.length}: "${subtopic.title}"`);
 
       try {
-        // Fetch REAL YouTube videos with multiple search strategies
+        // Fetch REAL YouTube videos using the new service
         console.log(`  🎬 Searching for REAL videos...`);
-        const videos = await this.fetchRealYouTubeVideos(
+        const videos = await realYouTubeService.searchVideosForTopic(
           courseStructure.mainTopic,
           subtopic.title,
-          subtopic.searchTerms,
           maxVideosPerSubtopic
         );
         console.log(`  ✅ Found ${videos.length} REAL YouTube videos`);
@@ -134,13 +134,13 @@ class GeminiCourseService {
         // Generate proper quiz questions using the enhanced quiz service
         let quizQuestions: any[] = [];
         if (includeQuizzes) {
-          console.log(`  ❓ Generating proper quiz questions...`);
+          console.log(`  ❓ Generating interactive quiz questions...`);
           const generatedQuiz = quizService.generateQuizQuestions({
             topic: courseStructure.mainTopic,
             subtopic: subtopic.title,
             keyPoints: subtopic.keyPoints,
             difficulty: courseStructure.difficulty,
-            questionCount: 4
+            questionCount: 5
           });
           
           quizQuestions = generatedQuiz.map(q => ({
@@ -151,7 +151,7 @@ class GeminiCourseService {
             correct_answer: q.correctAnswer,
             explanation: q.explanation
           }));
-          console.log(`  ✅ Generated ${quizQuestions.length} proper quiz questions`);
+          console.log(`  ✅ Generated ${quizQuestions.length} interactive quiz questions`);
         }
 
         // Create lesson
@@ -181,7 +181,7 @@ class GeminiCourseService {
         enrichedLessons.push(lesson);
 
         // Add delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (error) {
         console.error(`❌ Failed to enrich lesson "${subtopic.title}":`, error);
@@ -208,168 +208,6 @@ class GeminiCourseService {
     }
 
     return enrichedLessons;
-  }
-
-  private async fetchRealYouTubeVideos(
-    mainTopic: string,
-    subtopic: string,
-    searchTerms: string[],
-    maxResults: number
-  ): Promise<YouTubeVideo[]> {
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-    if (!apiKey) {
-      throw new Error('YouTube API key is required');
-    }
-
-    const baseUrl = 'https://www.googleapis.com/youtube/v3';
-    let allVideos: YouTubeVideo[] = [];
-
-    // Multiple search strategies for better results
-    const searchQueries = [
-      `${mainTopic} ${subtopic} tutorial`,
-      `${subtopic} explained ${mainTopic}`,
-      `learn ${subtopic} ${mainTopic}`,
-      `${mainTopic} ${subtopic} course`,
-      `${subtopic} basics ${mainTopic}`,
-      ...searchTerms.slice(0, 3)
-    ];
-
-    for (const query of searchQueries) {
-      if (allVideos.length >= maxResults) break;
-
-      try {
-        console.log(`    🔍 Searching: "${query}"`);
-
-        // Search for videos
-        const searchParams = new URLSearchParams({
-          part: 'snippet',
-          q: query,
-          type: 'video',
-          maxResults: '10',
-          order: 'relevance',
-          videoDuration: 'medium',
-          videoDefinition: 'high',
-          videoEmbeddable: 'true',
-          videoSyndicated: 'true',
-          safeSearch: 'strict',
-          relevanceLanguage: 'en',
-          regionCode: 'US',
-          key: apiKey
-        });
-
-        const searchResponse = await fetch(`${baseUrl}/search?${searchParams}`);
-        
-        if (!searchResponse.ok) {
-          const errorData = await searchResponse.json();
-          console.error('YouTube Search API error:', errorData);
-          continue;
-        }
-
-        const searchData = await searchResponse.json();
-        
-        if (!searchData.items || searchData.items.length === 0) {
-          console.log(`    ⚠️ No results for: "${query}"`);
-          continue;
-        }
-
-        const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
-
-        // Get detailed video information
-        const detailsParams = new URLSearchParams({
-          part: 'snippet,contentDetails,statistics',
-          id: videoIds,
-          key: apiKey
-        });
-
-        const detailsResponse = await fetch(`${baseUrl}/videos?${detailsParams}`);
-        
-        if (!detailsResponse.ok) {
-          console.error('YouTube Videos API error:', detailsResponse.status);
-          continue;
-        }
-
-        const detailsData = await detailsResponse.json();
-
-        const videos = detailsData.items.map((item: any) => ({
-          id: item.id,
-          title: item.snippet.title,
-          description: item.snippet.description || '',
-          duration: this.formatDuration(item.contentDetails.duration),
-          thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default.url,
-          channelTitle: item.snippet.channelTitle,
-          publishedAt: item.snippet.publishedAt,
-          viewCount: parseInt(item.statistics.viewCount || '0'),
-          likeCount: parseInt(item.statistics.likeCount || '0'),
-          embedUrl: `https://www.youtube.com/embed/${item.id}?rel=0&modestbranding=1&showinfo=0`,
-          watchUrl: `https://www.youtube.com/watch?v=${item.id}`,
-          relevanceScore: this.calculateRelevanceScore(item, mainTopic, subtopic)
-        }));
-
-        allVideos = [...allVideos, ...videos];
-        console.log(`    ✅ Found ${videos.length} videos for: "${query}"`);
-
-        // Add delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-      } catch (error) {
-        console.error(`Failed search for "${query}":`, error);
-        continue;
-      }
-    }
-
-    // Remove duplicates and get best videos
-    const uniqueVideos = allVideos.filter((video, index, self) => 
-      index === self.findIndex(v => v.id === video.id)
-    );
-
-    // Sort by relevance score and return top results
-    const sortedVideos = uniqueVideos
-      .sort((a, b) => b.relevanceScore - a.relevanceScore)
-      .slice(0, maxResults);
-
-    return sortedVideos;
-  }
-
-  private formatDuration(duration: string): string {
-    const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-    if (!match) return '0:00';
-
-    const hours = parseInt(match[1]?.replace('H', '') || '0');
-    const minutes = parseInt(match[2]?.replace('M', '') || '0');
-    const seconds = parseInt(match[3]?.replace('S', '') || '0');
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }
-
-  private calculateRelevanceScore(video: any, mainTopic: string, subtopic: string): number {
-    let score = 0;
-    
-    const titleLower = video.snippet.title.toLowerCase();
-    const descriptionLower = (video.snippet.description || '').toLowerCase();
-    const mainTopicLower = mainTopic.toLowerCase();
-    const subtopicLower = subtopic.toLowerCase();
-
-    // Title relevance (highest weight)
-    if (titleLower.includes(mainTopicLower)) score += 30;
-    if (titleLower.includes(subtopicLower)) score += 25;
-    if (titleLower.includes('tutorial')) score += 15;
-    if (titleLower.includes('course')) score += 15;
-    if (titleLower.includes('beginner')) score += 10;
-    if (titleLower.includes('explained')) score += 10;
-
-    // Description relevance
-    if (descriptionLower.includes(mainTopicLower)) score += 10;
-    if (descriptionLower.includes(subtopicLower)) score += 10;
-
-    // View count and engagement (normalized)
-    const viewScore = Math.min(parseInt(video.statistics.viewCount || '0') / 100000, 10);
-    const likeScore = Math.min(parseInt(video.statistics.likeCount || '0') / 1000, 5);
-    score += viewScore + likeScore;
-
-    return score;
   }
 
   private formatLessonContent(subtopic: any, mainTopic: string, videos: YouTubeVideo[]): string {
