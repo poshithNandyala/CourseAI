@@ -71,24 +71,37 @@ export const SignInPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Email auth failed:', error);
+      // Error is already handled in the service with toast
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    if (loading) return;
+    
+    setLoading(true);
     try {
       await signInWithGoogle();
     } catch (error) {
       console.error('Google sign-in failed:', error);
+      // Error is already handled in the service with toast
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGitHubSignIn = async () => {
+    if (loading) return;
+    
+    setLoading(true);
     try {
       await signInWithGitHub();
     } catch (error) {
       console.error('GitHub sign-in failed:', error);
+      // Error is already handled in the service with toast
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -224,23 +237,43 @@ export const SignInPage: React.FC = () => {
               {authMode !== 'reset' && (
                 <div className="space-y-3 mb-6">
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: loading ? 1 : 1.02 }}
+                    whileTap={{ scale: loading ? 1 : 0.98 }}
                     onClick={handleGoogleSignIn}
-                    className="w-full flex items-center justify-center space-x-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-6 py-3.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-400 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-soft font-medium"
+                    disabled={loading}
+                    className="w-full flex items-center justify-center space-x-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-6 py-3.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-400 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-soft font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Chrome className="h-5 w-5" />
-                    <span>Continue with Google</span>
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
+                        <span>Connecting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Chrome className="h-5 w-5" />
+                        <span>Continue with Google</span>
+                      </>
+                    )}
                   </motion.button>
 
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: loading ? 1 : 1.02 }}
+                    whileTap={{ scale: loading ? 1 : 0.98 }}
                     onClick={handleGitHubSignIn}
-                    className="w-full flex items-center justify-center space-x-3 bg-gray-900 dark:bg-gray-800 text-white rounded-xl px-6 py-3.5 hover:bg-gray-800 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-soft font-medium border border-gray-900 dark:border-gray-700"
+                    disabled={loading}
+                    className="w-full flex items-center justify-center space-x-3 bg-gray-900 dark:bg-gray-800 text-white rounded-xl px-6 py-3.5 hover:bg-gray-800 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-soft font-medium border border-gray-900 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Github className="h-5 w-5" />
-                    <span>Continue with GitHub</span>
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <span>Connecting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Github className="h-5 w-5" />
+                        <span>Continue with GitHub</span>
+                      </>
+                    )}
                   </motion.button>
 
                   <div className="relative my-6">
@@ -272,7 +305,8 @@ export const SignInPage: React.FC = () => {
                         value={formData.name}
                         onChange={handleInputChange}
                         required
-                        className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+                        disabled={loading}
+                        className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -292,7 +326,8 @@ export const SignInPage: React.FC = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+                      disabled={loading}
+                      className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Enter your email"
                     />
                   </div>
@@ -312,13 +347,15 @@ export const SignInPage: React.FC = () => {
                         value={formData.password}
                         onChange={handleInputChange}
                         required
-                        className="w-full pl-10 pr-12 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+                        disabled={loading}
+                        className="w-full pl-10 pr-12 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter your password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+                        disabled={loading}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 disabled:opacity-50"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
@@ -327,8 +364,8 @@ export const SignInPage: React.FC = () => {
                 )}
 
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: loading ? 1 : 1.02 }}
+                  whileTap={{ scale: loading ? 1 : 0.98 }}
                   type="submit"
                   disabled={loading}
                   className="w-full bg-gradient-to-r from-brand-500 to-accent-500 text-white py-3.5 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
@@ -354,7 +391,8 @@ export const SignInPage: React.FC = () => {
                   <div className="space-y-3">
                     <button
                       onClick={() => setAuthMode('reset')}
-                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200"
+                      disabled={loading}
+                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
                     >
                       Forgot your password?
                     </button>
@@ -362,7 +400,8 @@ export const SignInPage: React.FC = () => {
                       Don't have an account?{' '}
                       <button
                         onClick={() => setAuthMode('signup')}
-                        className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200"
+                        disabled={loading}
+                        className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
                       >
                         Sign up
                       </button>
@@ -374,7 +413,8 @@ export const SignInPage: React.FC = () => {
                     Already have an account?{' '}
                     <button
                       onClick={() => setAuthMode('signin')}
-                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200"
+                      disabled={loading}
+                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
                     >
                       Sign in
                     </button>
@@ -385,7 +425,8 @@ export const SignInPage: React.FC = () => {
                     Remember your password?{' '}
                     <button
                       onClick={() => setAuthMode('signin')}
-                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200"
+                      disabled={loading}
+                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
                     >
                       Sign in
                     </button>
