@@ -43,7 +43,7 @@ interface PublicCourse {
 
 interface Comment {
   id: string;
-  user: { name: string; avatar_url?: string };
+  user: { name: string; avatar_url?: string } | null;
   content: string;
   created_at: string;
   likes: number;
@@ -617,10 +617,10 @@ export const PublicCourseViewer: React.FC = () => {
                   comments.map((comment) => (
                     <div key={comment.id} className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                       <div className="flex items-start space-x-4">
-                        {comment.user.avatar_url ? (
+                        {comment.user?.avatar_url ? (
                           <img
                             src={comment.user.avatar_url}
-                            alt={comment.user.name}
+                            alt={comment.user.name || 'Anonymous'}
                             className="h-10 w-10 rounded-full"
                           />
                         ) : (
@@ -630,7 +630,9 @@ export const PublicCourseViewer: React.FC = () => {
                         )}
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
-                            <span className="font-medium text-gray-900 dark:text-white">{comment.user.name}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {comment.user?.name || 'Anonymous'}
+                            </span>
                             <span className="text-sm text-gray-500 dark:text-gray-400">
                               {new Date(comment.created_at).toLocaleDateString()}
                             </span>

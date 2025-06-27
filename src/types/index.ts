@@ -63,7 +63,7 @@ export interface Comment {
   user: {
     name: string;
     avatar_url?: string;
-  };
+  } | null;
   content: string;
   created_at: string;
 }
