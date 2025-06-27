@@ -5,7 +5,7 @@ export interface QuizQuestion {
   options: string[];
   correctAnswer: string;
   explanation: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export interface QuizGenerationOptions {

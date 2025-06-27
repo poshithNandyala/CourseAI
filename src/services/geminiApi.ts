@@ -153,6 +153,46 @@ Make it comprehensive and educational.
     }
   }
 
+  async generateQuizQuestions(topic: string, subtopic: string, keyPoints: string[]): Promise<GeminiQuizQuestion[]> {
+    if (!this.apiKey) {
+      return this.generateBasicQuizQuestions(topic, subtopic, keyPoints);
+    }
+
+    try {
+      const prompt = `
+Create 5 educational quiz questions about "${subtopic}" within the broader topic of "${topic}".
+
+Key learning points to cover:
+${keyPoints.map(point => `- ${point}`).join('\n')}
+
+For each question:
+1. Create a clear, specific question
+2. Provide 4 answer options (only one correct)
+3. Mark the correct answer (0-indexed)
+4. Include a brief explanation of why the answer is correct
+
+Respond with JSON in this format:
+[
+  {
+    "question": "Question text?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": 0,
+    "explanation": "Why this answer is correct"
+  }
+]
+
+Make questions educational, varied in difficulty, and directly related to the key learning points.
+`;
+
+      const response = await this.callGeminiAPI(prompt);
+      return this.parseQuizQuestions(response, topic, subtopic);
+
+    } catch (error) {
+      console.error('Gemini API error for quiz generation:', error);
+      return this.generateBasicQuizQuestions(topic, subtopic, keyPoints);
+    }
+  }
+
   private async callGeminiAPI(prompt: string): Promise<string> {
     const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
       method: 'POST',
@@ -226,6 +266,27 @@ Make it comprehensive and educational.
     }
 
     return this.generateStructuredCourse(extractedTopic);
+  }
+
+  private parseQuizQuestions(response: string, topic: string, subtopic: string): GeminiQuizQuestion[] {
+    try {
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(q => ({
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to parse quiz questions:', error);
+    }
+
+    return this.generateBasicQuizQuestions(topic, subtopic, []);
   }
 
   private intelligentTopicExtraction(prompt: string): ExtractedTopic {
@@ -383,30 +444,7 @@ Make it comprehensive and educational.
         `learn ${subtopic}`,
         `${subtopic} for beginners`
       ],
-      quizQuestions: [
-        {
-          question: `What is the main focus of ${subtopic}?`,
-          options: [
-            `Understanding ${subtopic} principles`,
-            'General theoretical concepts',
-            'Advanced research methods',
-            'Historical perspectives only'
-          ],
-          correctAnswer: 0,
-          explanation: `${subtopic} primarily focuses on understanding its core principles and practical applications.`
-        },
-        {
-          question: `Which approach is most effective for learning ${subtopic}?`,
-          options: [
-            'Reading textbooks only',
-            'Watching videos only',
-            'Hands-on practice with theory',
-            'Memorizing definitions'
-          ],
-          correctAnswer: 2,
-          explanation: 'Combining hands-on practice with theoretical understanding provides the most effective learning experience.'
-        }
-      ]
+      quizQuestions: this.generateBasicQuizQuestions(extractedTopic.mainTopic, subtopic, [])
     }));
 
     return {
@@ -419,6 +457,68 @@ Make it comprehensive and educational.
       prerequisites: extractedTopic.prerequisites,
       learningObjectives: extractedTopic.learningObjectives
     };
+  }
+
+  private generateBasicQuizQuestions(topic: string, subtopic: string, keyPoints: string[]): GeminiQuizQuestion[] {
+    const keyPoint = keyPoints[0] || `Understanding ${subtopic} fundamentals`;
+    
+    return [
+      {
+        question: `What is the primary focus of ${subtopic} in ${topic}?`,
+        options: [
+          keyPoint,
+          'General theoretical concepts only',
+          'Historical perspectives exclusively',
+          'Advanced research methodologies'
+        ],
+        correctAnswer: 0,
+        explanation: `${subtopic} primarily focuses on ${keyPoint}, which is fundamental to understanding this area of ${topic}.`
+      },
+      {
+        question: `Which statement best describes the relationship between ${subtopic} and ${topic}?`,
+        options: [
+          `${subtopic} is a foundational component that influences multiple aspects of ${topic}`,
+          `${subtopic} is completely independent from other areas of ${topic}`,
+          `${subtopic} only applies to theoretical research`,
+          `${subtopic} is outdated and no longer relevant`
+        ],
+        correctAnswer: 0,
+        explanation: `${subtopic} serves as a foundational component in ${topic}, connecting with and influencing various other areas within the field.`
+      },
+      {
+        question: `How would you apply ${subtopic} principles in a real-world scenario?`,
+        options: [
+          'By following established guidelines and best practices',
+          'By ignoring theoretical foundations',
+          'By using only intuition',
+          'By avoiding practical implementation'
+        ],
+        correctAnswer: 0,
+        explanation: `Applying ${subtopic} effectively requires following established guidelines and best practices developed through research and experience.`
+      },
+      {
+        question: `What is a common challenge when implementing ${subtopic} concepts?`,
+        options: [
+          'Adapting theoretical knowledge to practical situations',
+          'Finding relevant information',
+          'Understanding basic terminology',
+          'Accessing required tools'
+        ],
+        correctAnswer: 0,
+        explanation: `A common challenge in ${subtopic} is bridging the gap between theoretical understanding and practical application in real-world scenarios.`
+      },
+      {
+        question: `Which of the following best represents a key principle of ${subtopic}?`,
+        options: [
+          `Systematic approach to ${topic.toLowerCase()} problems`,
+          'Random experimentation',
+          'Avoiding documentation',
+          'Working in isolation'
+        ],
+        correctAnswer: 0,
+        explanation: `A systematic approach is a key principle in ${subtopic}, ensuring thorough and methodical problem-solving within ${topic}.`
+      }
+    ];
   }
 }
 
