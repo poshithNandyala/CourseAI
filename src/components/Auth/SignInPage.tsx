@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -41,8 +41,10 @@ export const SignInPage: React.FC = () => {
     name: '',
   });
 
-  React.useEffect(() => {
+  // Redirect if already signed in
+  useEffect(() => {
     if (user) {
+      console.log('User is signed in, redirecting to dashboard');
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -62,9 +64,10 @@ export const SignInPage: React.FC = () => {
     try {
       if (authMode === 'signin') {
         await signInWithEmail(formData.email, formData.password);
-        navigate('/dashboard');
+        // Navigation will happen automatically when user state updates
       } else if (authMode === 'signup') {
         await signUpWithEmail(formData.email, formData.password, formData.name);
+        // Navigation will happen automatically when user state updates
       } else if (authMode === 'reset') {
         await resetPassword(formData.email);
         setAuthMode('signin');
@@ -83,6 +86,7 @@ export const SignInPage: React.FC = () => {
     setLoading(true);
     try {
       await signInWithGoogle();
+      // Navigation will happen automatically when user state updates
     } catch (error) {
       console.error('Google sign-in failed:', error);
       // Error is already handled in the service with toast
@@ -97,6 +101,7 @@ export const SignInPage: React.FC = () => {
     setLoading(true);
     try {
       await signInWithGitHub();
+      // Navigation will happen automatically when user state updates
     } catch (error) {
       console.error('GitHub sign-in failed:', error);
       // Error is already handled in the service with toast
