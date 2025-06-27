@@ -56,12 +56,6 @@ export const AuthPage: React.FC = () => {
     }
   ];
 
-  // Check if Supabase is configured
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const isSupabaseConfigured = supabaseUrl && supabaseAnonKey && 
-    !supabaseUrl.includes('placeholder') && !supabaseAnonKey.includes('placeholder');
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
@@ -121,40 +115,22 @@ export const AuthPage: React.FC = () => {
               <p className="text-gray-600">Sign in to start creating amazing courses</p>
             </div>
 
-            {!isSupabaseConfigured && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <p className="text-yellow-800 text-sm">
-                  <strong>Configuration Required:</strong> Please add your Supabase credentials to the .env file to enable authentication.
-                </p>
-              </div>
-            )}
-
             <div className="space-y-4">
               <motion.button
-                whileHover={{ scale: isSupabaseConfigured ? 1.02 : 1 }}
-                whileTap={{ scale: isSupabaseConfigured ? 0.98 : 1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleGoogleSignIn}
-                disabled={!isSupabaseConfigured}
-                className={`w-full flex items-center justify-center space-x-3 border border-gray-300 rounded-lg px-6 py-3 text-gray-700 transition-all duration-200 shadow-sm ${
-                  isSupabaseConfigured 
-                    ? 'bg-white hover:bg-gray-50 cursor-pointer' 
-                    : 'bg-gray-100 cursor-not-allowed opacity-50'
-                }`}
+                className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-300 rounded-lg px-6 py-3 text-gray-700 hover:bg-gray-50 transition-all duration-200 shadow-sm"
               >
                 <Chrome className="h-5 w-5" />
                 <span className="font-medium">Continue with Google</span>
               </motion.button>
 
               <motion.button
-                whileHover={{ scale: isSupabaseConfigured ? 1.02 : 1 }}
-                whileTap={{ scale: isSupabaseConfigured ? 0.98 : 1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleGitHubSignIn}
-                disabled={!isSupabaseConfigured}
-                className={`w-full flex items-center justify-center space-x-3 text-white rounded-lg px-6 py-3 transition-all duration-200 shadow-sm ${
-                  isSupabaseConfigured 
-                    ? 'bg-gray-900 hover:bg-gray-800 cursor-pointer' 
-                    : 'bg-gray-400 cursor-not-allowed'
-                }`}
+                className="w-full flex items-center justify-center space-x-3 bg-gray-900 text-white rounded-lg px-6 py-3 hover:bg-gray-800 transition-all duration-200 shadow-sm"
               >
                 <Github className="h-5 w-5" />
                 <span className="font-medium">Continue with GitHub</span>

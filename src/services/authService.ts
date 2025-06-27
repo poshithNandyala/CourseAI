@@ -5,15 +5,6 @@ import toast from 'react-hot-toast';
 
 export const signInWithGoogle = async () => {
   try {
-    // Check if Supabase is properly configured
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder')) {
-      toast.error('Supabase configuration is missing. Please check your environment variables.');
-      throw new Error('Supabase not configured');
-    }
-
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -34,33 +25,13 @@ export const signInWithGoogle = async () => {
     return data;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
-    
-    // Provide more specific error messages
-    if (error.message?.includes('Invalid login credentials')) {
-      toast.error('Google authentication failed. Please try again.');
-    } else if (error.message?.includes('network')) {
-      toast.error('Network error. Please check your connection and try again.');
-    } else if (error.message?.includes('Supabase not configured')) {
-      toast.error('Authentication service not configured. Please contact support.');
-    } else {
-      toast.error(error.message || 'Failed to sign in with Google');
-    }
-    
+    toast.error(error.message || 'Failed to sign in with Google');
     throw error;
   }
 };
 
 export const signInWithGitHub = async () => {
   try {
-    // Check if Supabase is properly configured
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder')) {
-      toast.error('Supabase configuration is missing. Please check your environment variables.');
-      throw new Error('Supabase not configured');
-    }
-
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
@@ -77,18 +48,7 @@ export const signInWithGitHub = async () => {
     return data;
   } catch (error: any) {
     console.error('GitHub sign-in error:', error);
-    
-    // Provide more specific error messages
-    if (error.message?.includes('Invalid login credentials')) {
-      toast.error('GitHub authentication failed. Please try again.');
-    } else if (error.message?.includes('network')) {
-      toast.error('Network error. Please check your connection and try again.');
-    } else if (error.message?.includes('Supabase not configured')) {
-      toast.error('Authentication service not configured. Please contact support.');
-    } else {
-      toast.error(error.message || 'Failed to sign in with GitHub');
-    }
-    
+    toast.error(error.message || 'Failed to sign in with GitHub');
     throw error;
   }
 };
@@ -142,16 +102,6 @@ const createOrUpdateUser = async (supabaseUser: any) => {
 };
 
 export const initializeAuth = () => {
-  // Check if Supabase is configured before initializing
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder')) {
-    console.warn('Supabase not configured, skipping auth initialization');
-    useAuthStore.getState().setLoading(false);
-    return () => {}; // Return empty cleanup function
-  }
-
   // Listen for auth state changes
   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth state changed:', event, session?.user?.email);
@@ -187,11 +137,7 @@ export const initializeAuth = () => {
     } catch (error) {
       console.error('Error handling auth state change:', error);
       useAuthStore.getState().setUser(null);
-      
-      // Only show error toast if it's not a configuration issue
-      if (!error.message?.includes('Supabase not configured')) {
-        toast.error('Authentication error occurred');
-      }
+      toast.error('Authentication error occurred');
     } finally {
       useAuthStore.getState().setLoading(false);
     }
