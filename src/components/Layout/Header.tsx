@@ -44,9 +44,19 @@ export const Header: React.FC = () => {
   }, []);
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+    console.log('🚪 Header: Starting sign out process');
     setIsProfileOpen(false);
+    setIsMenuOpen(false);
+    
+    try {
+      await signOut();
+      console.log('✅ Header: Sign out completed, navigating to home');
+      // signOut function handles navigation
+    } catch (error) {
+      console.error('❌ Header: Sign out error:', error);
+      // Still navigate to home even if there's an error
+      navigate('/', { replace: true });
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -241,14 +251,24 @@ export const Header: React.FC = () => {
                 })}
                 
                 {user && (
-                  <Link
-                    to="/create"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-accent-500 text-white font-medium"
-                  >
-                    <Plus className="h-5 w-5" />
-                    <span>Create Course</span>
-                  </Link>
+                  <>
+                    <Link
+                      to="/create"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-accent-500 text-white font-medium"
+                    >
+                      <Plus className="h-5 w-5" />
+                      <span>Create Course</span>
+                    </Link>
+                    
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center space-x-3 px-4 py-3 rounded-xl text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 transition-colors duration-200 w-full text-left font-medium"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </>
                 )}
               </nav>
             </motion.div>

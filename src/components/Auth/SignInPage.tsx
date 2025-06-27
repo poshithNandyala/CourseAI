@@ -65,15 +65,15 @@ export const SignInPage: React.FC = () => {
     
     try {
       if (authMode === 'signin') {
-        await signInWithEmail(formData.email, formData.password);
+        await signInWithEmail(formData.email.trim(), formData.password);
         console.log('✅ Email sign-in completed');
         // Navigation will happen automatically via useEffect when user state updates
       } else if (authMode === 'signup') {
-        await signUpWithEmail(formData.email, formData.password, formData.name);
+        await signUpWithEmail(formData.email.trim(), formData.password, formData.name.trim());
         console.log('✅ Email sign-up completed');
         // Navigation will happen automatically via useEffect when user state updates
       } else if (authMode === 'reset') {
-        await resetPassword(formData.email);
+        await resetPassword(formData.email.trim());
         setAuthMode('signin');
       }
     } catch (error) {

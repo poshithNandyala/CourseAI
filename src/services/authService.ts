@@ -37,6 +37,7 @@ const createDemoUser = (email: string, name?: string, provider: 'email' | 'googl
 const setUserAndNavigate = (user: User) => {
   console.log('🔄 Setting user and preparing navigation:', user.email);
   useAuthStore.getState().setUser(user);
+  useAuthStore.getState().setLoading(false);
   
   // Force a small delay to ensure state is updated
   setTimeout(() => {
@@ -47,6 +48,17 @@ const setUserAndNavigate = (user: User) => {
 
 export const signInWithEmail = async (email: string, password: string) => {
   console.log('📧 Email sign-in attempt:', email);
+  
+  // Basic validation
+  if (!email || !email.includes('@')) {
+    toast.error('Please enter a valid email address');
+    throw new Error('Invalid email');
+  }
+  
+  if (!password || password.length < 6) {
+    toast.error('Password must be at least 6 characters');
+    throw new Error('Invalid password');
+  }
   
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate successful login
@@ -85,10 +97,26 @@ export const signInWithEmail = async (email: string, password: string) => {
 export const signUpWithEmail = async (email: string, password: string, name: string) => {
   console.log('📝 Email sign-up attempt:', email);
   
+  // Basic validation
+  if (!email || !email.includes('@')) {
+    toast.error('Please enter a valid email address');
+    throw new Error('Invalid email');
+  }
+  
+  if (!password || password.length < 6) {
+    toast.error('Password must be at least 6 characters');
+    throw new Error('Invalid password');
+  }
+  
+  if (!name || name.trim().length < 2) {
+    toast.error('Please enter your full name');
+    throw new Error('Invalid name');
+  }
+  
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate successful signup
     console.log('🎭 Demo mode: Creating new user');
-    const demoUser = createDemoUser(email, name);
+    const demoUser = createDemoUser(email, name.trim());
     setUserAndNavigate(demoUser);
     toast.success('Account created successfully! (Demo mode)');
     return { user: demoUser, session: null };
@@ -100,8 +128,8 @@ export const signUpWithEmail = async (email: string, password: string, name: str
       password,
       options: {
         data: {
-          full_name: name,
-          name: name,
+          full_name: name.trim(),
+          name: name.trim(),
         }
       }
     });
@@ -128,6 +156,11 @@ export const signUpWithEmail = async (email: string, password: string, name: str
 };
 
 export const resetPassword = async (email: string) => {
+  if (!email || !email.includes('@')) {
+    toast.error('Please enter a valid email address');
+    throw new Error('Invalid email');
+  }
+
   if (!isSupabaseConfigured()) {
     toast.success('Password reset email sent! (Demo mode)');
     return;
@@ -222,22 +255,40 @@ export const signOut = async () => {
   console.log('🚪 Sign-out attempt');
   
   try {
+    // Clear user state immediately
+    useAuthStore.getState().setUser(null);
+    useAuthStore.getState().setLoading(false);
+    
     if (isSupabaseConfigured()) {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase sign-out error:', error);
+        // Don't throw error, continue with local cleanup
+      }
     }
     
     // Clear demo user from localStorage
     localStorage.removeItem('demo_user');
     console.log('🧹 Demo user cleared from localStorage');
     
-    useAuthStore.getState().setUser(null);
     console.log('✅ User signed out successfully');
     toast.success('Successfully signed out');
+    
+    // Force page reload to ensure clean state
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 500);
+    
   } catch (error: any) {
     console.error('Sign-out error:', error);
-    toast.error('Failed to sign out');
-    throw error;
+    // Still clear local state even if there's an error
+    useAuthStore.getState().setUser(null);
+    localStorage.removeItem('demo_user');
+    toast.success('Signed out');
+    
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 500);
   }
 };
 
@@ -269,6 +320,7 @@ const createOrUpdateUser = async (supabaseUser: any): Promise<User> => {
 
     console.log('✅ User created/updated in database:', data.email);
     useAuthStore.getState().setUser(data);
+    useAuthStore.getState().setLoading(false);
     return data;
   } catch (error) {
     console.error('Error creating/updating user:', error);
@@ -334,18 +386,18 @@ export const initializeAuth = () => {
         } else {
           console.log('✅ User found in database:', existingUser.email);
           useAuthStore.getState().setUser(existingUser);
+          useAuthStore.getState().setLoading(false);
         }
       } else {
         console.log('🚪 No session, clearing user');
         useAuthStore.getState().setUser(null);
+        useAuthStore.getState().setLoading(false);
       }
     } catch (error) {
       console.error('❌ Auth error:', error);
       useAuthStore.getState().setUser(null);
-      toast.error('Authentication error occurred');
-    } finally {
       useAuthStore.getState().setLoading(false);
-      console.log('✅ Auth initialization complete');
+      toast.error('Authentication error occurred');
     }
   });
 
