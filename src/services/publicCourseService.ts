@@ -115,10 +115,23 @@ class PublicCourseService {
       if (lessonsError) throw lessonsError;
 
       // Enhance lessons with video data
-      const enhancedLessons = (lessons || []).map(lesson => ({
-        ...lesson,
-        videos: lesson.video_data || []
-      }));
+      const enhancedLessons = (lessons || []).map(lesson => {
+        let videos = [];
+        
+        try {
+          // Parse video data from JSONB column
+          if (lesson.video_data && Array.isArray(lesson.video_data)) {
+            videos = lesson.video_data;
+          }
+        } catch (error) {
+          console.error(`Error parsing video data for lesson "${lesson.title}":`, error);
+        }
+        
+        return {
+          ...lesson,
+          videos
+        };
+      });
 
       console.log('✅ Fetched public course with', enhancedLessons.length, 'lessons');
       return { ...course, lessons: enhancedLessons };

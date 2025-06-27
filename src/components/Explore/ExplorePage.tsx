@@ -39,13 +39,7 @@ export const ExplorePage: React.FC = () => {
   };
 
   const handleViewCourse = (courseId: string) => {
-    if (!user) {
-      toast.error('Please sign in to view course content');
-      navigate('/signin');
-      return;
-    }
-    
-    // For public courses, we can navigate directly
+    // Navigate to public course view - no login required
     navigate(`/course/${courseId}`);
   };
 

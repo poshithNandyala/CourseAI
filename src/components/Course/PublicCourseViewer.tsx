@@ -18,7 +18,6 @@ import {
   User,
   ThumbsUp
 } from 'lucide-react';
-import { courseManagementService } from '../../services/courseManagementService';
 import { publicCourseService } from '../../services/publicCourseService';
 import { useAuthStore } from '../../store/authStore';
 import { VideoPlayer } from './VideoPlayer';
