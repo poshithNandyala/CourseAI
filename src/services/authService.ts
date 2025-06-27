@@ -16,18 +16,19 @@ const isSupabaseConfigured = () => {
 };
 
 // Create demo user for testing
-const createDemoUser = (email: string, name?: string): User => {
+const createDemoUser = (email: string, name?: string, provider: 'email' | 'google' | 'github' = 'email'): User => {
   const demoUser: User = {
     id: 'demo-user-' + Math.random().toString(36).substr(2, 9),
     email,
     name: name || email.split('@')[0],
-    avatar_url: undefined,
-    provider: 'email',
+    avatar_url: provider === 'google' ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face' : undefined,
+    provider,
     created_at: new Date().toISOString(),
   };
   
   // Store in localStorage for persistence
   localStorage.setItem('demo_user', JSON.stringify(demoUser));
+  console.log('💾 Demo user stored:', demoUser.email);
   return demoUser;
 };
 
@@ -130,8 +131,13 @@ export const resetPassword = async (email: string) => {
 export const signInWithGoogle = async () => {
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate Google login
-    const demoUser = createDemoUser('demo@google.com', 'Google User');
+    console.log('🔄 Demo Google login starting...');
+    const demoUser = createDemoUser('demo@google.com', 'Google User', 'google');
+    
+    // Set user immediately
     useAuthStore.getState().setUser(demoUser);
+    console.log('✅ Demo Google user set in store');
+    
     toast.success('Successfully signed in with Google! (Demo mode)');
     return { user: demoUser, session: null };
   }
@@ -159,8 +165,13 @@ export const signInWithGoogle = async () => {
 export const signInWithGitHub = async () => {
   if (!isSupabaseConfigured()) {
     // Demo mode - simulate GitHub login
-    const demoUser = createDemoUser('demo@github.com', 'GitHub User');
+    console.log('🔄 Demo GitHub login starting...');
+    const demoUser = createDemoUser('demo@github.com', 'GitHub User', 'github');
+    
+    // Set user immediately
     useAuthStore.getState().setUser(demoUser);
+    console.log('✅ Demo GitHub user set in store');
+    
     toast.success('Successfully signed in with GitHub! (Demo mode)');
     return { user: demoUser, session: null };
   }
@@ -194,6 +205,7 @@ export const signOut = async () => {
     
     // Clear demo user from localStorage
     localStorage.removeItem('demo_user');
+    console.log('🧹 Demo user cleared from localStorage');
     
     useAuthStore.getState().setUser(null);
     toast.success('Successfully signed out');

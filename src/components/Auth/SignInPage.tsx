@@ -45,7 +45,7 @@ export const SignInPage: React.FC = () => {
   useEffect(() => {
     if (user) {
       console.log('User is signed in, redirecting to dashboard');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
@@ -86,7 +86,14 @@ export const SignInPage: React.FC = () => {
     setLoading(true);
     try {
       await signInWithGoogle();
-      // Navigation will happen automatically when user state updates
+      // For demo mode, navigation happens immediately
+      // For real Supabase, navigation happens via auth state change
+      setTimeout(() => {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          navigate('/dashboard', { replace: true });
+        }
+      }, 100);
     } catch (error) {
       console.error('Google sign-in failed:', error);
       // Error is already handled in the service with toast
@@ -101,7 +108,14 @@ export const SignInPage: React.FC = () => {
     setLoading(true);
     try {
       await signInWithGitHub();
-      // Navigation will happen automatically when user state updates
+      // For demo mode, navigation happens immediately
+      // For real Supabase, navigation happens via auth state change
+      setTimeout(() => {
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          navigate('/dashboard', { replace: true });
+        }
+      }, 100);
     } catch (error) {
       console.error('GitHub sign-in failed:', error);
       // Error is already handled in the service with toast
