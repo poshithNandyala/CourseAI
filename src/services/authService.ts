@@ -213,14 +213,12 @@ const createOrUpdateUser = async (supabaseUser: any) => {
 };
 
 export const initializeAuth = () => {
-  // If using mock client, just set loading to false and return
+  // If using mock client, just set loading to false and return immediately
   if (isMockClient) {
     console.warn('Supabase not configured - running in demo mode');
-    // Use setTimeout to ensure this runs after the component mounts
-    setTimeout(() => {
-      useAuthStore.getState().setLoading(false);
-      useAuthStore.getState().setUser(null);
-    }, 100);
+    // Immediately set loading to false and clear user
+    useAuthStore.getState().setLoading(false);
+    useAuthStore.getState().setUser(null);
     return () => {}; // Return empty unsubscribe function
   }
 

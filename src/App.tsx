@@ -17,15 +17,27 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = initializeAuth();
-    return () => unsubscribe();
+    
+    // Fallback timeout to ensure loading doesn't get stuck
+    const timeout = setTimeout(() => {
+      if (useAuthStore.getState().loading) {
+        console.warn('Auth initialization timeout - forcing loading to false');
+        useAuthStore.getState().setLoading(false);
+      }
+    }, 3000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-secondary-50/30 dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 flex items-center justify-center transition-colors duration-300">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
           <LoadingSpinner size="lg" className="mx-auto mb-4" />
-          <p className="text-neutral-600 dark:text-neutral-400">Loading CourseAI...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading CourseAI...</p>
         </div>
       </div>
     );
@@ -49,10 +61,11 @@ function App() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: isDark ? 'rgba(38, 38, 38, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+            background: isDark ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(10px)',
-            border: isDark ? '1px solid rgba(115, 115, 115, 0.2)' : '1px solid rgba(229, 229, 229, 0.2)',
-            color: isDark ? '#f5f5f5' : '#171717',
+            border: isDark ? '1px solid rgba(75, 85, 99, 0.3)' : '1px solid rgba(229, 231, 235, 0.3)',
+            color: isDark ? '#f9fafb' : '#111827',
+            borderRadius: '12px',
           },
         }}
       />
