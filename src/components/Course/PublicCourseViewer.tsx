@@ -16,7 +16,9 @@ import {
   MessageCircle,
   Send,
   User,
-  ThumbsUp
+  ThumbsUp,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { publicCourseService } from '../../services/publicCourseService';
 import { useAuthStore } from '../../store/authStore';
@@ -77,22 +79,28 @@ export const PublicCourseViewer: React.FC = () => {
 
     try {
       setLoading(true);
+      console.log('🌍 Loading public course for ALL users (no auth required):', id);
       const publicCourse = await publicCourseService.fetchPublicCourse(id);
       if (publicCourse) {
+        console.log('✅ Public course loaded with', publicCourse.lessons.length, 'lessons');
         setCourse(publicCourse);
         
-        // Load user's interaction data if signed in
+        // Load user's interaction data if signed in (optional)
         if (user) {
-          const userInteraction = await publicCourseService.getUserInteraction(id);
-          setIsLiked(userInteraction.isLiked);
-          setUserRating(userInteraction.rating);
+          try {
+            const userInteraction = await publicCourseService.getUserInteraction(id);
+            setIsLiked(userInteraction.isLiked);
+            setUserRating(userInteraction.rating);
+          } catch (error) {
+            console.log('User interaction data not available');
+          }
         }
       } else {
         toast.error('Course not found or not published');
         navigate('/explore');
       }
     } catch (error) {
-      console.error('Error loading public course:', error);
+      console.error('❌ Error loading public course:', error);
       toast.error('Failed to load course');
       navigate('/explore');
     } finally {
@@ -104,6 +112,7 @@ export const PublicCourseViewer: React.FC = () => {
     if (!id) return;
 
     try {
+      console.log('💬 Loading comments for ALL users (no auth required)');
       const courseComments = await publicCourseService.fetchCourseComments(id);
       setComments(courseComments);
     } catch (error) {
@@ -183,7 +192,7 @@ export const PublicCourseViewer: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading course...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading course content...</p>
         </div>
       </div>
     );
@@ -231,6 +240,19 @@ export const PublicCourseViewer: React.FC = () => {
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft border border-gray-200 dark:border-gray-800">
+          {/* Free Access Banner */}
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-2xl p-4 mb-6 border border-green-200 dark:border-green-800">
+            <div className="flex items-center space-x-3">
+              <Unlock className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div>
+                <h4 className="font-semibold text-green-900 dark:text-green-100">Free Access for Everyone!</h4>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  This course is completely free and accessible to all users. No login required to view content!
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
@@ -396,7 +418,7 @@ export const PublicCourseViewer: React.FC = () => {
                       }}
                       className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
                     >
-                      View
+                      View Free
                     </button>
                   </div>
                 ))}
@@ -473,7 +495,7 @@ export const PublicCourseViewer: React.FC = () => {
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                         <Youtube className="h-5 w-5 text-red-500" />
-                        <span>Real YouTube Videos ({selectedLesson.videos.length})</span>
+                        <span>Free YouTube Videos ({selectedLesson.videos.length})</span>
                       </h4>
                       <div className="grid gap-6">
                         {selectedLesson.videos.map((video: any, videoIndex: number) => (
@@ -536,7 +558,7 @@ export const PublicCourseViewer: React.FC = () => {
           {activeTab === 'comments' && (
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Comments ({comments.length})
+                Comments ({comments.length}) - Open to Everyone
               </h3>
 
               {/* Add Comment */}

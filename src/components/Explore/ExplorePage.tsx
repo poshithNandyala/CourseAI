@@ -1,33 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, Star, Users, Clock, BookOpen, Play } from 'lucide-react';
-import { Course } from '../../types';
-import { courseManagementService } from '../../services/courseManagementService';
-import { useAuthStore } from '../../store/authStore';
+import { publicCourseService } from '../../services/publicCourseService';
 import { Card } from '../UI/Card';
 import { Button } from '../UI/Button';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+interface PublicCourse {
+  id: string;
+  title: string;
+  description: string;
+  creator: { name: string; avatar_url?: string };
+  difficulty: string;
+  estimated_duration: number;
+  tags: string[];
+  likes_count: number;
+  rating: number;
+  ratings_count: number;
+  created_at: string;
+}
+
 export const ExplorePage: React.FC = () => {
-  const { user } = useAuthStore();
   const navigate = useNavigate();
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<PublicCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
 
   useEffect(() => {
-    loadCourses();
+    loadPublishedCourses();
   }, []);
 
-  const loadCourses = async () => {
+  const loadPublishedCourses = async () => {
     try {
       setLoading(true);
-      const publishedCourses = await courseManagementService.fetchPublishedCourses(searchTerm, selectedDifficulty);
+      console.log('🌍 Loading ALL published courses for public access...');
+      const publishedCourses = await publicCourseService.fetchAllPublishedCourses(searchTerm, selectedDifficulty);
+      console.log('✅ Loaded', publishedCourses.length, 'published courses');
       setCourses(publishedCourses);
     } catch (error) {
-      console.error('Error loading courses:', error);
+      console.error('❌ Error loading published courses:', error);
       toast.error('Failed to load courses');
     } finally {
       setLoading(false);
@@ -35,11 +48,12 @@ export const ExplorePage: React.FC = () => {
   };
 
   const handleSearch = () => {
-    loadCourses();
+    loadPublishedCourses();
   };
 
   const handleViewCourse = (courseId: string) => {
-    // Navigate to public course view - no login required
+    console.log('🔗 Opening public course for ALL users:', courseId);
+    // Navigate to public course view - NO login required
     navigate(`/course/${courseId}`);
   };
 
@@ -63,7 +77,7 @@ export const ExplorePage: React.FC = () => {
           Explore <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">Courses</span>
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          Discover amazing courses created by our community of educators and AI
+          Discover amazing courses created by our community - accessible to everyone, no login required!
         </p>
       </motion.div>
 
@@ -112,13 +126,13 @@ export const ExplorePage: React.FC = () => {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading courses...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading published courses...</p>
         </div>
       ) : filteredCourses.length === 0 ? (
         <Card className="text-center py-12">
           <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            {searchTerm || selectedDifficulty !== 'all' ? 'No courses found' : 'No courses available'}
+            {searchTerm || selectedDifficulty !== 'all' ? 'No courses found' : 'No published courses available'}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
             {searchTerm || selectedDifficulty !== 'all' 
@@ -126,14 +140,6 @@ export const ExplorePage: React.FC = () => {
               : 'Be the first to create and publish a course!'
             }
           </p>
-          {user && (
-            <Button 
-              onClick={() => navigate('/create')}
-              variant="primary"
-            >
-              Create Course
-            </Button>
-          )}
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -211,7 +217,7 @@ export const ExplorePage: React.FC = () => {
                     onClick={() => handleViewCourse(course.id)}
                     icon={<Play className="h-4 w-4" />}
                   >
-                    View Course
+                    View Course (Free Access)
                   </Button>
                 </div>
               </Card>

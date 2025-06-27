@@ -43,10 +43,10 @@ class PublicCourseService {
   }
 
   async fetchPublicCourse(courseId: string): Promise<PublicCourse | null> {
-    console.log('🌍 Fetching public course:', courseId);
+    console.log('🌍 Fetching public course for ALL users (no auth required):', courseId);
 
     if (!this.isSupabaseConfigured()) {
-      // Demo mode - return mock course
+      // Demo mode - return mock course with full content
       return {
         id: courseId,
         title: 'Complete React.js Course',
@@ -63,7 +63,7 @@ class PublicCourseService {
           {
             id: 'lesson-1',
             title: 'Introduction to React',
-            content: '# Introduction to React\n\nLearn the basics of React...',
+            content: '# Introduction to React\n\nLearn the basics of React components, JSX, and the virtual DOM. This comprehensive introduction covers everything you need to know to get started with React development.\n\n## What is React?\n\nReact is a JavaScript library for building user interfaces, particularly web applications with interactive UIs.\n\n## Key Concepts\n\n- Components\n- JSX\n- Virtual DOM\n- Props and State\n\nThis lesson provides a solid foundation for your React journey.',
             videos: [
               {
                 id: 'demo-video-1',
@@ -92,7 +92,7 @@ class PublicCourseService {
     }
 
     try {
-      // Fetch published course with lessons and video data
+      // Fetch published course - NO authentication required
       const { data: course, error: courseError } = await supabase
         .from('courses')
         .select(`
@@ -100,19 +100,30 @@ class PublicCourseService {
           creator:users(name, avatar_url)
         `)
         .eq('id', courseId)
-        .eq('is_published', true)
+        .eq('is_published', true) // Only published courses
         .single();
 
-      if (courseError) throw courseError;
+      if (courseError) {
+        console.error('❌ Error fetching course:', courseError);
+        return null;
+      }
 
-      // Fetch lessons with video data
+      if (!course) {
+        console.log('❌ Course not found or not published');
+        return null;
+      }
+
+      // Fetch ALL lessons with video data - NO authentication required
       const { data: lessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('*')
         .eq('course_id', courseId)
         .order('order', { ascending: true });
 
-      if (lessonsError) throw lessonsError;
+      if (lessonsError) {
+        console.error('❌ Error fetching lessons:', lessonsError);
+        return { ...course, lessons: [] };
+      }
 
       // Enhance lessons with video data
       const enhancedLessons = (lessons || []).map(lesson => {
@@ -133,7 +144,7 @@ class PublicCourseService {
         };
       });
 
-      console.log('✅ Fetched public course with', enhancedLessons.length, 'lessons');
+      console.log('✅ Fetched public course with', enhancedLessons.length, 'lessons for ALL users');
       return { ...course, lessons: enhancedLessons };
 
     } catch (error) {
@@ -254,6 +265,8 @@ class PublicCourseService {
   }
 
   async fetchCourseComments(courseId: string): Promise<Comment[]> {
+    console.log('💬 Fetching comments for ALL users (no auth required)');
+    
     if (!this.isSupabaseConfigured()) {
       // Demo comments
       return [
@@ -275,6 +288,7 @@ class PublicCourseService {
     }
 
     try {
+      // Fetch comments - NO authentication required for reading
       const { data, error } = await supabase
         .from('comments')
         .select(`
@@ -323,6 +337,74 @@ class PublicCourseService {
     } catch (error) {
       console.error('Error adding comment:', error);
       throw error;
+    }
+  }
+
+  // NEW: Fetch ALL published courses for explore page (no auth required)
+  async fetchAllPublishedCourses(searchQuery?: string, difficulty?: string): Promise<PublicCourse[]> {
+    console.log('🌍 Fetching ALL published courses for public access (no auth required)');
+
+    if (!this.isSupabaseConfigured()) {
+      // Demo mode - return mock published courses
+      return [
+        {
+          id: 'demo-1',
+          title: 'Complete React.js Course',
+          description: 'Learn React from basics to advanced concepts with hands-on projects',
+          creator: { name: 'Demo Instructor', avatar_url: undefined },
+          difficulty: 'intermediate',
+          estimated_duration: 240,
+          tags: ['react', 'javascript', 'frontend'],
+          likes_count: 156,
+          rating: 4.8,
+          ratings_count: 42,
+          created_at: new Date().toISOString(),
+          lessons: []
+        },
+        {
+          id: 'demo-2',
+          title: 'Python for Beginners',
+          description: 'Start your programming journey with Python fundamentals',
+          creator: { name: 'Python Expert', avatar_url: undefined },
+          difficulty: 'beginner',
+          estimated_duration: 180,
+          tags: ['python', 'programming', 'basics'],
+          likes_count: 203,
+          rating: 4.9,
+          ratings_count: 67,
+          created_at: new Date().toISOString(),
+          lessons: []
+        }
+      ];
+    }
+
+    try {
+      let query = supabase
+        .from('courses')
+        .select(`
+          *,
+          creator:users(name, avatar_url)
+        `)
+        .eq('is_published', true) // Only published courses
+        .order('created_at', { ascending: false });
+
+      if (searchQuery) {
+        query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
+
+      if (difficulty && difficulty !== 'all') {
+        query = query.eq('difficulty', difficulty);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
+      console.log('✅ Fetched', data?.length || 0, 'published courses for ALL users');
+      return (data || []).map(course => ({ ...course, lessons: [] }));
+    } catch (error) {
+      console.error('❌ Error fetching published courses:', error);
+      return [];
     }
   }
 }
