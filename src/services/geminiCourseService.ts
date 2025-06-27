@@ -3,6 +3,7 @@ import { Course, Lesson } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { geminiAPI, ExtractedTopic, GeminiCourseStructure } from './geminiApi';
 import { enhancedYouTubeAPI, YouTubeVideo } from './enhancedYouTubeApi';
+import { quizService } from './quizService';
 import toast from 'react-hot-toast';
 
 export interface GeminiCourseData {
@@ -123,13 +124,36 @@ class GeminiCourseService {
         // Generate articles (mock for now, can be enhanced with real article APIs)
         const articles = this.generateArticles(courseStructure.mainTopic, subtopic.title);
 
+        // Generate proper quiz questions using the enhanced quiz service
+        let quizQuestions: any[] = [];
+        if (includeQuizzes) {
+          console.log(`  ❓ Generating proper quiz questions...`);
+          const generatedQuiz = quizService.generateQuizQuestions({
+            topic: courseStructure.mainTopic,
+            subtopic: subtopic.title,
+            keyPoints: subtopic.keyPoints,
+            difficulty: courseStructure.difficulty,
+            questionCount: 4
+          });
+          
+          quizQuestions = generatedQuiz.map(q => ({
+            id: q.id,
+            question: q.question,
+            type: 'multiple_choice' as const,
+            options: q.options,
+            correct_answer: q.correctAnswer,
+            explanation: q.explanation
+          }));
+          console.log(`  ✅ Generated ${quizQuestions.length} proper quiz questions`);
+        }
+
         // Create lesson
         const lesson: GeminiLesson = {
           id: `lesson-${i + 1}`,
           course_id: '',
           title: subtopic.title,
           content: this.formatLessonContent(subtopic, courseStructure.mainTopic, videos),
-          type: subtopic.quizQuestions.length > 0 && includeQuizzes ? 'quiz' : 'article',
+          type: quizQuestions.length > 0 && includeQuizzes ? 'quiz' : 'article',
           order: subtopic.order,
           video_url: videos[0]?.embedUrl,
           videos,
@@ -137,14 +161,7 @@ class GeminiCourseService {
           estimatedDuration: subtopic.estimatedDuration,
           keyPoints: subtopic.keyPoints,
           subtopicTitle: subtopic.title,
-          quiz_questions: includeQuizzes ? subtopic.quizQuestions.map(q => ({
-            id: `q-${i}-${Math.random().toString(36).substr(2, 9)}`,
-            question: q.question,
-            type: 'multiple_choice' as const,
-            options: q.options,
-            correct_answer: q.options[q.correctAnswer],
-            explanation: q.explanation
-          })) : [],
+          quiz_questions: quizQuestions,
           resources: articles.map(article => ({
             id: `r-${Math.random().toString(36).substr(2, 9)}`,
             title: article.title,
