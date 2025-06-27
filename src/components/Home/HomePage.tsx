@@ -11,7 +11,7 @@ export const HomePage: React.FC = () => {
     {
       icon: Brain,
       title: 'AI Course Generation',
-      description: 'Transform simple prompts into comprehensive courses with structured lessons, videos, and quizzes.'
+      description: 'Create structured courses with our easy-to-use platform.'
     },
     {
       icon: Code,
@@ -31,10 +31,10 @@ export const HomePage: React.FC = () => {
   ];
 
   const stats = [
-    { label: 'Courses Created', value: '10,000+' },
-    { label: 'Active Learners', value: '50,000+' },
-    { label: 'AI Generations', value: '1M+' },
-    { label: 'Community Rating', value: '4.9/5' }
+    { label: 'Courses Created', value: 'Coming Soon' },
+    { label: 'Active Learners', value: 'Coming Soon' },
+    { label: 'AI Generations', value: 'Coming Soon' },
+    { label: 'Community Rating', value: 'Coming Soon' }
   ];
 
   return (
@@ -57,8 +57,8 @@ export const HomePage: React.FC = () => {
             </h1>
             
             <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Transform simple prompts into comprehensive learning experiences. 
-              Our AI creates structured courses with videos, quizzes, and resources in minutes.
+              Create structured courses easily with our platform. 
+              Build comprehensive learning experiences with videos, quizzes, and resources.
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
@@ -105,7 +105,7 @@ export const HomePage: React.FC = () => {
                       <Play className="h-8 w-8 text-white" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Watch CourseAI in Action</h3>
-                    <p className="text-gray-600 dark:text-gray-400">See how easy it is to create professional courses with AI</p>
+                    <p className="text-gray-600 dark:text-gray-400">See how easy it is to create professional courses</p>
                   </div>
                 </div>
               </div>
@@ -186,10 +186,10 @@ export const HomePage: React.FC = () => {
             className="bg-gradient-to-r from-brand-500 to-accent-500 rounded-3xl p-8 lg:p-12 text-center text-white shadow-2xl"
           >
             <h2 className="text-3xl lg:text-4xl font-bold mb-4 tracking-tight">
-              Ready to revolutionize learning?
+              Ready to start creating?
             </h2>
             <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-              Join thousands of educators and creators who are already using CourseAI to build amazing learning experiences.
+              Join our platform and start building amazing learning experiences today.
             </p>
             
             {user ? (
