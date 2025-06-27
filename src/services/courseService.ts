@@ -3,9 +3,55 @@ import { Course, Lesson, Comment, Rating } from '../types';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
+// Mock data for demo mode
+const mockCourses: Course[] = [
+  {
+    id: '1',
+    title: 'Complete React.js Course',
+    description: 'Learn React from basics to advanced concepts with hands-on projects',
+    creator_id: 'demo-user',
+    creator: { name: 'Demo Instructor', avatar_url: undefined },
+    is_published: true,
+    difficulty: 'intermediate',
+    estimated_duration: 240,
+    tags: ['react', 'javascript', 'frontend'],
+    likes_count: 156,
+    rating: 4.8,
+    ratings_count: 42,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    title: 'Python for Beginners',
+    description: 'Start your programming journey with Python fundamentals',
+    creator_id: 'demo-user-2',
+    creator: { name: 'Python Expert', avatar_url: undefined },
+    is_published: true,
+    difficulty: 'beginner',
+    estimated_duration: 180,
+    tags: ['python', 'programming', 'basics'],
+    likes_count: 203,
+    rating: 4.9,
+    ratings_count: 67,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+];
+
+const isSupabaseConfigured = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  return url && 
+         key && 
+         !url.includes('your_supabase_project_url') && 
+         !key.includes('your_supabase_anon_key') &&
+         url.startsWith('http');
+};
+
 export const generateCourseWithAI = async (prompt: string): Promise<{ course: Partial<Course>; lessons: Lesson[] }> => {
-  // Simulate AI course generation for now
-  // In production, this would call your AI service
+  // Simulate AI course generation
   await new Promise(resolve => setTimeout(resolve, 2000));
   
   const courseTitle = `Complete Guide to ${prompt}`;
@@ -70,6 +116,29 @@ export const createCourse = async (courseData: Partial<Course>): Promise<Course>
   const user = useAuthStore.getState().user;
   if (!user) throw new Error('User must be authenticated');
 
+  if (!isSupabaseConfigured()) {
+    // Return mock course for demo
+    const mockCourse: Course = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: courseData.title || 'Untitled Course',
+      description: courseData.description || 'No description',
+      creator_id: user.id,
+      creator: { name: user.name, avatar_url: user.avatar_url },
+      is_published: false,
+      difficulty: courseData.difficulty || 'beginner',
+      estimated_duration: courseData.estimated_duration || 60,
+      tags: courseData.tags || [],
+      likes_count: 0,
+      rating: 0,
+      ratings_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    toast.success('Course created successfully! (Demo mode)');
+    return mockCourse;
+  }
+
   try {
     const { data, error } = await supabase
       .from('courses')
@@ -95,6 +164,11 @@ export const createCourse = async (courseData: Partial<Course>): Promise<Course>
 };
 
 export const fetchCourses = async (published_only = false): Promise<Course[]> => {
+  if (!isSupabaseConfigured()) {
+    // Return mock courses for demo
+    return published_only ? mockCourses : mockCourses;
+  }
+
   try {
     let query = supabase
       .from('courses')
@@ -114,11 +188,15 @@ export const fetchCourses = async (published_only = false): Promise<Course[]> =>
     return data || [];
   } catch (error) {
     console.error('Error fetching courses:', error);
-    throw error;
+    return [];
   }
 };
 
 export const fetchCourseById = async (id: string): Promise<Course | null> => {
+  if (!isSupabaseConfigured()) {
+    return mockCourses.find(c => c.id === id) || null;
+  }
+
   try {
     const { data, error } = await supabase
       .from('courses')
@@ -138,6 +216,10 @@ export const fetchCourseById = async (id: string): Promise<Course | null> => {
 };
 
 export const fetchLessonsByCourseId = async (courseId: string): Promise<Lesson[]> => {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
   try {
     const { data, error } = await supabase
       .from('lessons')
@@ -154,6 +236,11 @@ export const fetchLessonsByCourseId = async (courseId: string): Promise<Lesson[]
 };
 
 export const publishCourse = async (courseId: string): Promise<void> => {
+  if (!isSupabaseConfigured()) {
+    toast.success('Course published successfully! (Demo mode)');
+    return;
+  }
+
   try {
     const { error } = await supabase
       .from('courses')
@@ -173,6 +260,11 @@ export const publishCourse = async (courseId: string): Promise<void> => {
 export const rateCourse = async (courseId: string, rating: number): Promise<void> => {
   const user = useAuthStore.getState().user;
   if (!user) throw new Error('User must be authenticated');
+
+  if (!isSupabaseConfigured()) {
+    toast.success('Rating submitted successfully! (Demo mode)');
+    return;
+  }
 
   try {
     const { error } = await supabase

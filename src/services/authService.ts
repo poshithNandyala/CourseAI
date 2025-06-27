@@ -3,16 +3,21 @@ import { useAuthStore } from '../store/authStore';
 import { User } from '../types';
 import toast from 'react-hot-toast';
 
-// Check if we're using the mock client
-const isMockClient = !import.meta.env.VITE_SUPABASE_URL || 
-                    !import.meta.env.VITE_SUPABASE_ANON_KEY || 
-                    import.meta.env.VITE_SUPABASE_URL.includes('your_supabase_project_url') || 
-                    import.meta.env.VITE_SUPABASE_ANON_KEY.includes('your_supabase_anon_key') ||
-                    !import.meta.env.VITE_SUPABASE_URL.startsWith('http');
+// Check if Supabase is properly configured
+const isSupabaseConfigured = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  return url && 
+         key && 
+         !url.includes('your_supabase_project_url') && 
+         !key.includes('your_supabase_anon_key') &&
+         url.startsWith('http');
+};
 
 export const signInWithEmail = async (email: string, password: string) => {
-  if (isMockClient) {
-    toast.error('Demo mode: Supabase is not configured. Please set up your environment variables.');
+  if (!isSupabaseConfigured()) {
+    toast.error('Demo mode: Please configure Supabase to enable authentication');
     throw new Error('Supabase not configured');
   }
 
@@ -23,8 +28,7 @@ export const signInWithEmail = async (email: string, password: string) => {
     });
 
     if (error) {
-      console.error('Email sign-in error:', error);
-      toast.error(error.message || 'Failed to sign in');
+      toast.error(error.message);
       throw error;
     }
 
@@ -32,14 +36,13 @@ export const signInWithEmail = async (email: string, password: string) => {
     return data;
   } catch (error: any) {
     console.error('Email sign-in error:', error);
-    toast.error(error.message || 'Failed to sign in');
     throw error;
   }
 };
 
 export const signUpWithEmail = async (email: string, password: string, name: string) => {
-  if (isMockClient) {
-    toast.error('Demo mode: Supabase is not configured. Please set up your environment variables.');
+  if (!isSupabaseConfigured()) {
+    toast.error('Demo mode: Please configure Supabase to enable authentication');
     throw new Error('Supabase not configured');
   }
 
@@ -56,8 +59,7 @@ export const signUpWithEmail = async (email: string, password: string, name: str
     });
 
     if (error) {
-      console.error('Email sign-up error:', error);
-      toast.error(error.message || 'Failed to create account');
+      toast.error(error.message);
       throw error;
     }
 
@@ -70,14 +72,13 @@ export const signUpWithEmail = async (email: string, password: string, name: str
     return data;
   } catch (error: any) {
     console.error('Email sign-up error:', error);
-    toast.error(error.message || 'Failed to create account');
     throw error;
   }
 };
 
 export const resetPassword = async (email: string) => {
-  if (isMockClient) {
-    toast.error('Demo mode: Supabase is not configured. Please set up your environment variables.');
+  if (!isSupabaseConfigured()) {
+    toast.error('Demo mode: Please configure Supabase to enable authentication');
     throw new Error('Supabase not configured');
   }
 
@@ -87,22 +88,20 @@ export const resetPassword = async (email: string) => {
     });
 
     if (error) {
-      console.error('Password reset error:', error);
-      toast.error(error.message || 'Failed to send reset email');
+      toast.error(error.message);
       throw error;
     }
 
-    toast.success('Password reset email sent! Check your inbox.');
+    toast.success('Password reset email sent!');
   } catch (error: any) {
     console.error('Password reset error:', error);
-    toast.error(error.message || 'Failed to send reset email');
     throw error;
   }
 };
 
 export const signInWithGoogle = async () => {
-  if (isMockClient) {
-    toast.error('Demo mode: Supabase is not configured. Please set up your environment variables.');
+  if (!isSupabaseConfigured()) {
+    toast.error('Demo mode: Please configure Supabase to enable authentication');
     throw new Error('Supabase not configured');
   }
 
@@ -115,23 +114,20 @@ export const signInWithGoogle = async () => {
     });
 
     if (error) {
-      console.error('Supabase OAuth error:', error);
-      toast.error(error.message || 'Failed to sign in with Google');
+      toast.error(error.message);
       throw error;
     }
 
-    toast.success('Redirecting to Google...');
     return data;
   } catch (error: any) {
     console.error('Google sign-in error:', error);
-    toast.error(error.message || 'Failed to sign in with Google');
     throw error;
   }
 };
 
 export const signInWithGitHub = async () => {
-  if (isMockClient) {
-    toast.error('Demo mode: Supabase is not configured. Please set up your environment variables.');
+  if (!isSupabaseConfigured()) {
+    toast.error('Demo mode: Please configure Supabase to enable authentication');
     throw new Error('Supabase not configured');
   }
 
@@ -144,41 +140,34 @@ export const signInWithGitHub = async () => {
     });
 
     if (error) {
-      console.error('Supabase OAuth error:', error);
-      toast.error(error.message || 'Failed to sign in with GitHub');
+      toast.error(error.message);
       throw error;
     }
 
-    toast.success('Redirecting to GitHub...');
     return data;
   } catch (error: any) {
     console.error('GitHub sign-in error:', error);
-    toast.error(error.message || 'Failed to sign in with GitHub');
     throw error;
   }
 };
 
 export const signOut = async () => {
-  if (isMockClient) {
-    useAuthStore.getState().setUser(null);
-    toast.success('Successfully signed out');
-    return;
-  }
-
   try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (isSupabaseConfigured()) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    }
     
     useAuthStore.getState().setUser(null);
     toast.success('Successfully signed out');
   } catch (error: any) {
     console.error('Sign-out error:', error);
-    toast.error(error.message || 'Failed to sign out');
+    toast.error('Failed to sign out');
     throw error;
   }
 };
 
-const createOrUpdateUser = async (supabaseUser: any) => {
+const createOrUpdateUser = async (supabaseUser: any): Promise<User> => {
   try {
     const userData: Omit<User, 'created_at'> = {
       id: supabaseUser.id,
@@ -200,7 +189,7 @@ const createOrUpdateUser = async (supabaseUser: any) => {
       .single();
 
     if (error) {
-      console.error('Database error when creating/updating user:', error);
+      console.error('Database error:', error);
       throw error;
     }
 
@@ -213,26 +202,25 @@ const createOrUpdateUser = async (supabaseUser: any) => {
 };
 
 export const initializeAuth = () => {
-  console.log('Initializing auth...');
+  console.log('🔐 Initializing authentication...');
   
-  // If using mock client, just set loading to false and return immediately
-  if (isMockClient) {
-    console.warn('Supabase not configured - running in demo mode');
-    // Set a small delay to show the loading screen briefly, then clear it
+  // If Supabase is not configured, set loading to false immediately
+  if (!isSupabaseConfigured()) {
+    console.warn('⚠️ Supabase not configured - running in demo mode');
     setTimeout(() => {
       useAuthStore.getState().setLoading(false);
       useAuthStore.getState().setUser(null);
-    }, 500);
-    return () => {}; // Return empty unsubscribe function
+    }, 1000); // Brief delay to show loading screen
+    return () => {}; // Return empty cleanup function
   }
 
   // Listen for auth state changes
   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log('Auth state changed:', event, session?.user?.email);
+    console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user');
     
     try {
       if (session?.user) {
-        // Check if user exists in our users table
+        // Check if user exists in database
         const { data: existingUser, error: fetchError } = await supabase
           .from('users')
           .select('*')
@@ -245,24 +233,21 @@ export const initializeAuth = () => {
         }
 
         if (!existingUser) {
-          // Create new user if doesn't exist
-          console.log('Creating new user in database');
+          console.log('👤 Creating new user in database');
           await createOrUpdateUser(session.user);
         } else {
-          // Update existing user data
-          console.log('User found in database:', existingUser.email);
+          console.log('✅ User found in database:', existingUser.email);
           useAuthStore.getState().setUser(existingUser);
         }
       } else {
-        console.log('No session, clearing user');
+        console.log('🚪 No session, clearing user');
         useAuthStore.getState().setUser(null);
       }
     } catch (error) {
-      console.error('Error handling auth state change:', error);
+      console.error('❌ Auth error:', error);
       useAuthStore.getState().setUser(null);
       toast.error('Authentication error occurred');
     } finally {
-      // Always set loading to false after processing
       useAuthStore.getState().setLoading(false);
     }
   });
