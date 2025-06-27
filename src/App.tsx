@@ -3,54 +3,20 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout/Layout';
 import { HomePage } from './components/Home/HomePage';
-import { SignInPage } from './components/Auth/SignInPage';
-import { Dashboard } from './components/Dashboard/Dashboard';
 import { CourseBuilder } from './components/Course/CourseBuilder';
 import { CourseViewer } from './components/Course/CourseViewer';
 import { PublicCourseViewer } from './components/Course/PublicCourseViewer';
 import { ExplorePage } from './components/Explore/ExplorePage';
-import { initializeAuth } from './services/authService';
-import { useAuthStore } from './store/authStore';
 import { useTheme } from './hooks/useTheme';
-import { LoadingScreen } from './components/UI/LoadingScreen';
 
 function App() {
-  const { loading } = useAuthStore();
   const { isDark } = useTheme();
-
-  useEffect(() => {
-    console.log('🚀 App initializing...');
-    
-    // Initialize authentication
-    const unsubscribe = initializeAuth();
-    
-    // Force loading to false after maximum 3 seconds
-    const timeout = setTimeout(() => {
-      if (useAuthStore.getState().loading) {
-        console.warn('⚠️ Forcing loading to false after timeout');
-        useAuthStore.getState().setLoading(false);
-      }
-    }, 3000);
-
-    return () => {
-      console.log('🧹 App cleanup');
-      unsubscribe();
-      clearTimeout(timeout);
-    };
-  }, []);
-
-  // Show loading screen only briefly
-  if (loading) {
-    return <LoadingScreen />;
-  }
 
   return (
     <Router>
       <Layout>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/signin" element={<SignInPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create" element={<CourseBuilder />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/course/:id" element={<PublicCourseViewer />} />

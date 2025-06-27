@@ -26,13 +26,11 @@ import { geminiCourseService, GeminiCourseData } from '../../services/geminiCour
 import { courseManagementService } from '../../services/courseManagementService';
 import { useCourseStore } from '../../store/courseStore';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
 import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
 import { VideoPlayer } from './VideoPlayer';
 import toast from 'react-hot-toast';
 
 export const GeminiCourseBuilder: React.FC = () => {
-  const { user } = useAuthStore();
   const navigate = useNavigate();
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -59,31 +57,6 @@ export const GeminiCourseBuilder: React.FC = () => {
     'Finalizing course content and structure...',
     'Automatically saving course to your library...'
   ];
-
-  // Check if user is signed in
-  if (!user) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-soft border border-gray-200 dark:border-gray-800">
-            <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Sign In Required
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              You need to be signed in to create courses. Please sign in to access the AI course builder.
-            </p>
-            <button
-              onClick={() => navigate('/signin')}
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
-            >
-              <span>Sign In to Create Courses</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const handleGenerate = async () => {
     if (!userPrompt.trim()) {
@@ -158,8 +131,8 @@ export const GeminiCourseBuilder: React.FC = () => {
     }
   };
 
-  const handleGoToDashboard = () => {
-    navigate('/dashboard');
+  const handleGoToExplore = () => {
+    navigate('/explore');
   };
 
   const examplePrompts = [
@@ -708,11 +681,11 @@ export const GeminiCourseBuilder: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleGoToDashboard}
+              onClick={handleGoToExplore}
               className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-4 rounded-2xl font-semibold hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-lg hover:shadow-xl text-lg flex items-center justify-center space-x-2"
             >
               <BookOpen className="h-5 w-5" />
-              <span>Go to My Courses</span>
+              <span>Explore Courses</span>
             </motion.button>
             
             {savedCourse && !savedCourse.is_published && (

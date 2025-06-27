@@ -2,11 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, Users, Star, Zap, Brain, Code, Play } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
 
 export const HomePage: React.FC = () => {
-  const { user } = useAuthStore();
-
   const features = [
     {
       icon: Brain,
@@ -62,23 +59,13 @@ export const HomePage: React.FC = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
-              {user ? (
-                <Link
-                  to="/create"
-                  className="group inline-flex items-center justify-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <span>Start Creating</span>
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              ) : (
-                <Link
-                  to="/signin"
-                  className="group inline-flex items-center justify-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <span>Get Started Free</span>
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              )}
+              <Link
+                to="/create"
+                className="group inline-flex items-center justify-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <span>Start Creating</span>
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
               
               <Link
                 to="/explore"
@@ -192,23 +179,13 @@ export const HomePage: React.FC = () => {
               Join our platform and start building amazing learning experiences today.
             </p>
             
-            {user ? (
-              <Link
-                to="/create"
-                className="inline-flex items-center space-x-2 bg-white text-brand-600 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                <span>Create Your First Course</span>
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            ) : (
-              <Link
-                to="/signin"
-                className="inline-flex items-center space-x-2 bg-white text-brand-600 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                <span>Start Creating Today</span>
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            )}
+            <Link
+              to="/create"
+              className="inline-flex items-center space-x-2 bg-white text-brand-600 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <span>Create Your First Course</span>
+              <ArrowRight className="h-5 w-5" />
+            </Link>
           </motion.div>
         </div>
       </section>

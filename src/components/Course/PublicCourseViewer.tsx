@@ -17,11 +17,9 @@ import {
   Send,
   User,
   ThumbsUp,
-  Lock,
   Unlock
 } from 'lucide-react';
 import { publicCourseService } from '../../services/publicCourseService';
-import { useAuthStore } from '../../store/authStore';
 import { VideoPlayer } from './VideoPlayer';
 import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
 import toast from 'react-hot-toast';
@@ -30,7 +28,7 @@ interface PublicCourse {
   id: string;
   title: string;
   description: string;
-  creator: { name: string; avatar_url?: string };
+  creator: { name: string; avatar_url?: string } | null;
   difficulty: string;
   estimated_duration: number;
   tags: string[];
@@ -52,13 +50,10 @@ interface Comment {
 export const PublicCourseViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const [course, setCourse] = useState<PublicCourse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lessons' | 'quiz' | 'comments'>('overview');
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [userRating, setUserRating] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -84,17 +79,6 @@ export const PublicCourseViewer: React.FC = () => {
       if (publicCourse) {
         console.log('✅ Public course loaded with', publicCourse.lessons.length, 'lessons');
         setCourse(publicCourse);
-        
-        // Load user's interaction data if signed in (optional)
-        if (user) {
-          try {
-            const userInteraction = await publicCourseService.getUserInteraction(id);
-            setIsLiked(userInteraction.isLiked);
-            setUserRating(userInteraction.rating);
-          } catch (error) {
-            console.log('User interaction data not available');
-          }
-        }
       } else {
         toast.error('Course not found or not published');
         navigate('/explore');
@@ -120,54 +104,7 @@ export const PublicCourseViewer: React.FC = () => {
     }
   };
 
-  const handleLike = async () => {
-    if (!user) {
-      toast.error('Please sign in to like courses');
-      navigate('/signin');
-      return;
-    }
-
-    try {
-      await publicCourseService.toggleCourseLike(id!);
-      setIsLiked(!isLiked);
-      setCourse(prev => prev ? {
-        ...prev,
-        likes_count: isLiked ? prev.likes_count - 1 : prev.likes_count + 1
-      } : null);
-      toast.success(isLiked ? 'Removed from favorites' : 'Added to favorites!');
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      toast.error('Failed to update like status');
-    }
-  };
-
-  const handleRating = async (rating: number) => {
-    if (!user) {
-      toast.error('Please sign in to rate courses');
-      navigate('/signin');
-      return;
-    }
-
-    try {
-      await publicCourseService.rateCourse(id!, rating);
-      setUserRating(rating);
-      toast.success('Rating submitted successfully!');
-      
-      // Reload course to get updated rating
-      loadPublicCourse();
-    } catch (error) {
-      console.error('Error submitting rating:', error);
-      toast.error('Failed to submit rating');
-    }
-  };
-
   const handleSubmitComment = async () => {
-    if (!user) {
-      toast.error('Please sign in to comment');
-      navigate('/signin');
-      return;
-    }
-
     if (!newComment.trim()) {
       toast.error('Please enter a comment');
       return;
@@ -287,7 +224,7 @@ export const PublicCourseViewer: React.FC = () => {
 
               <div className="flex items-center space-x-4 mb-4">
                 <div className="flex items-center space-x-2">
-                  {course.creator.avatar_url ? (
+                  {course.creator?.avatar_url ? (
                     <img
                       src={course.creator.avatar_url}
                       alt={course.creator.name}
@@ -299,7 +236,7 @@ export const PublicCourseViewer: React.FC = () => {
                     </div>
                   )}
                   <span className="font-medium text-gray-900 dark:text-white">
-                    Created by {course.creator.name}
+                    Created by {course.creator?.name || 'Anonymous'}
                   </span>
                 </div>
               </div>
@@ -313,43 +250,6 @@ export const PublicCourseViewer: React.FC = () => {
                     {tag}
                   </span>
                 ))}
-              </div>
-            </div>
-            
-            <div className="ml-6 space-y-3">
-              {/* Like Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLike}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                  isLiked
-                    ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-                <span>{isLiked ? 'Liked' : 'Like'}</span>
-              </motion.button>
-
-              {/* Rating */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Rate this course</p>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
-                      key={rating}
-                      onClick={() => handleRating(rating)}
-                      className={`p-1 transition-colors duration-200 ${
-                        rating <= userRating
-                          ? 'text-yellow-500'
-                          : 'text-gray-300 dark:text-gray-600 hover:text-yellow-400'
-                      }`}
-                    >
-                      <Star className={`h-5 w-5 ${rating <= userRating ? 'fill-current' : ''}`} />
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
@@ -568,21 +468,13 @@ export const PublicCourseViewer: React.FC = () => {
                   <textarea
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={user ? "Share your thoughts about this course..." : "Please sign in to comment"}
+                    placeholder="Share your thoughts about this course..."
                     rows={3}
-                    disabled={!user || submittingComment}
+                    disabled={submittingComment}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50"
                   />
-                  <div className="flex justify-between items-center">
-                    {!user && (
-                      <button
-                        onClick={() => navigate('/signin')}
-                        className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium"
-                      >
-                        Sign in to comment
-                      </button>
-                    )}
-                    <div className="flex space-x-3 ml-auto">
+                  <div className="flex justify-end">
+                    <div className="flex space-x-3">
                       <button
                         onClick={() => setNewComment('')}
                         disabled={!newComment.trim() || submittingComment}
@@ -594,7 +486,7 @@ export const PublicCourseViewer: React.FC = () => {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleSubmitComment}
-                        disabled={!user || !newComment.trim() || submittingComment}
+                        disabled={!newComment.trim() || submittingComment}
                         className="flex items-center space-x-2 bg-brand-500 text-white px-4 py-2 rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                       >
                         <Send className="h-4 w-4" />
