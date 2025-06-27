@@ -3,6 +3,81 @@ import { useAuthStore } from '../store/authStore';
 import { User } from '../types';
 import toast from 'react-hot-toast';
 
+export const signInWithEmail = async (email: string, password: string) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error('Email sign-in error:', error);
+      toast.error(error.message || 'Failed to sign in');
+      throw error;
+    }
+
+    toast.success('Successfully signed in!');
+    return data;
+  } catch (error: any) {
+    console.error('Email sign-in error:', error);
+    toast.error(error.message || 'Failed to sign in');
+    throw error;
+  }
+};
+
+export const signUpWithEmail = async (email: string, password: string, name: string) => {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          name: name,
+        }
+      }
+    });
+
+    if (error) {
+      console.error('Email sign-up error:', error);
+      toast.error(error.message || 'Failed to create account');
+      throw error;
+    }
+
+    if (data.user && !data.session) {
+      toast.success('Please check your email to confirm your account!');
+    } else {
+      toast.success('Account created successfully!');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Email sign-up error:', error);
+    toast.error(error.message || 'Failed to create account');
+    throw error;
+  }
+};
+
+export const resetPassword = async (email: string) => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      console.error('Password reset error:', error);
+      toast.error(error.message || 'Failed to send reset email');
+      throw error;
+    }
+
+    toast.success('Password reset email sent! Check your inbox.');
+  } catch (error: any) {
+    console.error('Password reset error:', error);
+    toast.error(error.message || 'Failed to send reset email');
+    throw error;
+  }
+};
+
 export const signInWithGoogle = async () => {
   try {
     const { data, error } = await supabase.auth.signInWithOAuth({
