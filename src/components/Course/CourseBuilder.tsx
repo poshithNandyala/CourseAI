@@ -1,6 +1,6 @@
 import React from 'react';
-import { EnhancedCourseBuilder } from './EnhancedCourseBuilder';
+import { ProductionCourseBuilder } from './ProductionCourseBuilder';
 
 export const CourseBuilder: React.FC = () => {
-  return <EnhancedCourseBuilder />;
+  return <ProductionCourseBuilder />;
 };
