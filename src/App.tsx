@@ -6,6 +6,7 @@ import { HomePage } from './components/Home/HomePage';
 import { SignInPage } from './components/Auth/SignInPage';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { CourseBuilder } from './components/Course/CourseBuilder';
+import { CourseViewer } from './components/Course/CourseViewer';
 import { ExplorePage } from './components/Explore/ExplorePage';
 import { initializeAuth } from './services/authService';
 import { useAuthStore } from './store/authStore';
@@ -51,8 +52,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create" element={<CourseBuilder />} />
           <Route path="/explore" element={<ExplorePage />} />
-          <Route path="/course/:id" element={<div className="p-8 text-center">Course view coming soon!</div>} />
-          <Route path="/course/:id/edit" element={<div className="p-8 text-center">Course editor coming soon!</div>} />
+          <Route path="/course/:id" element={<CourseViewer />} />
         </Routes>
       </Layout>
       <Toaster
