@@ -82,7 +82,6 @@ export const CourseViewer: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading course:', error);
-      toast.error('Failed to load course');
       navigate('/dashboard');
     } finally {
       setLoading(false);

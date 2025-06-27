@@ -57,11 +57,7 @@ export const AuthPage: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle({
-        options: {
-          redirectTo: 'https://course-ai-nu.vercel.app/auth/callback',
-        },
-      });
+      await signInWithGoogle();
       // User will be redirected to Google, then back to dashboard
     } catch (error) {
       console.error('Google sign-in failed:', error);
