@@ -233,9 +233,9 @@ export const initializeAuth = () => {
           .from('users')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
-        if (fetchError && fetchError.code !== 'PGRST116') {
+        if (fetchError) {
           console.error('Error fetching user:', fetchError);
           throw fetchError;
         }
