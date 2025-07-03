@@ -69,6 +69,7 @@ export const SignInPage: React.FC = () => {
         // Switch to sign-in mode after successful signup
         setAuthMode('signin');
         setFormData(prev => ({ ...prev, password: '', name: '' }));
+        // Don't navigate - let user sign in with new credentials
       }
     } catch (error) {
       console.error('❌ Email auth failed:', error);
