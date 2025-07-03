@@ -1,41 +1,55 @@
+
+
 # 📚 CourseAI — One Prompt to Learn Anything
 
-**CourseAI** is an AI-powered course generator that transforms a single prompt into a full-fledged educational experience — complete with curated YouTube videos, interactive comments, and a sleek, responsive user interface.
+**CourseAI** is an AI-powered platform that transforms a single prompt into a complete educational experience — featuring curated YouTube videos, editable course modules, and a fully responsive, modern UI.
 
-> 🧑‍💻 This is a **side hustle project** developed during my spare hours — built on top of **Bolt AI**, with custom enhancements and features. Huge thanks to Bolt AI for the **free subscription** ❤️.
+> 🧑‍💻 **Designed, built, and refined entirely by me** as a solo developer — using cutting-edge tools like Gemini AI, Supabase, and the YouTube Data API to power real-world learning experiences.
 
------
+---
 
-## 🚧 Under Active Development
+## 🚧 Project Status
 
-For the best results, it's recommended to run the application locally due to API quota limitations. Some features like authentication were built but are temporarily disabled due to deployment issues and my current busy personal schedule.
+The platform is fully functional and actively evolving. Some features (like authentication) are temporarily disabled due to deployment constraints. Running locally is recommended for the best experience due to API quota limits.
 
------
+---
 
-## 🚀 Features
+## 🚀 Key Features
 
-  - ✨ **Generate Complete Educational Courses**: Gemini AI creates topic-rich course outlines from a single user prompt.
-  - 🎥 **Curated YouTube Videos**: Pulls relevant educational videos per topic via the YouTube Data API.
-  - 💬 **Built-in Commenting System**: Powered by Supabase to encourage user interaction and discussion.
-  - 🌗 **Dark/Light Mode**: Customizable and accessible modern UI.
-  - ⚡ **Vercel Deployment Ready**: Configured for fast and easy deployment.
+* ✨ **AI-Generated Course Content**
+  Generates structured, multi-topic courses from a single prompt using Gemini AI.
 
------
+* 🎥 **Curated YouTube Video Integration**
+  Embeds relevant educational videos dynamically using the YouTube Data API.
 
-## 🔧 Tech Stack
+* 📝 **Editable Course Flow**
+  Users can edit course titles, modules, and content before publishing.
 
-| Layer | Technology |
-| :--- | :--- |
-| **Frontend** | React + TypeScript + Vite |
-| **Styling** | Tailwind CSS |
-| **AI API** | Gemini (Google DeepMind) |
-| **Video API** | YouTube Data API |
-| **Backend** | Supabase (auth temporarily removed) |
-| **Hosting** | Vercel |
+* 💬 **Built-in Comment System**
+  Supports user interaction via Supabase-backed comments.
 
------
+* 🌗 **Dark & Light Mode Support**
+  Clean and accessible interface with full theming support.
 
-## ⚙️ Getting Started – Local Development
+* ⚡ **Vercel-Ready Deployment**
+  Pre-configured for fast and easy cloud deployment.
+
+---
+
+## 🛠 Tech Stack
+
+| Layer     | Technology                     |
+| --------- | ------------------------------ |
+| Frontend  | React + TypeScript + Vite      |
+| Styling   | Tailwind CSS                   |
+| AI Engine | Gemini API (Google DeepMind)   |
+| Video API | YouTube Data API               |
+| Backend   | Supabase (Postgres + Realtime) |
+| Hosting   | Vercel                         |
+
+---
+
+## ⚙️ Getting Started (Local Development)
 
 ### 1️⃣ Clone the Repo
 
@@ -58,7 +72,7 @@ Create a `.env` file:
 cp .env.example .env
 ```
 
-Then update it with your keys:
+Then add your API keys:
 
 ```env
 # Supabase
@@ -78,30 +92,24 @@ VITE_GEMINI_API_KEY=your_gemini_api_key
 npm run dev
 ```
 
-Visit: `http://localhost:5173`
+Access the app at `http://localhost:5173`
 
------
+---
 
 ## 🌐 Deploying to Vercel
 
-### 🔑 Add Environment Variables
+### 🔐 Add Environment Variables
 
-Go to your Vercel Dashboard:
+On your Vercel project dashboard, add:
 
-```
-Project → Settings → Environment Variables
-```
+* `VITE_SUPABASE_URL`
+* `VITE_SUPABASE_ANON_KEY`
+* `VITE_YOUTUBE_API_KEY`
+* `VITE_GEMINI_API_KEY`
 
-Add:
+### 🔁 Configure Routing
 
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
-  - `VITE_YOUTUBE_API_KEY`
-  - `VITE_GEMINI_API_KEY`
-
-### 🔁 Enable SPA Routing
-
-Create a `vercel.json` file:
+Create a `vercel.json` file for SPA support:
 
 ```json
 {
@@ -111,60 +119,54 @@ Create a `vercel.json` file:
 }
 ```
 
-### 🚀 Push to Deploy
+### 🚀 Deploy
 
 ```bash
 git add .
-git commit -m "Add Vercel config and env setup"
+git commit -m "Configure Vercel deployment"
 git push
 ```
 
-Vercel will deploy your app automatically. 🎉
+Done — Vercel will handle the deployment!
 
------
+---
 
 ## 📁 Project Structure
 
-```bash
+```
 .
 ├── src/
 │   ├── components/     # UI components
-│   ├── pages/          # Views (Home, Course)
-│   ├── services/       # API integrations (YouTube, Gemini, Supabase)
-│   └── App.tsx         # Main app structure
+│   ├── pages/          # App views (Home, Course, etc.)
+│   ├── services/       # External APIs (YouTube, Gemini, Supabase)
+│   └── App.tsx         # Main app logic
 ├── public/
-│   └── _redirects      # SPA fallback for Netlify
-├── vercel.json         # Vercel routing config
-└── .env.example        # Example env file
+│   └── _redirects      # SPA routing config
+├── vercel.json         # Deployment rules
+└── .env.example        # Env variable template
 ```
 
------
+---
 
-## 📝 Notes & Recommendations
+## 🙌 Credits
 
-  - ⚠️ **API Quotas**: YouTube & Gemini APIs have usage limits. Use locally to avoid quota-related disruptions.
-  - 🔐 **Authentication**: Sign-in/Sign-up was implemented using Supabase Auth but is currently removed due to deployment limitations.
-  - ⏳ **Personal Note**: As a solo developer with a tight schedule, progress is ongoing but not daily.
-  - 🧪 **Best Tip**: Run locally for the most stable experience and full feature access.
+While this project is built entirely by me, I’d like to acknowledge:
 
------
+* 💡 **Gemini API** – for enabling advanced AI-driven course creation
+* 🎥 **YouTube Data API** – for surfacing high-quality video resources
 
-## 🙏 Credits
 
-  - 🤖 **Course Generation**: Gemini AI (Google DeepMind)
-  - 📺 **Video Curation**: YouTube Data API
-  - 💬 **Comments Backend**: Supabase
-  - ⚙️ **Base Architecture & Prompt Logic**: Built with Bolt AI
-
-Thank you, **Bolt AI**, for providing free access — it made this project possible\!
-
------
+---
 
 ## 💡 Contributing
 
-🎯 This project is open-source and in active development — your feedback and contributions are welcome\!
+Open-source contributions, feedback, or issue reports are welcome!
 
-  - Open an issue for bugs, feature ideas, or suggestions.
-  - Submit pull requests to improve functionality or polish UI.
+* Submit pull requests for improvements
+* Report bugs or suggest features via Issues
+* Star the repo if you find it useful 🌟
 
-Let’s build the future of education, one prompt at a time. 🚀
+> Let’s redefine how we learn — one prompt at a time.
+
+---
+
