@@ -18,7 +18,7 @@ const courseSchema = new Schema(
             default: ""
         },
         owner_id: {
-            type: Schema.Types.ObjectId,
+            type: String,
             ref: "User",
             required: true,
             index: true,

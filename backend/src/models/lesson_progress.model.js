@@ -3,7 +3,7 @@ import mongoose, { Schema } from "mongoose";
 const lessonProgressSchema = new Schema(
     {
         user_id: {
-            type: Schema.Types.ObjectId,
+            type: String,
             ref: "User",
             required: true,
         },

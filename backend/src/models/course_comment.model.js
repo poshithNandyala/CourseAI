@@ -9,7 +9,7 @@ const courseCommentSchema = new Schema(
             index: true,
         },
         user_id: {
-            type: Schema.Types.ObjectId,
+            type: String,
             ref: "User",
             required: true,
             index: true
