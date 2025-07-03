@@ -12,6 +12,7 @@ const testBackendConnection = async () => {
       console.log('✅ Backend connection successful');
       return true;
     }
+    throw new Error('Health check failed');
   } catch (error) {
     console.error('❌ Backend connection failed:', error);
     toast.error('Cannot connect to server. Please make sure the backend is running on port 8000.');
