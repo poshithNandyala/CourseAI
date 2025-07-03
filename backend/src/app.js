@@ -38,6 +38,19 @@ import courseRoutes from "./routes/course.route.js"
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/courses", courseRoutes)
 
+// Root API endpoint
+app.get('/api/v1', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Welcome to CourseAI API',
+        endpoints: {
+            users: '/api/v1/users',
+            courses: '/api/v1/courses',
+            health: '/health'
+        }
+    })
+})
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err)
