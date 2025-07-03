@@ -22,11 +22,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handlePlayClick = () => {
+    console.log('▶️ Playing video:', video.title);
     setIsPlaying(true);
   };
 
   const handleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+  };
+
+  // Ensure we have all required video properties
+  const safeVideo = {
+    id: video.id || 'unknown',
+    title: video.title || 'Untitled Video',
+    description: video.description || 'No description available',
+    duration: video.duration || '0:00',
+    thumbnailUrl: video.thumbnailUrl || 'https://via.placeholder.com/480x360?text=No+Thumbnail',
+    channelTitle: video.channelTitle || 'Unknown Channel',
+    viewCount: video.viewCount || 0,
+    embedUrl: video.embedUrl || `https://www.youtube.com/embed/${video.id}`,
+    watchUrl: video.watchUrl || `https://www.youtube.com/watch?v=${video.id}`
   };
 
   return (
@@ -38,8 +52,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
         {isPlaying ? (
           <div className="relative w-full h-full">
             <iframe
-              src={`${video.embedUrl}&autoplay=1&modestbranding=1&rel=0&showinfo=0`}
-              title={video.title}
+              src={`${safeVideo.embedUrl}${safeVideo.embedUrl.includes('?') ? '&' : '?'}autoplay=1&modestbranding=1&rel=0&showinfo=0`}
+              title={safeVideo.title}
               className="w-full h-full"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -60,8 +74,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
         ) : (
           <div className="relative w-full h-full group cursor-pointer" onClick={handlePlayClick}>
             <img
-              src={video.thumbnailUrl}
-              alt={video.title}
+              src={safeVideo.thumbnailUrl}
+              alt={safeVideo.title}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center group-hover:bg-opacity-30 transition-all duration-200">
@@ -74,7 +88,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
               </motion.div>
             </div>
             <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm font-medium">
-              {video.duration}
+              {safeVideo.duration}
             </div>
             <div className="absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">
               HD
@@ -87,23 +101,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
       {!isFullscreen && (
         <div className="p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
-            {video.title}
+            {safeVideo.title}
           </h3>
           
           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
-            <span className="font-medium text-gray-700 dark:text-gray-300">{video.channelTitle}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-300">{safeVideo.channelTitle}</span>
             <div className="flex items-center space-x-1">
               <Eye className="h-4 w-4" />
-              <span>{video.viewCount.toLocaleString()} views</span>
+              <span>{safeVideo.viewCount.toLocaleString()} views</span>
             </div>
             <div className="flex items-center space-x-1">
               <Clock className="h-4 w-4" />
-              <span>{video.duration}</span>
+              <span>{safeVideo.duration}</span>
             </div>
           </div>
 
           <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3 mb-4">
-            {video.description}
+            {safeVideo.description}
           </p>
 
           <div className="flex space-x-3">
@@ -120,7 +134,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
             )}
             
             <a
-              href={video.watchUrl}
+              href={safeVideo.watchUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 flex items-center space-x-2"

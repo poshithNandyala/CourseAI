@@ -97,6 +97,8 @@ export const fetchPublishedCourses = async (params?: {
       searchParams.append('difficulty', params.difficulty);
     }
 
+    console.log('🔍 Fetching published courses with params:', Object.fromEntries(searchParams));
+
     const response = await fetch(`${API_BASE_URL}/courses/published?${searchParams}`, {
       credentials: 'include',
     });
@@ -104,6 +106,7 @@ export const fetchPublishedCourses = async (params?: {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to fetch courses:', data.message);
       throw new Error(data.message || 'Failed to fetch courses');
     }
 
@@ -125,6 +128,7 @@ export const fetchPublishedCourses = async (params?: {
         updated_at: course.updatedAt,
       }));
 
+      console.log(`✅ Fetched ${courses.length} published courses`);
       return {
         courses,
         pagination: data.data.pagination
@@ -140,6 +144,8 @@ export const fetchPublishedCourses = async (params?: {
 
 export const fetchCourseById = async (courseId: string): Promise<{ course: Course; lessons: Lesson[] } | null> => {
   try {
+    console.log(`🔍 Fetching course details for ID: ${courseId}`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
       credentials: 'include',
     });
@@ -147,6 +153,7 @@ export const fetchCourseById = async (courseId: string): Promise<{ course: Cours
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to fetch course:', data.message);
       throw new Error(data.message || 'Failed to fetch course');
     }
 
@@ -176,11 +183,12 @@ export const fetchCourseById = async (courseId: string): Promise<{ course: Cours
         type: lesson.type,
         order: lesson.order,
         video_url: lesson.video_url,
-        videos: lesson.video_data || [],
+        video_data: lesson.video_data || [],
         quiz_questions: lesson.quiz_questions || [],
         resources: lesson.resources || [],
       }));
 
+      console.log(`✅ Fetched course with ${lessons.length} lessons and ${lessons.reduce((sum, lesson) => sum + (lesson.video_data?.length || 0), 0)} videos`);
       return { course, lessons };
     }
 
@@ -194,10 +202,13 @@ export const fetchCourseById = async (courseId: string): Promise<{ course: Cours
 export const fetchUserCourses = async (): Promise<Course[]> => {
   const user = useAuthStore.getState().user;
   if (!user) {
+    console.log('❌ No user found, cannot fetch courses');
     return [];
   }
 
   try {
+    console.log('📚 Fetching courses for user:', user.email);
+    
     const response = await fetch(`${API_BASE_URL}/courses/my-courses`, {
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -206,11 +217,12 @@ export const fetchUserCourses = async (): Promise<Course[]> => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to fetch user courses:', data.message);
       throw new Error(data.message || 'Failed to fetch user courses');
     }
 
     if (data.success && data.data) {
-      return data.data.courses.map((course: any) => ({
+      const courses = data.data.courses.map((course: any) => ({
         id: course._id,
         title: course.title,
         description: course.description,
@@ -226,6 +238,9 @@ export const fetchUserCourses = async (): Promise<Course[]> => {
         created_at: course.createdAt,
         updated_at: course.updatedAt,
       }));
+
+      console.log(`✅ Fetched ${courses.length} courses for user`);
+      return courses;
     }
 
     return [];
@@ -242,6 +257,8 @@ export const toggleCourseLike = async (courseId: string): Promise<{ isLiked: boo
   }
 
   try {
+    console.log(`❤️ Toggling like for course: ${courseId}`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}/like`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -251,10 +268,12 @@ export const toggleCourseLike = async (courseId: string): Promise<{ isLiked: boo
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to toggle like:', data.message);
       throw new Error(data.message || 'Failed to toggle like');
     }
 
     if (data.success) {
+      console.log(`✅ Course ${data.data.isLiked ? 'liked' : 'unliked'} successfully`);
       return { isLiked: data.data.isLiked };
     }
 
@@ -273,6 +292,8 @@ export const rateCourse = async (courseId: string, rating: number): Promise<void
   }
 
   try {
+    console.log(`⭐ Rating course ${courseId} with ${rating} stars`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}/rate`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -283,10 +304,12 @@ export const rateCourse = async (courseId: string, rating: number): Promise<void
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to rate course:', data.message);
       throw new Error(data.message || 'Failed to rate course');
     }
 
     if (data.success) {
+      console.log('✅ Rating submitted successfully');
       toast.success('Rating submitted successfully!');
       return;
     }
@@ -306,6 +329,8 @@ export const addCourseComment = async (courseId: string, content: string): Promi
   }
 
   try {
+    console.log(`💬 Adding comment to course ${courseId}`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}/comments`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -316,10 +341,12 @@ export const addCourseComment = async (courseId: string, content: string): Promi
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to add comment:', data.message);
       throw new Error(data.message || 'Failed to add comment');
     }
 
     if (data.success) {
+      console.log('✅ Comment added successfully');
       toast.success('Comment added successfully!');
       return;
     }
@@ -334,6 +361,8 @@ export const addCourseComment = async (courseId: string, content: string): Promi
 
 export const fetchCourseComments = async (courseId: string): Promise<any[]> => {
   try {
+    console.log(`💬 Fetching comments for course ${courseId}`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}/comments`, {
       credentials: 'include',
     });
@@ -341,10 +370,12 @@ export const fetchCourseComments = async (courseId: string): Promise<any[]> => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to fetch comments:', data.message);
       throw new Error(data.message || 'Failed to fetch comments');
     }
 
     if (data.success && data.data) {
+      console.log(`✅ Fetched ${data.data.length} comments`);
       return data.data;
     }
 
@@ -362,6 +393,8 @@ export const publishCourse = async (courseId: string): Promise<void> => {
   }
 
   try {
+    console.log(`📢 Publishing course ${courseId}`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}/publish`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
@@ -372,10 +405,12 @@ export const publishCourse = async (courseId: string): Promise<void> => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to publish course:', data.message);
       throw new Error(data.message || 'Failed to publish course');
     }
 
     if (data.success) {
+      console.log('✅ Course published successfully');
       toast.success('Course published successfully!');
       return;
     }
@@ -395,6 +430,8 @@ export const unpublishCourse = async (courseId: string): Promise<void> => {
   }
 
   try {
+    console.log(`📝 Unpublishing course ${courseId}`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}/publish`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
@@ -405,10 +442,12 @@ export const unpublishCourse = async (courseId: string): Promise<void> => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to unpublish course:', data.message);
       throw new Error(data.message || 'Failed to unpublish course');
     }
 
     if (data.success) {
+      console.log('✅ Course unpublished successfully');
       toast.success('Course unpublished successfully!');
       return;
     }
@@ -428,6 +467,8 @@ export const deleteCourse = async (courseId: string): Promise<void> => {
   }
 
   try {
+    console.log(`🗑️ Deleting course ${courseId}`);
+    
     const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
@@ -437,10 +478,12 @@ export const deleteCourse = async (courseId: string): Promise<void> => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('❌ Failed to delete course:', data.message);
       throw new Error(data.message || 'Failed to delete course');
     }
 
     if (data.success) {
+      console.log('✅ Course deleted successfully');
       toast.success('Course deleted successfully!');
       return;
     }

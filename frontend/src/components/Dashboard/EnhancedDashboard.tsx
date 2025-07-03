@@ -46,16 +46,21 @@ export const EnhancedDashboard: React.FC = () => {
 
   const handlePublishToggle = async (courseId: string, isCurrentlyPublished: boolean) => {
     try {
+      console.log(`🔄 Toggling publish status for course ${courseId} to ${!isCurrentlyPublished}`);
+      
       if (isCurrentlyPublished) {
         await unpublishCourse(courseId);
+        toast.success('Course unpublished successfully');
       } else {
         await publishCourse(courseId);
+        toast.success('Course published successfully! It is now visible to others.');
       }
       
       // Refresh courses
       await loadUserCourses();
     } catch (error) {
       console.error('Error toggling publish status:', error);
+      toast.error('Failed to update course status');
     }
   };
 
@@ -65,14 +70,18 @@ export const EnhancedDashboard: React.FC = () => {
     }
 
     try {
+      console.log(`🗑️ Deleting course ${courseId}`);
       await deleteCourse(courseId);
+      toast.success('Course deleted successfully');
       await loadUserCourses();
     } catch (error) {
       console.error('Error deleting course:', error);
+      toast.error('Failed to delete course');
     }
   };
 
   const handleViewCourse = (courseId: string) => {
+    console.log(`🔍 Viewing course ${courseId}`);
     navigate(`/course/${courseId}`);
   };
 

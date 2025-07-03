@@ -14,7 +14,7 @@ import {
   HelpCircle,
   AlertCircle
 } from 'lucide-react';
-import { courseManagementService, CourseWithLessons } from '../../services/courseManagementService';
+import { fetchCourseById } from '../../services/courseService';
 import { useAuthStore } from '../../store/authStore';
 import { VideoPlayer } from './VideoPlayer';
 import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
@@ -25,7 +25,8 @@ export const CourseViewer: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [course, setCourse] = useState<CourseWithLessons | null>(null);
+  const [course, setCourse] = useState<any>(null);
+  const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lessons' | 'quiz'>('overview');
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
@@ -53,29 +54,26 @@ export const CourseViewer: React.FC = () => {
       setLoading(true);
       
       // Check if course data was passed via navigation state
-      const courseData = location.state?.courseData as CourseWithLessons;
+      const courseData = location.state?.courseData;
       if (courseData) {
         console.log('📖 Using course data from navigation state');
-        console.log('🎥 Course has video data:', courseData.lessons.map(l => ({ 
-          title: l.title, 
-          videoCount: l.videos?.length || 0 
-        })));
-        setCourse(courseData);
+        setCourse(courseData.course);
+        setLessons(courseData.lessons);
         setLoading(false);
         return;
       }
 
       // Otherwise fetch from database with video data
       console.log('📖 Fetching course with video data from database');
-      const fetchedCourse = await courseManagementService.fetchCourseWithContent(id);
+      const fetchedCourse = await fetchCourseById(id);
       if (fetchedCourse) {
         console.log('✅ Course loaded with', fetchedCourse.lessons.length, 'lessons');
         console.log('🎥 Video data loaded:', fetchedCourse.lessons.map(l => ({ 
           title: l.title, 
-          videoCount: l.videos?.length || 0,
-          hasVideos: l.videos && l.videos.length > 0
+          videoCount: l.video_data?.length || 0
         })));
-        setCourse(fetchedCourse);
+        setCourse(fetchedCourse.course);
+        setLessons(fetchedCourse.lessons);
       } else {
         toast.error('Course not found or you don\'t have access to it');
         navigate('/dashboard');
@@ -117,16 +115,16 @@ export const CourseViewer: React.FC = () => {
     );
   }
 
-  const selectedLesson = course.lessons[selectedLessonIndex];
+  const selectedLesson = lessons[selectedLessonIndex];
   const hasQuizQuestions = selectedLesson?.quiz_questions && selectedLesson.quiz_questions.length > 0;
-  const hasVideos = selectedLesson?.videos && selectedLesson.videos.length > 0;
-  const totalVideos = course.lessons.reduce((sum, lesson) => sum + (lesson.videos?.length || 0), 0);
+  const hasVideos = selectedLesson?.video_data && selectedLesson.video_data.length > 0;
+  const totalVideos = lessons.reduce((sum, lesson) => sum + (lesson.video_data?.length || 0), 0);
 
   console.log('🎬 Current lesson video status:', {
     lessonTitle: selectedLesson?.title,
     hasVideos,
-    videoCount: selectedLesson?.videos?.length || 0,
-    firstVideoTitle: selectedLesson?.videos?.[0]?.title
+    videoCount: selectedLesson?.video_data?.length || 0,
+    firstVideoTitle: selectedLesson?.video_data?.[0]?.title
   });
 
   return (
@@ -172,7 +170,7 @@ export const CourseViewer: React.FC = () => {
                 </span>
                 <span className="flex items-center space-x-1">
                   <BookOpen className="h-4 w-4" />
-                  <span>{course.lessons.length} lessons</span>
+                  <span>{lessons.length} lessons</span>
                 </span>
                 <span className="flex items-center space-x-1">
                   <Youtube className="h-4 w-4 text-red-500" />
@@ -229,14 +227,14 @@ export const CourseViewer: React.FC = () => {
                   <div>
                     <h4 className="font-medium text-blue-900 dark:text-blue-100">Video Content Status</h4>
                     <p className="text-sm text-blue-700 dark:text-blue-300">
-                      This course contains {totalVideos} real YouTube videos across {course.lessons.length} lessons
+                      This course contains {totalVideos} real YouTube videos across {lessons.length} lessons
                     </p>
                   </div>
                 </div>
               </div>
 
               <div className="grid gap-4">
-                {course.lessons.map((lesson, index) => (
+                {lessons.map((lesson, index) => (
                   <div
                     key={lesson.id}
                     className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl"
@@ -250,15 +248,15 @@ export const CourseViewer: React.FC = () => {
                           <FileText className="h-4 w-4" />
                         </div>
                         <h4 className="font-semibold text-gray-900 dark:text-white">{lesson.title}</h4>
-                        {lesson.videos && lesson.videos.length > 0 && (
+                        {lesson.video_data && lesson.video_data.length > 0 && (
                           <div className="flex items-center space-x-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded-full text-xs">
                             <Youtube className="h-3 w-3" />
-                            <span>{lesson.videos.length} videos</span>
+                            <span>{lesson.video_data.length} videos</span>
                           </div>
                         )}
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        {lesson.videos?.length || 0} videos • {lesson.quiz_questions?.length || 0} quiz questions
+                        {lesson.video_data?.length || 0} videos • {lesson.quiz_questions?.length || 0} quiz questions
                       </p>
                     </div>
                     <button
@@ -280,7 +278,7 @@ export const CourseViewer: React.FC = () => {
             <div className="space-y-8">
               {/* Lesson Selector */}
               <div className="flex flex-wrap gap-2 mb-6">
-                {course.lessons.map((lesson, index) => (
+                {lessons.map((lesson, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedLessonIndex(index)}
@@ -291,10 +289,10 @@ export const CourseViewer: React.FC = () => {
                     }`}
                   >
                     <span>Lesson {index + 1}</span>
-                    {lesson.videos && lesson.videos.length > 0 && (
+                    {lesson.video_data && lesson.video_data.length > 0 && (
                       <div className="flex items-center space-x-1">
                         <Youtube className="h-3 w-3" />
-                        <span className="text-xs">({lesson.videos.length})</span>
+                        <span className="text-xs">({lesson.video_data.length})</span>
                       </div>
                     )}
                   </button>
@@ -311,7 +309,7 @@ export const CourseViewer: React.FC = () => {
                     <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                       <span className="flex items-center space-x-1">
                         <Youtube className="h-4 w-4 text-red-500" />
-                        <span>{selectedLesson.videos?.length || 0} videos</span>
+                        <span>{selectedLesson.video_data?.length || 0} videos</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <HelpCircle className="h-4 w-4 text-green-500" />
@@ -345,22 +343,15 @@ export const CourseViewer: React.FC = () => {
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                         <Youtube className="h-5 w-5 text-red-500" />
-                        <span>Real YouTube Videos ({selectedLesson.videos.length})</span>
+                        <span>Real YouTube Videos ({selectedLesson.video_data.length})</span>
                       </h4>
                       <div className="grid gap-6">
-                        {selectedLesson.videos.map((video, videoIndex) => {
-                          console.log(`🎥 Rendering video ${videoIndex + 1}:`, {
-                            title: video.title,
-                            id: video.id,
-                            embedUrl: video.embedUrl
-                          });
-                          return (
-                            <VideoPlayer 
-                              key={`${selectedLesson.id}-video-${videoIndex}`}
-                              video={video}
-                            />
-                          );
-                        })}
+                        {selectedLesson.video_data.map((video, videoIndex) => (
+                          <VideoPlayer 
+                            key={`${selectedLesson.id}-video-${videoIndex}`}
+                            video={video}
+                          />
+                        ))}
                       </div>
                     </div>
                   ) : (
@@ -386,7 +377,7 @@ export const CourseViewer: React.FC = () => {
             <div>
               {hasQuizQuestions ? (
                 <InteractiveQuiz
-                  questions={selectedLesson.quiz_questions!}
+                  questions={selectedLesson.quiz_questions}
                   title={`${selectedLesson.title} - Quiz`}
                   onComplete={(score, total) => {
                     toast.success(`Quiz completed! You scored ${score}/${total} (${Math.round((score/total)*100)}%)`);
@@ -400,7 +391,7 @@ export const CourseViewer: React.FC = () => {
                     Select a lesson with quiz questions to take an interactive quiz.
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {course.lessons.map((lesson, index) => (
+                    {lessons.map((lesson, index) => (
                       lesson.quiz_questions && lesson.quiz_questions.length > 0 && (
                         <button
                           key={index}

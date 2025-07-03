@@ -439,7 +439,7 @@ export const PublicCourseViewer: React.FC = () => {
             <div>
               {hasQuizQuestions ? (
                 <InteractiveQuiz
-                  questions={selectedLesson.quiz_questions!}
+                  questions={selectedLesson.quiz_questions}
                   title={`${selectedLesson.title} - Quiz`}
                   onComplete={(score, total) => {
                     toast.success(`Quiz completed! You scored ${score}/${total} (${Math.round((score/total)*100)}%)`);

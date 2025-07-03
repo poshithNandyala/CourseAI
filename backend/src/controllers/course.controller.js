@@ -275,6 +275,8 @@ const getUserCourses = asyncHandler(async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     try {
+        console.log('📚 Fetching courses for user:', req.user._id);
+        
         const courses = await Course.find({ owner_id: req.user._id })
             .populate('owner_id', 'username fullname avatar_url')
             .sort({ createdAt: -1 })
@@ -283,6 +285,8 @@ const getUserCourses = asyncHandler(async (req, res) => {
             .lean();
 
         const totalCourses = await Course.countDocuments({ owner_id: req.user._id });
+
+        console.log(`✅ Found ${courses.length} courses for user`);
 
         // Format courses
         const formattedCourses = courses.map(course => ({
