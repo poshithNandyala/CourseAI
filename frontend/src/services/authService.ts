@@ -4,6 +4,21 @@ import toast from 'react-hot-toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
+// Test backend connection
+const testBackendConnection = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL.replace('/api/v1', '')}/health`);
+    if (response.ok) {
+      console.log('✅ Backend connection successful');
+      return true;
+    }
+  } catch (error) {
+    console.error('❌ Backend connection failed:', error);
+    toast.error('Cannot connect to server. Please make sure the backend is running on port 8000.');
+    return false;
+  }
+};
+
 // Set user and handle navigation
 const setUserAndNavigate = (user: User) => {
   console.log('🔄 Setting user and preparing navigation:', user.email);
@@ -23,6 +38,12 @@ const setUserAndNavigate = (user: User) => {
 export const signInWithEmail = async (email: string, password: string) => {
   console.log('📧 Email sign-in attempt:', email);
   
+  // Test backend connection first
+  const isConnected = await testBackendConnection();
+  if (!isConnected) {
+    throw new Error('Backend server is not accessible');
+  }
+  
   // Basic validation
   if (!email || !email.includes('@')) {
     toast.error('Please enter a valid email address');
@@ -35,6 +56,8 @@ export const signInWithEmail = async (email: string, password: string) => {
   }
 
   try {
+    console.log('🔗 Attempting to connect to:', `${API_BASE_URL}/users/login`);
+    
     const response = await fetch(`${API_BASE_URL}/users/login`, {
       method: 'POST',
       headers: {
@@ -48,6 +71,7 @@ export const signInWithEmail = async (email: string, password: string) => {
     });
 
     const data = await response.json();
+    console.log('📡 Login response:', { status: response.status, success: data.success });
 
     if (!response.ok) {
       console.error('❌ Email sign-in error:', data.message);
@@ -76,12 +100,21 @@ export const signInWithEmail = async (email: string, password: string) => {
     throw new Error('Invalid response format');
   } catch (error: any) {
     console.error('Email sign-in error:', error);
+    if (error.message.includes('fetch')) {
+      toast.error('Cannot connect to server. Please check if the backend is running.');
+    }
     throw error;
   }
 };
 
 export const signUpWithEmail = async (email: string, password: string, name: string) => {
   console.log('📝 Email sign-up attempt:', email);
+  
+  // Test backend connection first
+  const isConnected = await testBackendConnection();
+  if (!isConnected) {
+    throw new Error('Backend server is not accessible');
+  }
   
   // Basic validation
   if (!email || !email.includes('@')) {
@@ -100,21 +133,25 @@ export const signUpWithEmail = async (email: string, password: string, name: str
   }
 
   try {
-    // Create FormData for file upload (even without avatar)
-    const formData = new FormData();
-    formData.append('_id', `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-    formData.append('fullname', name.trim());
-    formData.append('email', email.trim());
-    formData.append('username', email.split('@')[0].toLowerCase());
-    formData.append('password', password);
-
+    console.log('🔗 Attempting to connect to:', `${API_BASE_URL}/users/register`);
+    
     const response = await fetch(`${API_BASE_URL}/users/register`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       credentials: 'include',
-      body: formData,
+      body: JSON.stringify({
+        _id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        fullname: name.trim(),
+        email: email.trim(),
+        username: email.split('@')[0].toLowerCase(),
+        password
+      }),
     });
 
     const data = await response.json();
+    console.log('📡 Signup response:', { status: response.status, success: data.success });
 
     if (!response.ok) {
       console.error('❌ Email sign-up error:', data.message);
@@ -125,23 +162,16 @@ export const signUpWithEmail = async (email: string, password: string, name: str
     if (data.success && data.data) {
       console.log('✅ Email sign-up successful:', data.data.email);
       
-      const user: User = {
-        id: data.data._id,
-        email: data.data.email,
-        name: data.data.fullname,
-        avatar_url: data.data.avatar_url,
-        provider: 'email',
-        created_at: data.data.createdAt || new Date().toISOString(),
-        accessToken: '' // Will be set on login
-      };
-
-      toast.success('Account created successfully! Please sign in.');
-      return { user, session: null };
+      toast.success('Account created successfully! You can now sign in.');
+      return { user: data.data, session: null };
     }
 
     throw new Error('Invalid response format');
   } catch (error: any) {
     console.error('Email sign-up error:', error);
+    if (error.message.includes('fetch')) {
+      toast.error('Cannot connect to server. Please check if the backend is running.');
+    }
     throw error;
   }
 };

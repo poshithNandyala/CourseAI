@@ -61,11 +61,12 @@ export const SignInPage: React.FC = () => {
     try {
       if (authMode === 'signin') {
         await signInWithEmail(formData.email.trim(), formData.password);
-        console.log('✅ Email sign-in completed');
+        console.log('✅ Email sign-in completed, navigating to dashboard');
         // Navigation will happen automatically via useEffect when user state updates
+        navigate('/dashboard');
       } else if (authMode === 'signup') {
         await signUpWithEmail(formData.email.trim(), formData.password, formData.name.trim());
-        console.log('✅ Email sign-up completed');
+        console.log('✅ Email sign-up completed, switching to sign-in');
         // Switch to sign-in mode after successful signup
         setAuthMode('signin');
         setFormData(prev => ({ ...prev, password: '', name: '' }));
