@@ -35,7 +35,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
     console.log('📝 Registration request received:', req.body);
-    
+
     const { _id, fullname, email, username, password } = req.body;
 
     // Validation
@@ -55,10 +55,10 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // Check if user already exists
-    const existedUser = await User.findOne({ 
-        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }] 
+    const existedUser = await User.findOne({
+        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
     });
-    
+
     if (existedUser) {
         throw new ApiError(409, "User with this email or username already exists");
     }
@@ -97,7 +97,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
     console.log('🔐 Login request received:', { email: req.body.email, username: req.body.username });
-    
+
     const { email, username, password } = req.body;
 
     if (!username && !email) {
@@ -109,13 +109,13 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ 
+        const user = await User.findOne({
             $or: [
-                { username: username?.toLowerCase() }, 
+                { username: username?.toLowerCase() },
                 { email: email?.toLowerCase() }
-            ] 
+            ]
         });
-        
+
         if (!user) {
             throw new ApiError(404, "User does not exist");
         }
@@ -126,7 +126,11 @@ const loginUser = asyncHandler(async (req, res) => {
         }
 
         const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
-        const loggedInUser = await User.findById(user._id).select("-password_hash -refresh_token");
+        let loggedInUser = await User.findById(user._id).select("-password_hash -refresh_token");
+
+        // Patch: Add 'name' field for frontend compatibility
+        loggedInUser = loggedInUser.toObject();
+        loggedInUser.name = loggedInUser.fullname;
 
         console.log('✅ User logged in successfully:', loggedInUser.email);
 
@@ -134,10 +138,10 @@ const loginUser = asyncHandler(async (req, res) => {
             .status(200)
             .cookie("accessToken", accessToken, cookieOptions)
             .cookie("refreshToken", refreshToken, cookieOptions)
-            .json(new ApiResponse(200, { 
-                user: loggedInUser, 
-                accessToken, 
-                refreshToken 
+            .json(new ApiResponse(200, {
+                user: loggedInUser,
+                accessToken,
+                refreshToken
             }, "User logged in successfully"));
     } catch (error) {
         console.error('Login error:', error);
@@ -147,8 +151,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
-        req.user._id, 
-        { $unset: { refresh_token: 1 } }, 
+        req.user._id,
+        { $unset: { refresh_token: 1 } },
         { new: true }
     );
 
@@ -184,9 +188,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             .status(200)
             .cookie("accessToken", accessToken, cookieOptions)
             .cookie("refreshToken", newRefreshToken, cookieOptions)
-            .json(new ApiResponse(200, { 
-                accessToken, 
-                refreshToken: newRefreshToken 
+            .json(new ApiResponse(200, {
+                accessToken,
+                refreshToken: newRefreshToken
             }, "Access token refreshed"));
     } catch (error) {
         throw new ApiError(401, error?.message || "Invalid refresh token");
@@ -195,7 +199,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body;
-    
+
     if (!oldPassword || !newPassword) {
         throw new ApiError(400, "Old password and new password are required");
     }
