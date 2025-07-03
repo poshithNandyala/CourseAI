@@ -161,6 +161,12 @@ export const GeminiCourseBuilder: React.FC = () => {
         }))
       };
 
+      console.log('💾 Saving course with data:', {
+        title: courseData.title,
+        lessonsCount: courseData.lessons.length,
+        totalVideos: generatedCourse.metadata.videoCount
+      });
+
       // Save course to database
       const savedCourseData = await createCourse(courseData);
       setSavedCourse(savedCourseData);
@@ -213,13 +219,20 @@ export const GeminiCourseBuilder: React.FC = () => {
         }))
       };
 
+      console.log('🚀 Publishing course with data:', {
+        title: courseData.title,
+        lessonsCount: courseData.lessons.length,
+        totalVideos: generatedCourse.metadata.videoCount,
+        isPublished: courseData.is_published
+      });
+
       // Save and publish course
       const savedCourseData = await createCourse(courseData);
       setSavedCourse(savedCourseData);
       addCourse(savedCourseData);
 
       setGenerationProgress('');
-      toast.success('Course published successfully!');
+      toast.success('Course published successfully! Others can now discover it.');
       navigate('/dashboard');
       
     } catch (error) {

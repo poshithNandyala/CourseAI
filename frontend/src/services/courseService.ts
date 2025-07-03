@@ -26,6 +26,12 @@ export const createCourse = async (courseData: {
     throw new Error('User must be authenticated to create courses');
   }
 
+  console.log('📝 Creating course with data:', {
+    title: courseData.title,
+    lessonsCount: courseData.lessons.length,
+    isPublished: courseData.is_published
+  });
+
   try {
     const response = await fetch(`${API_BASE_URL}/courses`, {
       method: 'POST',
@@ -35,21 +41,22 @@ export const createCourse = async (courseData: {
     });
 
     const data = await response.json();
+    console.log('📡 Course creation response:', { status: response.status, success: data.success });
 
     if (!response.ok) {
+      console.error('❌ Course creation failed:', data.message);
       throw new Error(data.message || 'Failed to create course');
     }
 
     if (data.success && data.data.course) {
-      toast.success('Course created successfully!');
-      return {
+      const course: Course = {
         id: data.data.course._id,
         title: data.data.course.title,
         description: data.data.course.description,
         creator_id: data.data.course.owner_id,
         creator: {
-          name: data.data.course.owner_id?.fullname || user.name,
-          avatar_url: data.data.course.owner_id?.avatar_url || user.avatar_url
+          name: user.name,
+          avatar_url: user.avatar_url
         },
         is_published: data.data.course.is_published,
         difficulty: data.data.course.difficulty,
@@ -61,11 +68,15 @@ export const createCourse = async (courseData: {
         created_at: data.data.course.createdAt,
         updated_at: data.data.course.updatedAt,
       };
+
+      console.log('✅ Course created successfully:', course.title);
+      toast.success(`Course "${course.title}" created successfully!`);
+      return course;
     }
 
     throw new Error('Invalid response format');
   } catch (error: any) {
-    console.error('Error creating course:', error);
+    console.error('❌ Error creating course:', error);
     toast.error(error.message || 'Failed to create course');
     throw error;
   }

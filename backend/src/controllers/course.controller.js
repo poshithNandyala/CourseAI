@@ -10,6 +10,10 @@ import { CourseRating } from "../models/course_rating.model.js";
 
 // Create a new course with lessons and video data
 const createCourse = asyncHandler(async (req, res) => {
+    console.log('📝 Course creation request received');
+    console.log('📊 Request body keys:', Object.keys(req.body));
+    console.log('📊 Lessons count:', req.body.lessons?.length || 0);
+    
     const { 
         title, 
         description, 
@@ -20,6 +24,7 @@ const createCourse = asyncHandler(async (req, res) => {
         is_published = false 
     } = req.body;
 
+    // Validation
     if (!title || !description) {
         throw new ApiError(400, "Title and description are required");
     }
@@ -28,7 +33,17 @@ const createCourse = asyncHandler(async (req, res) => {
         throw new ApiError(400, "At least one lesson is required");
     }
 
+    // Validate lessons structure
+    for (let i = 0; i < lessons.length; i++) {
+        const lesson = lessons[i];
+        if (!lesson.title || !lesson.content) {
+            throw new ApiError(400, `Lesson ${i + 1} must have title and content`);
+        }
+    }
+
     try {
+        console.log('🏗️ Creating course with title:', title);
+        
         // Create course
         const course = await Course.create({
             title: title.trim(),
@@ -40,26 +55,37 @@ const createCourse = asyncHandler(async (req, res) => {
             is_published
         });
 
-        // Create lessons with video data
-        const lessonsToCreate = lessons.map((lesson, index) => ({
-            course_id: course._id,
-            title: lesson.title,
-            content: lesson.content,
-            type: lesson.type || 'article',
-            order: lesson.order || index + 1,
-            video_url: lesson.video_url || '',
-            video_data: lesson.video_data || [], // Store complete video information
-            quiz_questions: lesson.quiz_questions || [],
-            resources: lesson.resources || [],
-            estimated_duration: lesson.estimated_duration || 30
-        }));
+        console.log('✅ Course created with ID:', course._id);
 
+        // Create lessons with video data
+        const lessonsToCreate = lessons.map((lesson, index) => {
+            console.log(`📝 Processing lesson ${index + 1}: ${lesson.title}`);
+            console.log(`🎥 Video data count: ${lesson.video_data?.length || 0}`);
+            
+            return {
+                course_id: course._id,
+                title: lesson.title,
+                content: lesson.content,
+                type: lesson.type || 'article',
+                order: lesson.order || index + 1,
+                video_url: lesson.video_url || '',
+                video_data: lesson.video_data || [], // Store complete video information
+                quiz_questions: lesson.quiz_questions || [],
+                resources: lesson.resources || [],
+                estimated_duration: lesson.estimated_duration || 30
+            };
+        });
+
+        console.log('📚 Creating', lessonsToCreate.length, 'lessons');
         const createdLessons = await Lesson.insertMany(lessonsToCreate);
+        console.log('✅ Lessons created successfully');
 
         // Populate course with creator info
         const populatedCourse = await Course.findById(course._id)
             .populate('owner_id', 'username fullname avatar_url')
             .lean();
+
+        console.log('🎉 Course creation completed successfully');
 
         return res.status(201).json(
             new ApiResponse(201, {
@@ -69,7 +95,18 @@ const createCourse = asyncHandler(async (req, res) => {
         );
 
     } catch (error) {
-        console.error("Error creating course:", error);
+        console.error("❌ Error creating course:", error);
+        
+        // Provide more specific error messages
+        if (error.code === 11000) {
+            throw new ApiError(409, "A course with this title already exists");
+        }
+        
+        if (error.name === 'ValidationError') {
+            const validationErrors = Object.values(error.errors).map(err => err.message);
+            throw new ApiError(400, `Validation error: ${validationErrors.join(', ')}`);
+        }
+        
         throw new ApiError(500, "Failed to create course");
     }
 });
