@@ -1,44 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Star, Users, Clock, BookOpen, Play } from 'lucide-react';
-import { publicCourseService } from '../../services/publicCourseService';
+import { Search, Filter, Star, Users, Clock, BookOpen, Play, Heart } from 'lucide-react';
+import { fetchPublishedCourses, toggleCourseLike } from '../../services/courseService';
 import { Card } from '../UI/Card';
 import { Button } from '../UI/Button';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
+import { Course } from '../../types';
 import toast from 'react-hot-toast';
-
-interface PublicCourse {
-  id: string;
-  title: string;
-  description: string;
-  creator: { name: string; avatar_url?: string };
-  difficulty: string;
-  estimated_duration: number;
-  tags: string[];
-  likes_count: number;
-  rating: number;
-  ratings_count: number;
-  created_at: string;
-}
 
 export const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
-  const [courses, setCourses] = useState<PublicCourse[]>([]);
+  const { user } = useAuthStore();
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [likedCourses, setLikedCourses] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadPublishedCourses();
-  }, []);
+  }, [selectedDifficulty]);
 
   const loadPublishedCourses = async () => {
     try {
       setLoading(true);
       console.log('🌍 Loading ALL published courses for public access...');
-      const publishedCourses = await publicCourseService.fetchAllPublishedCourses(searchTerm, selectedDifficulty);
-      console.log('✅ Loaded', publishedCourses.length, 'published courses');
-      setCourses(publishedCourses);
+      const result = await fetchPublishedCourses({
+        search: searchTerm,
+        difficulty: selectedDifficulty,
+        page: 1,
+        limit: 20
+      });
+      console.log('✅ Loaded', result.courses.length, 'published courses');
+      setCourses(result.courses);
     } catch (error) {
       console.error('❌ Error loading published courses:', error);
       toast.error('Failed to load courses');
@@ -53,15 +48,53 @@ export const ExplorePage: React.FC = () => {
 
   const handleViewCourse = (courseId: string) => {
     console.log('🔗 Opening public course for ALL users:', courseId);
-    // Navigate to public course view - NO login required
     navigate(`/course/${courseId}`);
+  };
+
+  const handleLikeCourse = async (courseId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    if (!user) {
+      toast.error('Please sign in to like courses');
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      const result = await toggleCourseLike(courseId);
+      
+      if (result.isLiked) {
+        setLikedCourses(prev => new Set([...prev, courseId]));
+        toast.success('Course liked!');
+      } else {
+        setLikedCourses(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(courseId);
+          return newSet;
+        });
+        toast.success('Course unliked!');
+      }
+
+      // Update the course in the list
+      setCourses(prev => prev.map(course => 
+        course.id === courseId 
+          ? { 
+              ...course, 
+              likes_count: result.isLiked 
+                ? course.likes_count + 1 
+                : course.likes_count - 1 
+            }
+          : course
+      ));
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDifficulty = selectedDifficulty === 'all' || course.difficulty === selectedDifficulty;
-    return matchesSearch && matchesDifficulty;
+    return matchesSearch;
   });
 
   const difficulties = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -77,7 +110,7 @@ export const ExplorePage: React.FC = () => {
           Explore <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">Courses</span>
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          Discover amazing courses created by our community - accessible to everyone, no login required!
+          Discover amazing courses created by our community - accessible to everyone!
         </p>
       </motion.div>
 
@@ -150,24 +183,35 @@ export const ExplorePage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card hover className="h-full">
+              <Card hover className="h-full cursor-pointer" onClick={() => handleViewCourse(course.id)}>
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                  <div className="flex items-start justify-between">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 flex-1">
                       {course.title}
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
-                      {course.description}
-                    </p>
+                    <button
+                      onClick={(e) => handleLikeCourse(course.id, e)}
+                      className={`ml-2 p-2 rounded-full transition-all duration-200 ${
+                        likedCourses.has(course.id)
+                          ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                      }`}
+                    >
+                      <Heart className={`h-5 w-5 ${likedCourses.has(course.id) ? 'fill-current' : ''}`} />
+                    </button>
                   </div>
+                  
+                  <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
+                    {course.description}
+                  </p>
 
                   <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                     <span className="flex items-center space-x-1">
                       <Star className="h-4 w-4 text-yellow-500" />
-                      <span>{course.rating.toFixed(1)}</span>
+                      <span>{course.rating.toFixed(1)} ({course.ratings_count})</span>
                     </span>
                     <span className="flex items-center space-x-1">
-                      <Users className="h-4 w-4" />
+                      <Heart className="h-4 w-4" />
                       <span>{course.likes_count}</span>
                     </span>
                     <span className="flex items-center space-x-1">
@@ -188,7 +232,7 @@ export const ExplorePage: React.FC = () => {
                         <div className="h-6 w-6 bg-gradient-to-r from-brand-500 to-accent-500 rounded-full"></div>
                       )}
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {course.creator?.name}
+                        {course.creator?.name || 'Anonymous'}
                       </span>
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full font-medium ${
@@ -214,10 +258,13 @@ export const ExplorePage: React.FC = () => {
                   <Button 
                     variant="primary" 
                     className="w-full"
-                    onClick={() => handleViewCourse(course.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewCourse(course.id);
+                    }}
                     icon={<Play className="h-4 w-4" />}
                   >
-                    View Course (Free Access)
+                    View Course
                   </Button>
                 </div>
               </Card>

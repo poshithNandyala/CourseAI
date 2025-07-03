@@ -19,44 +19,25 @@ import {
   ThumbsUp,
   Unlock
 } from 'lucide-react';
-import { publicCourseService } from '../../services/publicCourseService';
+import { fetchCourseById, fetchCourseComments, addCourseComment, toggleCourseLike } from '../../services/courseService';
+import { useAuthStore } from '../../store/authStore';
 import { VideoPlayer } from './VideoPlayer';
 import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
 import toast from 'react-hot-toast';
 
-interface PublicCourse {
-  id: string;
-  title: string;
-  description: string;
-  creator: { name: string; avatar_url?: string } | null;
-  difficulty: string;
-  estimated_duration: number;
-  tags: string[];
-  likes_count: number;
-  rating: number;
-  ratings_count: number;
-  created_at: string;
-  lessons: any[];
-}
-
-interface Comment {
-  id: string;
-  user: { name: string; avatar_url?: string } | null;
-  content: string;
-  created_at: string;
-  likes: number;
-}
-
 export const PublicCourseViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [course, setCourse] = useState<PublicCourse | null>(null);
+  const { user } = useAuthStore();
+  const [course, setCourse] = useState<any>(null);
+  const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lessons' | 'quiz' | 'comments'>('overview');
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -75,10 +56,11 @@ export const PublicCourseViewer: React.FC = () => {
     try {
       setLoading(true);
       console.log('🌍 Loading public course for ALL users (no auth required):', id);
-      const publicCourse = await publicCourseService.fetchPublicCourse(id);
-      if (publicCourse) {
-        console.log('✅ Public course loaded with', publicCourse.lessons.length, 'lessons');
-        setCourse(publicCourse);
+      const result = await fetchCourseById(id);
+      if (result) {
+        console.log('✅ Public course loaded with', result.lessons.length, 'lessons');
+        setCourse(result.course);
+        setLessons(result.lessons);
       } else {
         toast.error('Course not found or not published');
         navigate('/explore');
@@ -97,7 +79,7 @@ export const PublicCourseViewer: React.FC = () => {
 
     try {
       console.log('💬 Loading comments for ALL users (no auth required)');
-      const courseComments = await publicCourseService.fetchCourseComments(id);
+      const courseComments = await fetchCourseComments(id);
       setComments(courseComments);
     } catch (error) {
       console.error('Error loading comments:', error);
@@ -110,9 +92,15 @@ export const PublicCourseViewer: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      toast.error('Please sign in to comment');
+      navigate('/signin');
+      return;
+    }
+
     try {
       setSubmittingComment(true);
-      await publicCourseService.addComment(id!, newComment.trim());
+      await addCourseComment(id!, newComment.trim());
       setNewComment('');
       await loadComments();
       toast.success('Comment added successfully!');
@@ -121,6 +109,29 @@ export const PublicCourseViewer: React.FC = () => {
       toast.error('Failed to add comment');
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const handleLikeCourse = async () => {
+    if (!user) {
+      toast.error('Please sign in to like this course');
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      const result = await toggleCourseLike(id!);
+      setIsLiked(result.isLiked);
+      
+      // Update course likes count
+      setCourse(prev => ({
+        ...prev,
+        likes_count: result.isLiked ? prev.likes_count + 1 : prev.likes_count - 1
+      }));
+      
+      toast.success(result.isLiked ? 'Course liked!' : 'Course unliked!');
+    } catch (error) {
+      console.error('Error toggling course like:', error);
     }
   };
 
@@ -153,10 +164,10 @@ export const PublicCourseViewer: React.FC = () => {
     );
   }
 
-  const selectedLesson = course.lessons[selectedLessonIndex];
+  const selectedLesson = lessons[selectedLessonIndex];
   const hasQuizQuestions = selectedLesson?.quiz_questions && selectedLesson.quiz_questions.length > 0;
-  const hasVideos = selectedLesson?.videos && selectedLesson.videos.length > 0;
-  const totalVideos = course.lessons.reduce((sum, lesson) => sum + (lesson.videos?.length || 0), 0);
+  const hasVideos = selectedLesson?.video_data && selectedLesson.video_data.length > 0;
+  const totalVideos = lessons.reduce((sum, lesson) => sum + (lesson.video_data?.length || 0), 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -205,7 +216,11 @@ export const PublicCourseViewer: React.FC = () => {
                   <span>{course.rating.toFixed(1)} ({course.ratings_count} ratings)</span>
                 </span>
                 <span className="flex items-center space-x-1">
-                  <Users className="h-4 w-4" />
+                  <Heart 
+                    className={`h-4 w-4 ${isLiked ? 'text-red-500 fill-red-500' : ''}`}
+                    onClick={handleLikeCourse}
+                    style={{ cursor: 'pointer' }}
+                  />
                   <span>{course.likes_count} likes</span>
                 </span>
                 <span className="flex items-center space-x-1">
@@ -214,7 +229,7 @@ export const PublicCourseViewer: React.FC = () => {
                 </span>
                 <span className="flex items-center space-x-1">
                   <BookOpen className="h-4 w-4" />
-                  <span>{course.lessons.length} lessons</span>
+                  <span>{lessons.length} lessons</span>
                 </span>
                 <span className="flex items-center space-x-1">
                   <Youtube className="h-4 w-4 text-red-500" />
@@ -242,7 +257,7 @@ export const PublicCourseViewer: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {course.tags.map((tag, index) => (
+                {course.tags.map((tag: string, index: number) => (
                   <span
                     key={index}
                     className="px-3 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-full text-sm font-medium"
@@ -286,7 +301,7 @@ export const PublicCourseViewer: React.FC = () => {
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Course Structure</h3>
               
               <div className="grid gap-4">
-                {course.lessons.map((lesson, index) => (
+                {lessons.map((lesson, index) => (
                   <div
                     key={lesson.id}
                     className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl"
@@ -300,15 +315,15 @@ export const PublicCourseViewer: React.FC = () => {
                           <FileText className="h-4 w-4" />
                         </div>
                         <h4 className="font-semibold text-gray-900 dark:text-white">{lesson.title}</h4>
-                        {lesson.videos && lesson.videos.length > 0 && (
+                        {lesson.video_data && lesson.video_data.length > 0 && (
                           <div className="flex items-center space-x-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded-full text-xs">
                             <Youtube className="h-3 w-3" />
-                            <span>{lesson.videos.length} videos</span>
+                            <span>{lesson.video_data.length} videos</span>
                           </div>
                         )}
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        {lesson.videos?.length || 0} videos • {lesson.quiz_questions?.length || 0} quiz questions
+                        {lesson.video_data?.length || 0} videos • {lesson.quiz_questions?.length || 0} quiz questions
                       </p>
                     </div>
                     <button
@@ -330,7 +345,7 @@ export const PublicCourseViewer: React.FC = () => {
             <div className="space-y-8">
               {/* Lesson Selector */}
               <div className="flex flex-wrap gap-2 mb-6">
-                {course.lessons.map((lesson, index) => (
+                {lessons.map((lesson, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedLessonIndex(index)}
@@ -341,10 +356,10 @@ export const PublicCourseViewer: React.FC = () => {
                     }`}
                   >
                     <span>Lesson {index + 1}</span>
-                    {lesson.videos && lesson.videos.length > 0 && (
+                    {lesson.video_data && lesson.video_data.length > 0 && (
                       <div className="flex items-center space-x-1">
                         <Youtube className="h-3 w-3" />
-                        <span className="text-xs">({lesson.videos.length})</span>
+                        <span className="text-xs">({lesson.video_data.length})</span>
                       </div>
                     )}
                   </button>
@@ -361,7 +376,7 @@ export const PublicCourseViewer: React.FC = () => {
                     <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                       <span className="flex items-center space-x-1">
                         <Youtube className="h-4 w-4 text-red-500" />
-                        <span>{selectedLesson.videos?.length || 0} videos</span>
+                        <span>{selectedLesson.video_data?.length || 0} videos</span>
                       </span>
                       <span className="flex items-center space-x-1">
                         <HelpCircle className="h-4 w-4 text-green-500" />
@@ -395,10 +410,10 @@ export const PublicCourseViewer: React.FC = () => {
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                         <Youtube className="h-5 w-5 text-red-500" />
-                        <span>Free YouTube Videos ({selectedLesson.videos.length})</span>
+                        <span>Free YouTube Videos ({selectedLesson.video_data.length})</span>
                       </h4>
                       <div className="grid gap-6">
-                        {selectedLesson.videos.map((video: any, videoIndex: number) => (
+                        {selectedLesson.video_data.map((video: any, videoIndex: number) => (
                           <VideoPlayer 
                             key={`${selectedLesson.id}-video-${videoIndex}`}
                             video={video}
@@ -438,7 +453,7 @@ export const PublicCourseViewer: React.FC = () => {
                     Select a lesson with quiz questions to take an interactive quiz.
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {course.lessons.map((lesson, index) => (
+                    {lessons.map((lesson, index) => (
                       lesson.quiz_questions && lesson.quiz_questions.length > 0 && (
                         <button
                           key={index}
@@ -533,7 +548,7 @@ export const PublicCourseViewer: React.FC = () => {
                           <div className="flex items-center space-x-4">
                             <button className="flex items-center space-x-1 text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-200">
                               <ThumbsUp className="h-4 w-4" />
-                              <span>{comment.likes}</span>
+                              <span>{comment.likes_count || 0}</span>
                             </button>
                           </div>
                         </div>

@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Github, 
-  Chrome, 
   Mail, 
   Lock, 
   User, 
@@ -17,16 +15,13 @@ import {
   Zap
 } from 'lucide-react';
 import { 
-  signInWithGoogle, 
-  signInWithGitHub, 
   signInWithEmail, 
-  signUpWithEmail, 
-  resetPassword 
+  signUpWithEmail
 } from '../../services/authService';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../hooks/useTheme';
 
-type AuthMode = 'signin' | 'signup' | 'reset';
+type AuthMode = 'signin' | 'signup';
 
 export const SignInPage: React.FC = () => {
   const navigate = useNavigate();
@@ -71,49 +66,12 @@ export const SignInPage: React.FC = () => {
       } else if (authMode === 'signup') {
         await signUpWithEmail(formData.email.trim(), formData.password, formData.name.trim());
         console.log('✅ Email sign-up completed');
-        // Navigation will happen automatically via useEffect when user state updates
-      } else if (authMode === 'reset') {
-        await resetPassword(formData.email.trim());
+        // Switch to sign-in mode after successful signup
         setAuthMode('signin');
+        setFormData(prev => ({ ...prev, password: '', name: '' }));
       }
     } catch (error) {
       console.error('❌ Email auth failed:', error);
-      // Error is already handled in the service with toast
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    if (loading) return;
-    
-    console.log('🔍 Starting Google sign-in');
-    setLoading(true);
-    
-    try {
-      await signInWithGoogle();
-      console.log('✅ Google sign-in completed');
-      // Navigation will happen automatically via useEffect when user state updates
-    } catch (error) {
-      console.error('❌ Google sign-in failed:', error);
-      // Error is already handled in the service with toast
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGitHubSignIn = async () => {
-    if (loading) return;
-    
-    console.log('🐙 Starting GitHub sign-in');
-    setLoading(true);
-    
-    try {
-      await signInWithGitHub();
-      console.log('✅ GitHub sign-in completed');
-      // Navigation will happen automatically via useEffect when user state updates
-    } catch (error) {
-      console.error('❌ GitHub sign-in failed:', error);
       // Error is already handled in the service with toast
     } finally {
       setLoading(false);
@@ -237,72 +195,15 @@ export const SignInPage: React.FC = () => {
             <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft-lg border border-gray-200 dark:border-gray-800">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  {authMode === 'signin' && 'Welcome Back'}
-                  {authMode === 'signup' && 'Create Account'}
-                  {authMode === 'reset' && 'Reset Password'}
+                  {authMode === 'signin' ? 'Welcome Back' : 'Create Account'}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {authMode === 'signin' && 'Sign in to continue your learning journey'}
-                  {authMode === 'signup' && 'Join the community of innovative educators'}
-                  {authMode === 'reset' && 'Enter your email to reset your password'}
+                  {authMode === 'signin' 
+                    ? 'Sign in to continue your learning journey' 
+                    : 'Join the community of innovative educators'
+                  }
                 </p>
               </div>
-
-              {/* Social Auth Buttons */}
-              {authMode !== 'reset' && (
-                <div className="space-y-3 mb-6">
-                  <motion.button
-                    whileHover={{ scale: loading ? 1 : 1.02 }}
-                    whileTap={{ scale: loading ? 1 : 0.98 }}
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center space-x-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-6 py-3.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-400 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-soft font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
-                        <span>Connecting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Chrome className="h-5 w-5" />
-                        <span>Continue with Google</span>
-                      </>
-                    )}
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: loading ? 1 : 1.02 }}
-                    whileTap={{ scale: loading ? 1 : 0.98 }}
-                    onClick={handleGitHubSignIn}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center space-x-3 bg-gray-900 dark:bg-gray-800 text-white rounded-xl px-6 py-3.5 hover:bg-gray-800 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-soft font-medium border border-gray-900 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                        <span>Connecting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Github className="h-5 w-5" />
-                        <span>Continue with GitHub</span>
-                      </>
-                    )}
-                  </motion.button>
-
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300 dark:border-gray-700" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-4 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 font-medium">
-                        Or continue with email
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Email Form */}
               <form onSubmit={handleEmailAuth} className="space-y-5">
@@ -348,35 +249,33 @@ export const SignInPage: React.FC = () => {
                   </div>
                 </div>
 
-                {authMode !== 'reset' && (
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                        disabled={loading}
-                        className="w-full pl-10 pr-12 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="Enter your password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={loading}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 disabled:opacity-50"
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                      disabled={loading}
+                      className="w-full pl-10 pr-12 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Enter your password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 disabled:opacity-50"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
                   </div>
-                )}
+                </div>
 
                 <motion.button
                   whileHover={{ scale: loading ? 1 : 1.02 }}
@@ -391,62 +290,23 @@ export const SignInPage: React.FC = () => {
                       <span>Please wait...</span>
                     </div>
                   ) : (
-                    <>
-                      {authMode === 'signin' && 'Sign In'}
-                      {authMode === 'signup' && 'Create Account'}
-                      {authMode === 'reset' && 'Send Reset Email'}
-                    </>
+                    authMode === 'signin' ? 'Sign In' : 'Create Account'
                   )}
                 </motion.button>
               </form>
 
               {/* Auth Mode Switcher */}
               <div className="mt-6 text-center text-sm">
-                {authMode === 'signin' && (
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => setAuthMode('reset')}
-                      disabled={loading}
-                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
-                    >
-                      Forgot your password?
-                    </button>
-                    <div className="text-gray-600 dark:text-gray-400">
-                      Don't have an account?{' '}
-                      <button
-                        onClick={() => setAuthMode('signup')}
-                        disabled={loading}
-                        className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
-                      >
-                        Sign up
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {authMode === 'signup' && (
-                  <div className="text-gray-600 dark:text-gray-400">
-                    Already have an account?{' '}
-                    <button
-                      onClick={() => setAuthMode('signin')}
-                      disabled={loading}
-                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
-                    >
-                      Sign in
-                    </button>
-                  </div>
-                )}
-                {authMode === 'reset' && (
-                  <div className="text-gray-600 dark:text-gray-400">
-                    Remember your password?{' '}
-                    <button
-                      onClick={() => setAuthMode('signin')}
-                      disabled={loading}
-                      className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
-                    >
-                      Sign in
-                    </button>
-                  </div>
-                )}
+                <div className="text-gray-600 dark:text-gray-400">
+                  {authMode === 'signin' ? "Don't have an account?" : "Already have an account?"}{' '}
+                  <button
+                    onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+                    disabled={loading}
+                    className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-medium transition-colors duration-200 disabled:opacity-50"
+                  >
+                    {authMode === 'signin' ? 'Sign up' : 'Sign in'}
+                  </button>
+                </div>
               </div>
 
               <div className="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">

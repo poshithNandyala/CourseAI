@@ -5,6 +5,7 @@ export interface User {
   avatar_url?: string;
   provider: 'google' | 'github' | 'email';
   created_at: string;
+  accessToken?: string;
 }
 
 export interface Course {
@@ -36,8 +37,10 @@ export interface Lesson {
   type: 'video' | 'article' | 'quiz' | 'code';
   order: number;
   video_url?: string;
+  videos?: any[]; // YouTube video data
   quiz_questions?: QuizQuestion[];
   resources?: Resource[];
+  created_at?: string;
 }
 
 export interface QuizQuestion {

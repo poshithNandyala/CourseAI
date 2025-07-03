@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, BookOpen, Eye, EyeOff, Users, Star, Calendar, Edit, Trash2, ExternalLink, Play } from 'lucide-react';
+import { Plus, BookOpen, Eye, EyeOff, Users, Star, Calendar, Trash2, Play } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Course } from '../../types';
-import { courseManagementService } from '../../services/courseManagementService';
+import { fetchUserCourses, publishCourse, unpublishCourse, deleteCourse } from '../../services/courseService';
 import { useAuthStore } from '../../store/authStore';
 import { useCourseStore } from '../../store/courseStore';
 import toast from 'react-hot-toast';
@@ -33,7 +33,7 @@ export const EnhancedDashboard: React.FC = () => {
     try {
       console.log('📚 Loading courses for user:', user.email);
       setLoading(true);
-      const userCourses = await courseManagementService.fetchUserCourses();
+      const userCourses = await fetchUserCourses();
       console.log('✅ Loaded', userCourses.length, 'courses for user');
       setCourses(userCourses);
     } catch (error) {
@@ -47,9 +47,9 @@ export const EnhancedDashboard: React.FC = () => {
   const handlePublishToggle = async (courseId: string, isCurrentlyPublished: boolean) => {
     try {
       if (isCurrentlyPublished) {
-        await courseManagementService.unpublishCourse(courseId);
+        await unpublishCourse(courseId);
       } else {
-        await courseManagementService.publishCourse(courseId);
+        await publishCourse(courseId);
       }
       
       // Refresh courses
@@ -65,25 +65,22 @@ export const EnhancedDashboard: React.FC = () => {
     }
 
     try {
-      await courseManagementService.deleteCourse(courseId);
+      await deleteCourse(courseId);
       await loadUserCourses();
     } catch (error) {
       console.error('Error deleting course:', error);
     }
   };
 
-  const handleViewCourse = async (courseId: string) => {
-    try {
-      const courseWithContent = await courseManagementService.fetchCourseWithContent(courseId);
-      if (courseWithContent) {
-        // Navigate to private course view with the fetched content
-        navigate(`/my-course/${courseId}`, { state: { courseData: courseWithContent } });
-      } else {
-        toast.error('Failed to load course content');
-      }
-    } catch (error) {
-      console.error('Error fetching course content:', error);
-      toast.error('Failed to load course content');
+  const handleViewCourse = (courseId: string) => {
+    navigate(`/course/${courseId}`);
+  };
+
+  const handleCreateCourse = () => {
+    if (!user) {
+      navigate('/signin');
+    } else {
+      navigate('/create');
     }
   };
 
@@ -155,13 +152,13 @@ export const EnhancedDashboard: React.FC = () => {
               Manage your courses, track performance, and create new content
             </p>
           </div>
-          <Link
-            to="/create"
+          <button
+            onClick={handleCreateCourse}
             className="flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
             <Plus className="h-5 w-5" />
             <span>Create Course</span>
-          </Link>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -202,13 +199,13 @@ export const EnhancedDashboard: React.FC = () => {
             <BookOpen className="h-16 w-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No courses yet</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first course with AI-powered content generation</p>
-            <Link
-              to="/create"
+            <button
+              onClick={handleCreateCourse}
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 font-medium"
             >
               <Plus className="h-5 w-5" />
               <span>Create Course</span>
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -242,7 +239,7 @@ export const EnhancedDashboard: React.FC = () => {
                     <span>{course.rating.toFixed(1)}</span>
                   </span>
                   <span className="flex items-center space-x-1">
-                    <Users className="h-4 w-4" />
+                    <Users className="h-4 w-4"  />
                     <span>{course.likes_count}</span>
                   </span>
                   <span className="flex items-center space-x-1">

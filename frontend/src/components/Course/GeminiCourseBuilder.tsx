@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Send, 
@@ -23,15 +23,17 @@ import {
   Save
 } from 'lucide-react';
 import { geminiCourseService, GeminiCourseData } from '../../services/geminiCourseService';
-import { courseManagementService } from '../../services/courseManagementService';
+import { createCourse } from '../../services/courseService';
 import { useCourseStore } from '../../store/courseStore';
 import { useNavigate } from 'react-router-dom';
 import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
 import { VideoPlayer } from './VideoPlayer';
+import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 
 export const GeminiCourseBuilder: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCourse, setGeneratedCourse] = useState<GeminiCourseData | null>(null);
@@ -46,6 +48,14 @@ export const GeminiCourseBuilder: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const { addCourse } = useCourseStore();
 
+  useEffect(() => {
+    // Check if user is logged in
+    if (!user && window.location.pathname.includes('/create')) {
+      toast.error('Please sign in to create courses');
+      navigate('/signin');
+    }
+  }, [user, navigate]);
+
   const generationSteps = [
     'Checking YouTube API connection...',
     'Analyzing your course request with Gemini AI...',
@@ -55,12 +65,19 @@ export const GeminiCourseBuilder: React.FC = () => {
     'Evaluating video quality and relevance...',
     'Creating interactive quiz questions...',
     'Finalizing course content and structure...',
-    'Automatically saving course to your library...'
+    'Preparing to save course to database...'
   ];
 
   const handleGenerate = async () => {
     if (!userPrompt.trim()) {
       toast.error('Please describe the course you want to create');
+      return;
+    }
+
+    // Check if user is logged in
+    if (!user) {
+      toast.error('Please sign in to create courses');
+      navigate('/signin');
       return;
     }
 
@@ -93,17 +110,10 @@ export const GeminiCourseBuilder: React.FC = () => {
 
       clearInterval(progressInterval);
       setGeneratedCourse(result);
-
-      // Automatically save the course
-      setGenerationProgress('Automatically saving course to your library...');
-      const savedCourseData = await courseManagementService.autoSaveCourse(result);
-      setSavedCourse(savedCourseData);
-      addCourse(savedCourseData);
-
       setGenerationProgress('');
       setCurrentStep(0);
       
-      toast.success(`🎉 Course generated and saved! Found ${result.metadata.videoCount} real YouTube videos across ${result.metadata.subtopicsCount} topics.`);
+      toast.success(`🎉 Course generated! Found ${result.metadata.videoCount} real YouTube videos across ${result.metadata.subtopicsCount} topics.`);
       
     } catch (error) {
       console.error('Error generating course:', error);
@@ -115,18 +125,106 @@ export const GeminiCourseBuilder: React.FC = () => {
     }
   };
 
-  const handlePublishCourse = async () => {
-    if (!savedCourse) {
-      toast.error('Course must be saved before publishing');
+  const handleSaveCourse = async () => {
+    if (!generatedCourse) {
+      toast.error('No course to save');
+      return;
+    }
+
+    if (!user) {
+      toast.error('Please sign in to save courses');
+      navigate('/signin');
       return;
     }
 
     try {
-      await courseManagementService.publishCourse(savedCourse.id);
-      setSavedCourse(prev => ({ ...prev, is_published: true }));
-      toast.success('Course published! Others can now discover it.');
+      setGenerationProgress('Saving course to database...');
+      
+      // Format course data for backend
+      const courseData = {
+        title: generatedCourse.course.title || '',
+        description: generatedCourse.course.description || '',
+        difficulty: generatedCourse.course.difficulty || 'beginner',
+        estimated_duration: generatedCourse.metadata.totalDuration,
+        tags: generatedCourse.course.tags || [],
+        is_published: false,
+        lessons: generatedCourse.lessons.map(lesson => ({
+          title: lesson.title,
+          content: lesson.content,
+          type: lesson.type,
+          order: lesson.order,
+          video_url: lesson.video_url,
+          video_data: lesson.videos, // Store complete video information
+          quiz_questions: lesson.quiz_questions,
+          resources: lesson.resources,
+          estimated_duration: lesson.estimatedDuration
+        }))
+      };
+
+      // Save course to database
+      const savedCourseData = await createCourse(courseData);
+      setSavedCourse(savedCourseData);
+      addCourse(savedCourseData);
+
+      setGenerationProgress('');
+      toast.success('Course saved successfully!');
+      navigate('/dashboard');
+      
+    } catch (error) {
+      console.error('Error saving course:', error);
+      setGenerationProgress('');
+      toast.error('Failed to save course');
+    }
+  };
+
+  const handlePublishCourse = async () => {
+    if (!generatedCourse) {
+      toast.error('No course to publish');
+      return;
+    }
+
+    if (!user) {
+      toast.error('Please sign in to publish courses');
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      setGenerationProgress('Saving and publishing course...');
+      
+      // Format course data for backend
+      const courseData = {
+        title: generatedCourse.course.title || '',
+        description: generatedCourse.course.description || '',
+        difficulty: generatedCourse.course.difficulty || 'beginner',
+        estimated_duration: generatedCourse.metadata.totalDuration,
+        tags: generatedCourse.course.tags || [],
+        is_published: true, // Set to published
+        lessons: generatedCourse.lessons.map(lesson => ({
+          title: lesson.title,
+          content: lesson.content,
+          type: lesson.type,
+          order: lesson.order,
+          video_url: lesson.video_url,
+          video_data: lesson.videos, // Store complete video information
+          quiz_questions: lesson.quiz_questions,
+          resources: lesson.resources,
+          estimated_duration: lesson.estimatedDuration
+        }))
+      };
+
+      // Save and publish course
+      const savedCourseData = await createCourse(courseData);
+      setSavedCourse(savedCourseData);
+      addCourse(savedCourseData);
+
+      setGenerationProgress('');
+      toast.success('Course published successfully!');
+      navigate('/dashboard');
+      
     } catch (error) {
       console.error('Error publishing course:', error);
+      setGenerationProgress('');
       toast.error('Failed to publish course');
     }
   };
@@ -251,7 +349,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleGenerate}
-                disabled={isGenerating || !userPrompt.trim() || !import.meta.env.VITE_YOUTUBE_API_KEY}
+                disabled={isGenerating || !userPrompt.trim() || !import.meta.env.VITE_YOUTUBE_API_KEY || !user}
                 className="absolute bottom-4 right-4 bg-gradient-to-r from-brand-500 to-accent-500 text-white p-3 rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {isGenerating ? (
@@ -601,26 +699,6 @@ export const GeminiCourseBuilder: React.FC = () => {
                 <div className="space-y-6">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Course Status</h3>
                   
-                  {savedCourse && (
-                    <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800">
-                      <div className="flex items-start space-x-4">
-                        <div className="bg-green-500 p-2 rounded-xl">
-                          <Save className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">Course Automatically Saved!</h4>
-                          <p className="text-green-700 dark:text-green-300 mb-4">
-                            Your course has been automatically saved to your library. You can now choose to publish it or keep it as a draft.
-                          </p>
-                          <div className="flex items-center space-x-2 text-sm text-green-600 dark:text-green-400">
-                            <CheckCircle className="h-4 w-4" />
-                            <span>Status: {savedCourse.is_published ? 'Published' : 'Draft'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="bg-gradient-to-r from-brand-50 to-accent-50 dark:from-brand-900/20 dark:to-accent-900/20 rounded-2xl p-6 border border-brand-200 dark:border-brand-800">
                     <div className="flex items-start space-x-4">
                       <div className="bg-brand-500 p-2 rounded-xl">
@@ -688,29 +766,24 @@ export const GeminiCourseBuilder: React.FC = () => {
               <span>Explore Courses</span>
             </motion.button>
             
-            {savedCourse && !savedCourse.is_published && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handlePublishCourse}
-                className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl text-lg flex items-center justify-center space-x-2"
-              >
-                <Users className="h-5 w-5" />
-                <span>Publish Course</span>
-              </motion.button>
-            )}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSaveCourse}
+              className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl text-lg flex items-center justify-center space-x-2"
+            >
+              <Save className="h-5 w-5" />
+              <span>Save as Draft</span>
+            </motion.button>
             
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setGeneratedCourse(null);
-                setSavedCourse(null);
-                setUserPrompt('');
-              }}
-              className="px-8 py-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 text-lg"
+              onClick={handlePublishCourse}
+              className="flex-1 bg-gradient-to-r from-success-500 to-success-600 text-white px-8 py-4 rounded-2xl font-semibold hover:from-success-600 hover:to-success-700 transition-all duration-200 shadow-lg hover:shadow-xl text-lg flex items-center justify-center space-x-2"
             >
-              Create New Course
+              <Users className="h-5 w-5" />
+              <span>Publish Course</span>
             </motion.button>
           </div>
         </motion.div>

@@ -1,325 +1,443 @@
-import { supabase } from '../lib/supabase';
-import { Course, Lesson, Comment, Rating } from '../types';
+import { Course, Lesson } from '../types';
 import { useAuthStore } from '../store/authStore';
-import { generateAICourse, GeneratedCourse } from './aiCourseGenerator';
 import toast from 'react-hot-toast';
 
-// Mock data for demo mode
-const mockCourses: Course[] = [
-  {
-    id: '1',
-    title: 'Complete React.js Course',
-    description: 'Learn React from basics to advanced concepts with hands-on projects',
-    creator_id: 'demo-user',
-    creator: { name: 'Demo Instructor', avatar_url: undefined },
-    is_published: true,
-    difficulty: 'intermediate',
-    estimated_duration: 240,
-    tags: ['react', 'javascript', 'frontend'],
-    likes_count: 156,
-    rating: 4.8,
-    ratings_count: 42,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Python for Beginners',
-    description: 'Start your programming journey with Python fundamentals',
-    creator_id: 'demo-user-2',
-    creator: { name: 'Python Expert', avatar_url: undefined },
-    is_published: true,
-    difficulty: 'beginner',
-    estimated_duration: 180,
-    tags: ['python', 'programming', 'basics'],
-    likes_count: 203,
-    rating: 4.9,
-    ratings_count: 67,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
-const isSupabaseConfigured = () => {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  return url && 
-         key && 
-         !url.includes('your_supabase_project_url') && 
-         !key.includes('your_supabase_anon_key') &&
-         url.startsWith('http');
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('accessToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
 };
 
-export const generateCourseWithAI = async (prompt: string): Promise<{ course: Partial<Course>; lessons: Lesson[]; generatedContent: GeneratedCourse }> => {
-  console.log('🤖 Generating AI course for prompt:', prompt);
-  
-  try {
-    // Generate comprehensive course content using AI
-    const generatedContent = await generateAICourse(prompt);
-    
-    // Convert generated content to our course format
-    const courseData: Partial<Course> = {
-      title: generatedContent.title,
-      description: generatedContent.overview,
-      difficulty: 'beginner' as const,
-      estimated_duration: generatedContent.lessons.length * 45, // 45 minutes per lesson
-      tags: extractTagsFromTopic(prompt),
-      is_published: false,
-    };
-
-    // Convert lessons to our lesson format
-    const lessons: Lesson[] = generatedContent.lessons.map((lesson, index) => ({
-      id: `lesson-${index + 1}`,
-      course_id: '',
-      title: lesson.title,
-      content: formatLessonContent(lesson),
-      type: index === 0 ? 'article' : (index % 3 === 0 ? 'quiz' : 'article') as 'article' | 'quiz',
-      order: index + 1,
-      video_url: lesson.videos[0]?.url,
-      quiz_questions: lesson.quiz.map(q => ({
-        id: `q-${index}-${Math.random().toString(36).substr(2, 9)}`,
-        question: q.question,
-        type: 'multiple_choice' as const,
-        options: q.options,
-        correct_answer: q.options[q.correctAnswer],
-        explanation: q.explanation
-      })),
-      resources: lesson.furtherReading.map(r => ({
-        id: `r-${Math.random().toString(36).substr(2, 9)}`,
-        title: r.title,
-        url: r.url,
-        type: r.type as 'article' | 'documentation' | 'video'
-      })),
-      created_at: new Date().toISOString()
-    }));
-
-    console.log('✅ AI course generation completed');
-    return { course: courseData, lessons, generatedContent };
-  } catch (error) {
-    console.error('❌ AI course generation failed:', error);
-    throw error;
-  }
-};
-
-function extractTagsFromTopic(topic: string): string[] {
-  const topicLower = topic.toLowerCase();
-  const tags: string[] = [];
-  
-  // Add the main topic
-  tags.push(topic.toLowerCase().replace(/\s+/g, '-'));
-  
-  // Add related tags based on content
-  if (topicLower.includes('react')) tags.push('react', 'javascript', 'frontend');
-  if (topicLower.includes('python')) tags.push('python', 'programming', 'backend');
-  if (topicLower.includes('javascript')) tags.push('javascript', 'programming', 'web');
-  if (topicLower.includes('machine learning')) tags.push('ml', 'ai', 'data-science');
-  if (topicLower.includes('web development')) tags.push('html', 'css', 'javascript');
-  if (topicLower.includes('data science')) tags.push('python', 'analytics', 'statistics');
-  
-  // Add general tags
-  tags.push('tutorial', 'beginner-friendly');
-  
-  return [...new Set(tags)]; // Remove duplicates
-}
-
-function formatLessonContent(lesson: any): string {
-  let content = `# ${lesson.title}\n\n`;
-  
-  content += `## Lesson Objective\n${lesson.objective}\n\n`;
-  
-  if (lesson.videos && lesson.videos.length > 0) {
-    content += `## Video Resources\n\n`;
-    lesson.videos.forEach((video: any) => {
-      content += `### ${video.title}\n`;
-      content += `**Duration:** ${video.duration}\n\n`;
-      content += `${video.description}\n\n`;
-      content += `[Watch Video](${video.url})\n\n`;
-    });
-  }
-  
-  content += `## Summary\n\n${lesson.summary}\n\n`;
-  
-  if (lesson.furtherReading && lesson.furtherReading.length > 0) {
-    content += `## Further Reading\n\n`;
-    lesson.furtherReading.forEach((resource: any) => {
-      content += `- [${resource.title}](${resource.url}) - ${resource.description}\n`;
-    });
-    content += '\n';
-  }
-  
-  return content;
-}
-
-export const createCourse = async (courseData: Partial<Course>): Promise<Course> => {
+export const createCourse = async (courseData: {
+  title: string;
+  description: string;
+  difficulty: string;
+  estimated_duration: number;
+  tags: string[];
+  lessons: any[];
+  is_published?: boolean;
+}): Promise<Course> => {
   const user = useAuthStore.getState().user;
-  if (!user) throw new Error('User must be authenticated');
-
-  if (!isSupabaseConfigured()) {
-    // Return mock course for demo
-    const mockCourse: Course = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: courseData.title || 'Untitled Course',
-      description: courseData.description || 'No description',
-      creator_id: user.id,
-      creator: { name: user.name, avatar_url: user.avatar_url },
-      is_published: false,
-      difficulty: courseData.difficulty || 'beginner',
-      estimated_duration: courseData.estimated_duration || 60,
-      tags: courseData.tags || [],
-      likes_count: 0,
-      rating: 0,
-      ratings_count: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    
-    toast.success('Course created successfully! (Demo mode)');
-    return mockCourse;
+  if (!user) {
+    throw new Error('User must be authenticated to create courses');
   }
 
   try {
-    const { data, error } = await supabase
-      .from('courses')
-      .insert({
-        ...courseData,
-        creator_id: user.id,
-      })
-      .select(`
-        *,
-        creator:users(name, avatar_url)
-      `)
-      .single();
+    const response = await fetch(`${API_BASE_URL}/courses`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(courseData),
+    });
 
-    if (error) throw error;
-    
-    toast.success('Course created successfully!');
-    return data;
-  } catch (error) {
-    console.error('Error creating course:', error);
-    toast.error('Failed to create course');
-    throw error;
-  }
-};
+    const data = await response.json();
 
-export const fetchCourses = async (published_only = false): Promise<Course[]> => {
-  if (!isSupabaseConfigured()) {
-    // Return mock courses for demo
-    return published_only ? mockCourses : mockCourses;
-  }
-
-  try {
-    let query = supabase
-      .from('courses')
-      .select(`
-        *,
-        creator:users(name, avatar_url)
-      `)
-      .order('created_at', { ascending: false });
-
-    if (published_only) {
-      query = query.eq('is_published', true);
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create course');
     }
 
-    const { data, error } = await query;
+    if (data.success && data.data.course) {
+      toast.success('Course created successfully!');
+      return {
+        id: data.data.course._id,
+        title: data.data.course.title,
+        description: data.data.course.description,
+        creator_id: data.data.course.owner_id,
+        creator: {
+          name: data.data.course.owner_id?.fullname || user.name,
+          avatar_url: data.data.course.owner_id?.avatar_url || user.avatar_url
+        },
+        is_published: data.data.course.is_published,
+        difficulty: data.data.course.difficulty,
+        estimated_duration: data.data.course.estimated_duration,
+        tags: data.data.course.tags,
+        likes_count: data.data.course.likes_count || 0,
+        rating: data.data.course.rating || 0,
+        ratings_count: data.data.course.ratings_count || 0,
+        created_at: data.data.course.createdAt,
+        updated_at: data.data.course.updatedAt,
+      };
+    }
 
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching courses:', error);
-    return [];
+    throw new Error('Invalid response format');
+  } catch (error: any) {
+    console.error('Error creating course:', error);
+    toast.error(error.message || 'Failed to create course');
+    throw error;
   }
 };
 
-export const fetchCourseById = async (id: string): Promise<Course | null> => {
-  if (!isSupabaseConfigured()) {
-    return mockCourses.find(c => c.id === id) || null;
-  }
-
+export const fetchPublishedCourses = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  difficulty?: string;
+}): Promise<{ courses: Course[]; pagination: any }> => {
   try {
-    const { data, error } = await supabase
-      .from('courses')
-      .select(`
-        *,
-        creator:users(name, avatar_url)
-      `)
-      .eq('id', id)
-      .single();
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.difficulty && params.difficulty !== 'all') {
+      searchParams.append('difficulty', params.difficulty);
+    }
 
-    if (error) throw error;
-    return data;
-  } catch (error) {
+    const response = await fetch(`${API_BASE_URL}/courses/published?${searchParams}`, {
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch courses');
+    }
+
+    if (data.success && data.data) {
+      const courses = data.data.courses.map((course: any) => ({
+        id: course._id,
+        title: course.title,
+        description: course.description,
+        creator_id: course.owner_id || course.creator?.id,
+        creator: course.creator,
+        is_published: course.is_published,
+        difficulty: course.difficulty,
+        estimated_duration: course.estimated_duration,
+        tags: course.tags,
+        likes_count: course.likes_count || 0,
+        rating: course.rating || 0,
+        ratings_count: course.ratings_count || 0,
+        created_at: course.createdAt,
+        updated_at: course.updatedAt,
+      }));
+
+      return {
+        courses,
+        pagination: data.data.pagination
+      };
+    }
+
+    throw new Error('Invalid response format');
+  } catch (error: any) {
+    console.error('Error fetching published courses:', error);
+    return { courses: [], pagination: null };
+  }
+};
+
+export const fetchCourseById = async (courseId: string): Promise<{ course: Course; lessons: Lesson[] } | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch course');
+    }
+
+    if (data.success && data.data) {
+      const course: Course = {
+        id: data.data.course._id,
+        title: data.data.course.title,
+        description: data.data.course.description,
+        creator_id: data.data.course.creator?.id || 'unknown',
+        creator: data.data.course.creator,
+        is_published: data.data.course.is_published,
+        difficulty: data.data.course.difficulty,
+        estimated_duration: data.data.course.estimated_duration,
+        tags: data.data.course.tags,
+        likes_count: data.data.course.likes_count || 0,
+        rating: data.data.course.rating || 0,
+        ratings_count: data.data.course.ratings_count || 0,
+        created_at: data.data.course.createdAt,
+        updated_at: data.data.course.updatedAt,
+      };
+
+      const lessons: Lesson[] = data.data.lessons.map((lesson: any) => ({
+        id: lesson._id,
+        course_id: lesson.course_id,
+        title: lesson.title,
+        content: lesson.content,
+        type: lesson.type,
+        order: lesson.order,
+        video_url: lesson.video_url,
+        videos: lesson.video_data || [],
+        quiz_questions: lesson.quiz_questions || [],
+        resources: lesson.resources || [],
+      }));
+
+      return { course, lessons };
+    }
+
+    return null;
+  } catch (error: any) {
     console.error('Error fetching course:', error);
     return null;
   }
 };
 
-export const fetchLessonsByCourseId = async (courseId: string): Promise<Lesson[]> => {
-  if (!isSupabaseConfigured()) {
+export const fetchUserCourses = async (): Promise<Course[]> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
     return [];
   }
 
   try {
-    const { data, error } = await supabase
-      .from('lessons')
-      .select('*')
-      .eq('course_id', courseId)
-      .order('order', { ascending: true });
+    const response = await fetch(`${API_BASE_URL}/courses/my-courses`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
 
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching lessons:', error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch user courses');
+    }
+
+    if (data.success && data.data) {
+      return data.data.courses.map((course: any) => ({
+        id: course._id,
+        title: course.title,
+        description: course.description,
+        creator_id: course.owner_id,
+        creator: course.creator,
+        is_published: course.is_published,
+        difficulty: course.difficulty,
+        estimated_duration: course.estimated_duration,
+        tags: course.tags,
+        likes_count: course.likes_count || 0,
+        rating: course.rating || 0,
+        ratings_count: course.ratings_count || 0,
+        created_at: course.createdAt,
+        updated_at: course.updatedAt,
+      }));
+    }
+
+    return [];
+  } catch (error: any) {
+    console.error('Error fetching user courses:', error);
     return [];
   }
 };
 
-export const publishCourse = async (courseId: string): Promise<void> => {
-  if (!isSupabaseConfigured()) {
-    toast.success('Course published successfully! (Demo mode)');
-    return;
+export const toggleCourseLike = async (courseId: string): Promise<{ isLiked: boolean }> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error('User must be authenticated to like courses');
   }
 
   try {
-    const { error } = await supabase
-      .from('courses')
-      .update({ is_published: true })
-      .eq('id', courseId);
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/like`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
 
-    if (error) throw error;
-    
-    toast.success('Course published successfully!');
-  } catch (error) {
-    console.error('Error publishing course:', error);
-    toast.error('Failed to publish course');
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to toggle like');
+    }
+
+    if (data.success) {
+      return { isLiked: data.data.isLiked };
+    }
+
+    throw new Error('Invalid response format');
+  } catch (error: any) {
+    console.error('Error toggling course like:', error);
+    toast.error(error.message || 'Failed to toggle like');
     throw error;
   }
 };
 
 export const rateCourse = async (courseId: string, rating: number): Promise<void> => {
   const user = useAuthStore.getState().user;
-  if (!user) throw new Error('User must be authenticated');
-
-  if (!isSupabaseConfigured()) {
-    toast.success('Rating submitted successfully! (Demo mode)');
-    return;
+  if (!user) {
+    throw new Error('User must be authenticated to rate courses');
   }
 
   try {
-    const { error } = await supabase
-      .from('ratings')
-      .upsert({
-        course_id: courseId,
-        user_id: user.id,
-        rating,
-      }, { onConflict: 'course_id,user_id' });
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/rate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ rating }),
+    });
 
-    if (error) throw error;
-    
-    toast.success('Rating submitted successfully!');
-  } catch (error) {
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to rate course');
+    }
+
+    if (data.success) {
+      toast.success('Rating submitted successfully!');
+      return;
+    }
+
+    throw new Error('Invalid response format');
+  } catch (error: any) {
     console.error('Error rating course:', error);
-    toast.error('Failed to submit rating');
+    toast.error(error.message || 'Failed to rate course');
+    throw error;
+  }
+};
+
+export const addCourseComment = async (courseId: string, content: string): Promise<void> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error('User must be authenticated to comment');
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/comments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ content }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add comment');
+    }
+
+    if (data.success) {
+      toast.success('Comment added successfully!');
+      return;
+    }
+
+    throw new Error('Invalid response format');
+  } catch (error: any) {
+    console.error('Error adding comment:', error);
+    toast.error(error.message || 'Failed to add comment');
+    throw error;
+  }
+};
+
+export const fetchCourseComments = async (courseId: string): Promise<any[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/comments`, {
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch comments');
+    }
+
+    if (data.success && data.data) {
+      return data.data;
+    }
+
+    return [];
+  } catch (error: any) {
+    console.error('Error fetching comments:', error);
+    return [];
+  }
+};
+
+export const publishCourse = async (courseId: string): Promise<void> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error('User must be authenticated to publish courses');
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/publish`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ is_published: true }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to publish course');
+    }
+
+    if (data.success) {
+      toast.success('Course published successfully!');
+      return;
+    }
+
+    throw new Error('Invalid response format');
+  } catch (error: any) {
+    console.error('Error publishing course:', error);
+    toast.error(error.message || 'Failed to publish course');
+    throw error;
+  }
+};
+
+export const unpublishCourse = async (courseId: string): Promise<void> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error('User must be authenticated to unpublish courses');
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/publish`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ is_published: false }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to unpublish course');
+    }
+
+    if (data.success) {
+      toast.success('Course unpublished successfully!');
+      return;
+    }
+
+    throw new Error('Invalid response format');
+  } catch (error: any) {
+    console.error('Error unpublishing course:', error);
+    toast.error(error.message || 'Failed to unpublish course');
+    throw error;
+  }
+};
+
+export const deleteCourse = async (courseId: string): Promise<void> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error('User must be authenticated to delete courses');
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete course');
+    }
+
+    if (data.success) {
+      toast.success('Course deleted successfully!');
+      return;
+    }
+
+    throw new Error('Invalid response format');
+  } catch (error: any) {
+    console.error('Error deleting course:', error);
+    toast.error(error.message || 'Failed to delete course');
     throw error;
   }
 };
