@@ -1,48 +1,34 @@
 import { Router } from "express";
 import {
     loginUser,
-    logOutUser,
+    logoutUser,
     registerUser,
     refreshAccessToken,
-    changeCurrentpassword,
+    changeCurrentPassword,
     getCurrentUser,
-    UpdateAccountDetails,
+    updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage,
-    getUserChannelprofile,
-    getWatchHistory
+    getLikedCourses
 } from '../controllers/user.controller.js'
 import { upload } from '../middlewares/multer.middleware.js'
 import { VerifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
+// Public routes
 router.route('/register').post(
-    upload.fields([
-        {
-            name: 'avatar',
-            maxCount: 1
-        },
-        {
-            name: 'coverImage',
-            maxCount: 1
-        }
-    ]),
+    upload.single('avatar'),
     registerUser
 )
-
-//secured routes
 router.route("/login").post(loginUser)
-router.route("/logout").post(VerifyJWT, logOutUser)
-router.route("/refresh-token").post(VerifyJWT, refreshAccessToken)
-router.route("/change-password").post(VerifyJWT, changeCurrentpassword)
-router.route("/").get(VerifyJWT, getCurrentUser)
-router.route("/update-account-details").patch(VerifyJWT, UpdateAccountDetails)
+
+// Protected routes
+router.route("/logout").post(VerifyJWT, logoutUser)
+router.route("/refresh-token").post(refreshAccessToken)
+router.route("/change-password").post(VerifyJWT, changeCurrentPassword)
+router.route("/profile").get(VerifyJWT, getCurrentUser)
+router.route("/update-account").patch(VerifyJWT, updateAccountDetails)
 router.route("/update-avatar").patch(VerifyJWT, upload.single('avatar'), updateUserAvatar)
-router.route("/update-cover-image").patch(VerifyJWT, upload.single('coverImage'), updateUserCoverImage)
-router.route("/get-channel-profile/:username").get(VerifyJWT, getUserChannelprofile)
-router.route("/get-watch-history").get(VerifyJWT, getWatchHistory)
-
-
+router.route("/liked-courses").get(VerifyJWT, getLikedCourses)
 
 export default router

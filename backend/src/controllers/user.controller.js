@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
+import { CourseLike } from "../models/course_like.model.js";
 
 const cookieOptions = {
     httpOnly: true,
@@ -55,9 +56,9 @@ const registerUser = asyncHandler(async (req, res) => {
     const user = await User.create({
         _id,
         fullname,
-        avatar_url: avatar.url, // Using avatar_url from our model
+        avatar_url: avatar.url,
         email,
-        password_hash: password, // The pre-save hook will hash this
+        password_hash: password,
         username: username.toLowerCase(),
     });
 
@@ -144,7 +145,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     }
 
     user.password_hash = newPassword;
-    await user.save({ validateBeforeSave: true }); // Let the pre-save hook do its job
+    await user.save({ validateBeforeSave: true });
 
     return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"));
 });
@@ -188,7 +189,6 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, user, "Avatar image updated successfully"));
 });
 
-// This function assumes you have a `course_likes` collection as per your data model.
 const getLikedCourses = asyncHandler(async (req, res) => {
     const likedCourses = await CourseLike.aggregate([
         {
