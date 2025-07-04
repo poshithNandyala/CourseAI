@@ -275,6 +275,7 @@ const getUserCourses = asyncHandler(async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     try {
+        console.log(req.user._id);
         console.log('📚 Fetching courses for user:', req.user._id);
         
         const courses = await Course.find({ owner_id: req.user._id })
@@ -288,13 +289,26 @@ const getUserCourses = asyncHandler(async (req, res) => {
 
         console.log(`✅ Found ${courses.length} courses for user`);
 
-        // Format courses
+        // Format courses and ensure id is always a string
         const formattedCourses = courses.map(course => ({
-            ...course,
+            id: course._id.toString(),
+            title: course.title,
+            description: course.description,
+            thumbnail_url: course.thumbnail_url,
+            creator_id: course.owner_id?._id?.toString() || course.owner_id,
             creator: {
                 name: course.owner_id?.fullname || 'Anonymous',
                 avatar_url: course.owner_id?.avatar_url
-            }
+            },
+            is_published: course.is_published,
+            difficulty: course.difficulty,
+            estimated_duration: course.estimated_duration,
+            tags: course.tags,
+            likes_count: course.likes_count || 0,
+            rating: course.rating || 0,
+            ratings_count: course.ratings_count || 0,
+            created_at: course.createdAt,
+            updated_at: course.updatedAt
         }));
 
         return res.status(200).json(
@@ -652,6 +666,11 @@ const getUserCourseInteraction = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Failed to fetch user interaction");
     }
 });
+
+// Check if a string is a valid ObjectId
+export function isValidObjectId(id) {
+  return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+}
 
 export {
     createCourse,

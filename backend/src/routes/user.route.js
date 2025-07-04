@@ -8,7 +8,8 @@ import {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    getLikedCourses
+    getLikedCourses,
+    getMyPublishedCoursesLikes
 } from '../controllers/user.controller.js'
 import { upload } from '../middlewares/multer.middleware.js'
 import { VerifyJWT } from "../middlewares/auth.middleware.js";
@@ -30,5 +31,6 @@ router.route("/profile").get(VerifyJWT, getCurrentUser)
 router.route("/update-account").patch(VerifyJWT, updateAccountDetails)
 router.route("/update-avatar").patch(VerifyJWT, upload.single('avatar'), updateUserAvatar)
 router.route("/liked-courses").get(VerifyJWT, getLikedCourses)
+router.route("/my-published-courses-likes").get(VerifyJWT, getMyPublishedCoursesLikes)
 
 export default router

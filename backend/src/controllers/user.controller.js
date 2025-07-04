@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
 import { CourseLike } from "../models/course_like.model.js";
+import { Course } from '../models/course.model.js';
 
 const cookieOptions = {
     httpOnly: true,
@@ -302,6 +303,20 @@ const getLikedCourses = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, likedCourses, "Liked courses fetched successfully"));
 });
 
+const getMyPublishedCoursesLikes = asyncHandler(async (req, res) => {
+    // Find all published courses owned by the user
+    const publishedCourses = await Course.find({ owner_id: req.user._id, is_published: true }, { _id: 1 });
+    const courseIds = publishedCourses.map(c => c._id);
+
+    if (courseIds.length === 0) {
+        return res.status(200).json(new ApiResponse(200, { totalLikes: 0 }, "No published courses found"));
+    }
+
+    // Count likes for these courses
+    const totalLikes = await CourseLike.countDocuments({ course_id: { $in: courseIds } });
+    return res.status(200).json(new ApiResponse(200, { totalLikes }, "Total likes for your published courses"));
+});
+
 export {
     registerUser,
     loginUser,
@@ -312,4 +327,5 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     getLikedCourses,
+    getMyPublishedCoursesLikes,
 };

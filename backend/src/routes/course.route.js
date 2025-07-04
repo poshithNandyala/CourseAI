@@ -17,6 +17,9 @@ import { VerifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
+
+router.route('/my-courses').get(VerifyJWT, getUserCourses);
+
 // Public routes (no authentication required)
 router.route('/published').get(getPublishedCourses);
 router.route('/:courseId').get(getCourseById);
@@ -24,7 +27,6 @@ router.route('/:courseId/comments').get(getCourseComments);
 
 // Protected routes (authentication required)
 router.route('/').post(VerifyJWT, createCourse);
-router.route('/my-courses').get(VerifyJWT, getUserCourses);
 router.route('/:courseId/edit').get(VerifyJWT, getCourseForEdit);
 router.route('/:courseId/publish').patch(VerifyJWT, toggleCoursePublication);
 router.route('/:courseId/like').post(VerifyJWT, toggleCourseLike);
