@@ -13,15 +13,15 @@ const createCourse = asyncHandler(async (req, res) => {
     console.log('📝 Course creation request received');
     console.log('📊 Request body keys:', Object.keys(req.body));
     console.log('📊 Lessons count:', req.body.lessons?.length || 0);
-    
-    const { 
-        title, 
-        description, 
-        difficulty, 
-        estimated_duration, 
-        tags, 
+
+    const {
+        title,
+        description,
+        difficulty,
+        estimated_duration,
+        tags,
         lessons,
-        is_published = false 
+        is_published = false
     } = req.body;
 
     // Validation
@@ -43,7 +43,7 @@ const createCourse = asyncHandler(async (req, res) => {
 
     try {
         console.log('🏗️ Creating course with title:', title);
-        
+
         // Create course
         const course = await Course.create({
             title: title.trim(),
@@ -61,7 +61,7 @@ const createCourse = asyncHandler(async (req, res) => {
         const lessonsToCreate = lessons.map((lesson, index) => {
             console.log(`📝 Processing lesson ${index + 1}: ${lesson.title}`);
             console.log(`🎥 Video data count: ${lesson.video_data?.length || 0}`);
-            
+
             return {
                 course_id: course._id,
                 title: lesson.title,
@@ -96,30 +96,30 @@ const createCourse = asyncHandler(async (req, res) => {
 
     } catch (error) {
         console.error("❌ Error creating course:", error);
-        
+
         // Provide more specific error messages
         if (error.code === 11000) {
             throw new ApiError(409, "A course with this title already exists");
         }
-        
+
         if (error.name === 'ValidationError') {
             const validationErrors = Object.values(error.errors).map(err => err.message);
             throw new ApiError(400, `Validation error: ${validationErrors.join(', ')}`);
         }
-        
+
         throw new ApiError(500, "Failed to create course");
     }
 });
 
 // Get all published courses for explore page
 const getPublishedCourses = asyncHandler(async (req, res) => {
-    const { 
-        page = 1, 
-        limit = 12, 
-        search = '', 
-        difficulty = '', 
+    const {
+        page = 1,
+        limit = 12,
+        search = '',
+        difficulty = '',
         sortBy = 'createdAt',
-        sortOrder = 'desc' 
+        sortOrder = 'desc'
     } = req.query;
 
     const pageNum = parseInt(page);
@@ -211,7 +211,7 @@ const getPublishedCourses = asyncHandler(async (req, res) => {
     }
 });
 
-// Get single course with lessons and video data (public access)
+// Get single course with lessons and video data (public access, published only)
 const getCourseById = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
 
@@ -220,16 +220,21 @@ const getCourseById = asyncHandler(async (req, res) => {
     }
 
     try {
-        // Get course with creator info
-        const course = await Course.findOne({ 
-            _id: courseId, 
-            is_published: true 
-        })
-        .populate('owner_id', 'username fullname avatar_url')
-        .lean();
+        console.log(req.user);
+        // Try to find the course by ID
+        const course = await Course.findById(courseId)
+            .populate('owner_id', 'username fullname avatar_url')
+            .lean();
 
         if (!course) {
-            throw new ApiError(404, "Course not found or not published");
+            throw new ApiError(404, "Course not found");
+        }
+
+        // If not published, only allow owner to access
+        if (!course.is_published) {
+            if (!req.user || course.owner_id?._id?.toString() !== req.user._id?.toString()) {
+                throw new ApiError(403, "You do not have permission to access this course");
+            }
         }
 
         // Get lessons with video data
@@ -249,10 +254,12 @@ const getCourseById = asyncHandler(async (req, res) => {
         // Remove owner_id from response
         delete formattedCourse.owner_id;
 
-        // Increment view count
-        await Course.findByIdAndUpdate(courseId, { 
-            $inc: { views_count: 1 } 
-        });
+        // Increment view count only if published
+        if (course.is_published) {
+            await Course.findByIdAndUpdate(courseId, {
+                $inc: { views_count: 1 }
+            });
+        }
 
         return res.status(200).json(
             new ApiResponse(200, {
@@ -277,7 +284,7 @@ const getUserCourses = asyncHandler(async (req, res) => {
     try {
         console.log(req.user._id);
         console.log('📚 Fetching courses for user:', req.user._id);
-        
+
         const courses = await Course.find({ owner_id: req.user._id })
             .populate('owner_id', 'username fullname avatar_url')
             .sort({ createdAt: -1 })
@@ -338,12 +345,12 @@ const getCourseForEdit = asyncHandler(async (req, res) => {
 
     try {
         // Check if user owns the course
-        const course = await Course.findOne({ 
-            _id: courseId, 
-            owner_id: req.user._id 
+        const course = await Course.findOne({
+            _id: courseId,
+            owner_id: req.user._id
         })
-        .populate('owner_id', 'username fullname avatar_url')
-        .lean();
+            .populate('owner_id', 'username fullname avatar_url')
+            .lean();
 
         if (!course) {
             throw new ApiError(404, "Course not found or you don't have permission");
@@ -421,8 +428,8 @@ const toggleCourseLike = asyncHandler(async (req, res) => {
         if (existingLike) {
             // Unlike the course
             await CourseLike.deleteOne({ _id: existingLike._id });
-            await Course.findByIdAndUpdate(courseId, { 
-                $inc: { likes_count: -1 } 
+            await Course.findByIdAndUpdate(courseId, {
+                $inc: { likes_count: -1 }
             });
 
             return res.status(200).json(
@@ -434,8 +441,8 @@ const toggleCourseLike = asyncHandler(async (req, res) => {
                 course_id: courseId,
                 user_id: req.user._id
             });
-            await Course.findByIdAndUpdate(courseId, { 
-                $inc: { likes_count: 1 } 
+            await Course.findByIdAndUpdate(courseId, {
+                $inc: { likes_count: 1 }
             });
 
             return res.status(200).json(
@@ -561,15 +568,15 @@ const getCourseComments = asyncHandler(async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     try {
-        const comments = await CourseComment.find({ 
+        const comments = await CourseComment.find({
             course_id: courseId,
-            is_deleted: false 
+            is_deleted: false
         })
-        .populate('user_id', 'username fullname avatar_url')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean();
+            .populate('user_id', 'username fullname avatar_url')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum)
+            .lean();
 
         // Format comments
         const formattedComments = comments.map(comment => ({
@@ -603,9 +610,9 @@ const deleteCourse = asyncHandler(async (req, res) => {
 
     try {
         // Check if user owns the course
-        const course = await Course.findOne({ 
-            _id: courseId, 
-            owner_id: req.user._id 
+        const course = await Course.findOne({
+            _id: courseId,
+            owner_id: req.user._id
         });
 
         if (!course) {
@@ -669,7 +676,7 @@ const getUserCourseInteraction = asyncHandler(async (req, res) => {
 
 // Check if a string is a valid ObjectId
 export function isValidObjectId(id) {
-  return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+    return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
 }
 
 export {

@@ -13,16 +13,25 @@ import {
     deleteCourse,
     getUserCourseInteraction
 } from '../controllers/course.controller.js';
-import { VerifyJWT } from "../middlewares/auth.middleware.js";
+import { VerifyJWT, OptionalVerifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
+// Optional authentication middleware
+function optionalAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Use the existing VerifyJWT logic, but don't error if missing
+        return VerifyJWT(req, res, next);
+    }
+    next();
+}
 
 router.route('/my-courses').get(VerifyJWT, getUserCourses);
 
 // Public routes (no authentication required)
 router.route('/published').get(getPublishedCourses);
-router.route('/:courseId').get(getCourseById);
+router.route('/:courseId').get(OptionalVerifyJWT, getCourseById);
 router.route('/:courseId/comments').get(getCourseComments);
 
 // Protected routes (authentication required)

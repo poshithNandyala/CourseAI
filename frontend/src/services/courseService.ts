@@ -153,13 +153,21 @@ export const fetchPublishedCourses = async (params?: {
 };
 
 export const fetchCourseById = async (
-  courseId: string
+  courseId: string,
+  ownerMode: boolean = false
 ): Promise<{ course: Course; lessons: Lesson[] } | null> => {
   try {
-    console.log(`🔍 Fetching course details for ID: ${courseId}`);
+    console.log(
+      `🔍 Fetching course details for ID: ${courseId} (ownerMode: ${ownerMode})`
+    );
 
-    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+    const url = ownerMode
+      ? `${API_BASE_URL}/courses/${courseId}/edit`
+      : `${API_BASE_URL}/courses/${courseId}`;
+
+    const response = await fetch(url, {
       credentials: "include",
+      headers: ownerMode ? getAuthHeaders() : undefined,
     });
 
     const data = await response.json();
@@ -171,10 +179,13 @@ export const fetchCourseById = async (
 
     if (data.success && data.data) {
       const course: Course = {
-        id: data.data.course._id,
+        id: data.data.course._id || data.data.course.id,
         title: data.data.course.title,
         description: data.data.course.description,
-        creator_id: data.data.course.creator?.id || "unknown",
+        creator_id:
+          data.data.course.creator?.id ||
+          data.data.course.creator_id ||
+          "unknown",
         creator: data.data.course.creator,
         is_published: data.data.course.is_published,
         difficulty: data.data.course.difficulty,
@@ -183,8 +194,8 @@ export const fetchCourseById = async (
         likes_count: data.data.course.likes_count || 0,
         rating: data.data.course.rating || 0,
         ratings_count: data.data.course.ratings_count || 0,
-        created_at: data.data.course.createdAt,
-        updated_at: data.data.course.updatedAt,
+        created_at: data.data.course.createdAt || data.data.course.created_at,
+        updated_at: data.data.course.updatedAt || data.data.course.updated_at,
       };
 
       const lessons: Lesson[] = data.data.lessons.map((lesson: any) => ({

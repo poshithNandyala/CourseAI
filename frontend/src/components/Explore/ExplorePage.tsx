@@ -48,7 +48,7 @@ export const ExplorePage: React.FC = () => {
 
   const handleViewCourse = (courseId: string) => {
     console.log('🔗 Opening public course for ALL users:', courseId);
-    navigate(`/course/${courseId}`);
+    navigate(`/course/${courseId}`, { state: { from: 'explore' } });
   };
 
   const handleLikeCourse = async (courseId: string, event: React.MouseEvent) => {

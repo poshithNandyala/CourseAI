@@ -124,9 +124,13 @@ export const EnhancedDashboard: React.FC = () => {
     }
   };
 
-  const handleViewCourse = (courseId: string) => {
-    console.log(`🔍 Viewing course ${courseId}`);
-    navigate(`/course/${courseId}`);
+  const handleViewCourse = (courseId: string, isPublished: boolean) => {
+    console.log(`🔍 Viewing course ${courseId} (published: ${isPublished})`);
+    if (isPublished) {
+      navigate(`/course/${courseId}`, { state: { from: 'dashboard' } });
+    } else {
+      navigate(`/course/${courseId}?ownerMode=1`, { state: { from: 'dashboard' } });
+    }
   };
 
   const handleCreateCourse = () => {
@@ -336,7 +340,9 @@ export const EnhancedDashboard: React.FC = () => {
                 <div className="space-y-2">
                   {/* View Course Button */}
                   <button
-                    onClick={() => handleViewCourse(course.id)}
+                    onClick={() =>
+                      handleViewCourse(course.id, course.is_published)
+                    }
                     className="w-full bg-gradient-to-r from-brand-500 to-accent-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:from-brand-600 hover:to-accent-600 transition-all duration-200 flex items-center justify-center space-x-2"
                   >
                     <Play className="h-4 w-4" />
