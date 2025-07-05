@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Play, 
   BookOpen, 
@@ -28,6 +28,7 @@ import toast from 'react-hot-toast';
 export const PublicCourseViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const [course, setCourse] = useState<any>(null);
   const [lessons, setLessons] = useState<any[]>([]);
@@ -179,11 +180,20 @@ export const PublicCourseViewer: React.FC = () => {
       >
         <div className="flex items-center space-x-4 mb-6">
           <button
-            onClick={() => navigate('/explore')}
+            onClick={() => {
+              const from = location.state?.from;
+              if (from === 'dashboard') {
+                navigate('/dashboard');
+              } else {
+                navigate('/explore');
+              }
+            }}
             className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-200"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span>Back to Explore</span>
+            <span>
+              {location.state?.from === 'dashboard' ? 'Back to Dashboard' : 'Back to Explore'}
+            </span>
           </button>
         </div>
 
