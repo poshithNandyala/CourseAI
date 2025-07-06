@@ -199,17 +199,19 @@ export const PublicCourseViewer: React.FC = () => {
 
         <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft border border-gray-200 dark:border-gray-800">
           {/* Free Access Banner */}
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-2xl p-4 mb-6 border border-green-200 dark:border-green-800">
-            <div className="flex items-center space-x-3">
-              <Unlock className="h-6 w-6 text-green-600 dark:text-green-400" />
-              <div>
-                <h4 className="font-semibold text-green-900 dark:text-green-100">Free Access for Everyone!</h4>
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  This course is completely free and accessible to all users. No login required to view content!
-                </p>
+          {course.is_published && (
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-2xl p-4 mb-6 border border-green-200 dark:border-green-800">
+              <div className="flex items-center space-x-3">
+                <Unlock className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div>
+                  <h4 className="font-semibold text-green-900 dark:text-green-100">Free Access for Everyone!</h4>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    This course is completely free and accessible to all users. No login required to view content!
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="flex items-start justify-between">
             <div className="flex-1">

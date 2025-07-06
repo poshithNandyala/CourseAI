@@ -183,6 +183,30 @@ export const signUpWithEmail = async (email: string, password: string, name: str
   }
 };
 
+export const signInWithGoogle = async () => {
+  console.log('🔍 Google sign-in attempt');
+  try {
+    // Redirect to Google OAuth
+    window.location.href = `${API_BASE_URL}/auth/google`;
+  } catch (error) {
+    console.error('Google sign-in error:', error);
+    toast.error('Failed to initiate Google sign-in');
+    throw error;
+  }
+};
+
+export const signInWithGitHub = async () => {
+  console.log('🔍 GitHub sign-in attempt');
+  try {
+    // Redirect to GitHub OAuth
+    window.location.href = `${API_BASE_URL}/auth/github`;
+  } catch (error) {
+    console.error('GitHub sign-in error:', error);
+    toast.error('Failed to initiate GitHub sign-in');
+    throw error;
+  }
+};
+
 export const signOut = async () => {
   console.log('🚪 Sign-out attempt');
   
@@ -254,8 +278,8 @@ export const getCurrentUser = async (): Promise<User | null> => {
         email: data.data.email,
         name: data.data.fullname,
         avatar_url: data.data.avatar_url,
-        provider: 'email',
-        created_at: data.data.createdAt || new Date().toISOString(),
+        provider: data.data.provider || 'email',
+        created_at: data.data.created_at || new Date().toISOString(),
         accessToken: token
       };
     }
@@ -268,11 +292,69 @@ export const getCurrentUser = async (): Promise<User | null> => {
   }
 };
 
+export const handleOAuthCallback = async () => {
+  console.log('🔐 Handling OAuth callback...');
+  
+  try {
+    // Get OAuth user data from session
+    const response = await fetch(`${API_BASE_URL}/auth/oauth-user`, {
+      credentials: 'include',
+    });
+    
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      const { user, accessToken } = data.data;
+      
+      console.log('✅ OAuth authentication successful:', user.email);
+      
+      // Create user object matching the frontend format
+      const formattedUser: User = {
+        id: user._id,
+        email: user.email,
+        name: user.fullname,
+        avatar_url: user.avatar_url,
+        provider: user.provider || 'oauth',
+        created_at: user.created_at || new Date().toISOString(),
+        accessToken
+      };
+
+      // Store token for persistence
+      if (accessToken) {
+        localStorage.setItem('accessToken', accessToken);
+      }
+
+      // Set user in store
+      useAuthStore.getState().setUser(formattedUser);
+      useAuthStore.getState().setLoading(false);
+      
+      toast.success('Successfully signed in!');
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('❌ OAuth callback error:', error);
+    return false;
+  }
+};
+
 export const initializeAuth = async () => {
   console.log('🔐 Initializing authentication...');
   
   try {
     useAuthStore.getState().setLoading(true);
+    
+    // Check for OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'success') {
+      const success = await handleOAuthCallback();
+      if (success) {
+        // Remove auth parameter from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+    }
     
     const user = await getCurrentUser();
     if (user) {

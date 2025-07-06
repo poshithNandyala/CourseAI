@@ -26,7 +26,24 @@ const userSchema = new Schema(
         },
         password_hash: {
             type: String,
-            required: [true, "password is required"],
+            required: function() {
+                return !this.google_id && !this.github_id;
+            },
+        },
+        google_id: {
+            type: String,
+            unique: true,
+            sparse: true
+        },
+        github_id: {
+            type: String,
+            unique: true,
+            sparse: true
+        },
+        provider: {
+            type: String,
+            enum: ['email', 'google', 'github'],
+            default: 'email'
         },
         fullname: {
             type: String,
@@ -53,12 +70,15 @@ const userSchema = new Schema(
 
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password_hash")) return next()
-    this.password_hash = await bcrypt.hash(this.password_hash, 10)
+    if (this.password_hash) {
+        this.password_hash = await bcrypt.hash(this.password_hash, 10)
+    }
     this.updated_at = new Date()
     next()
 }) 
 
 userSchema.methods.isPasswordCorrect = async function (password) {
+    if (!this.password_hash) return false;
     return await bcrypt.compare(password, this.password_hash)
 }
 

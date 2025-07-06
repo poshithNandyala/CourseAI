@@ -1,6 +1,8 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import session from "express-session"
+import passport from "./config/passport.js"
 
 const app = express()
 
@@ -24,6 +26,21 @@ app.use(express.urlencoded({ extended: true, limit: "16mb" }))
 app.use(express.static("public"))
 app.use(cookieParser())
 
+// Session configuration for OAuth
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}))
+
+// Initialize passport
+app.use(passport.initialize())
+app.use(passport.session())
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Server is running' })
@@ -32,10 +49,12 @@ app.get('/health', (req, res) => {
 //routes import
 import userRoutes from "./routes/user.route.js"
 import courseRoutes from "./routes/course.route.js"
+import authRoutes from "./routes/auth.route.js"
 
 //routes declaration
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/courses", courseRoutes)
+app.use("/api/v1/auth", authRoutes)
 
 // Root API endpoint
 app.get('/api/v1', (req, res) => {
