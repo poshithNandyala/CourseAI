@@ -44,7 +44,7 @@ The platform is fully functional and actively evolving. Some features (like auth
 | Styling   | Tailwind CSS                   |
 | AI Engine | Gemini API (Google DeepMind)   |
 | Video API | YouTube Data API               |
-| Backend   | Supabase (Postgres + Realtime) |
+| Backend   | Express(mongodb )               |
 | Hosting   | Vercel                         |
 
 ---
