@@ -50,11 +50,13 @@ app.get('/health', (req, res) => {
 import userRoutes from "./routes/user.route.js"
 import courseRoutes from "./routes/course.route.js"
 import authRoutes from "./routes/auth.route.js"
+import verificationRoutes from "./routes/verification.route.js"
 
 //routes declaration
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/courses", courseRoutes)
 app.use("/api/v1/auth", authRoutes)
+app.use("/api/v1/verification", verificationRoutes)
 
 // Root API endpoint
 app.get('/api/v1', (req, res) => {

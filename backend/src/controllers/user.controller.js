@@ -15,7 +15,7 @@ const cookieOptions = {
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
 };
 
-const generateAccessAndRefreshTokens = async (userId) => {
+export const generateAccessAndRefreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId);
         if (!user) {
@@ -35,65 +35,10 @@ const generateAccessAndRefreshTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-    console.log('📝 Registration request received:', req.body);
-
-    const { _id, fullname, email, username, password } = req.body;
-
-    // Validation
-    if ([fullname, email, username, password].some((field) => !field || field.trim() === "")) {
-        throw new ApiError(400, "All fields are required");
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        throw new ApiError(400, "Please enter a valid email address");
-    }
-
-    // Password validation
-    if (password.length < 6) {
-        throw new ApiError(400, "Password must be at least 6 characters long");
-    }
-
-    // Check if user already exists
-    const existedUser = await User.findOne({
-        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
-    });
-
-    if (existedUser) {
-        throw new ApiError(409, "User with this email or username already exists");
-    }
-
-    // Create user ID if not provided
-    const userId = _id || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    try {
-        const user = await User.create({
-            _id: userId,
-            fullname: fullname.trim(),
-            email: email.toLowerCase().trim(),
-            password_hash: password,
-            username: username.toLowerCase().trim(),
-        });
-
-        const createdUser = await User.findById(user._id).select("-password_hash -refresh_token");
-
-        if (!createdUser) {
-            throw new ApiError(500, "Something went wrong while registering the user");
-        }
-
-        console.log('✅ User registered successfully:', createdUser.email);
-
-        return res.status(201).json(
-            new ApiResponse(201, createdUser, "User registered successfully")
-        );
-    } catch (error) {
-        console.error('Registration error:', error);
-        if (error.code === 11000) {
-            throw new ApiError(409, "User with this email or username already exists");
-        }
-        throw new ApiError(500, "Failed to register user");
-    }
+    console.log('📝 Direct registration attempt (use email verification instead)');
+    
+    // Redirect to email verification flow
+    throw new ApiError(400, "Please use email verification for registration. Send a POST request to /api/v1/verification/send-signup-verification with your details.");
 });
 
 const loginUser = asyncHandler(async (req, res) => {

@@ -9,6 +9,7 @@ import { PublicCourseViewer } from './components/Course/PublicCourseViewer';
 import { ExplorePage } from './components/Explore/ExplorePage';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { SignInPage } from './components/Auth/SignInPage';
+import { VerificationPage } from './components/Auth/VerificationPage';
 import { useTheme } from './hooks/useTheme';
 import { useAuthStore } from './store/authStore';
 import { initializeAuth } from './services/authService';
@@ -46,6 +47,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/signin" element={<SignInPage />} />
+          <Route path="/verify" element={<VerificationPage />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/course/:id" element={<PublicCourseViewer />} />
           

@@ -11,20 +11,37 @@ export const VerifyJWT = asyncHandler(async (req, res, next) => {
             throw new ApiError(401, "Unauthorized request: Access token is missing")
         }
 
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+        let decodedToken;
+        try {
+            decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        } catch (jwtError) {
+            console.error('JWT verification failed:', jwtError.message);
+            if (jwtError.name === 'TokenExpiredError') {
+                throw new ApiError(401, "Access token has expired");
+            } else if (jwtError.name === 'JsonWebTokenError') {
+                throw new ApiError(401, "Invalid access token");
+            }
+            throw new ApiError(401, "Token verification failed");
+        }
         
         const user = await User.findById(decodedToken?._id).select("-password_hash -refresh_token")
         
         if (!user) {
-            throw new ApiError(401, "Invalid access token")
+            console.error('User not found for token:', decodedToken?._id);
+            throw new ApiError(401, "Invalid access token: User not found")
         }
 
-        req.user = user
+        // Add user data for frontend compatibility
+        const userObject = user.toObject();
+        userObject.name = userObject.fullname;
+
+        req.user = userObject;
         next()
     } catch (error) {
+        console.error('Auth middleware error:', error);
         throw new ApiError(
             error?.statusCode || 401,
-            error?.message || "Invalid access token"
+            error?.message || "Authentication failed"
         )
     }
 })

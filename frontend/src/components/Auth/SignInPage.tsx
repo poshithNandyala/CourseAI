@@ -15,11 +15,11 @@ import {
   Zap
 } from 'lucide-react';
 import { 
-  signInWithEmail, 
-  signUpWithEmail,
+  signInWithEmail,
   signInWithGoogle,
   signInWithGitHub
 } from '../../services/authService';
+import { sendSignupVerification } from '../../services/verificationService';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -66,12 +66,15 @@ export const SignInPage: React.FC = () => {
         console.log('✅ Email sign-in completed, navigating to dashboard');
         navigate('/dashboard');
       } else if (authMode === 'signup') {
-        await signUpWithEmail(formData.email.trim(), formData.password, formData.name.trim());
-        console.log('✅ Email sign-up completed, switching to sign-in');
-        // Switch to sign-in mode after successful signup
-        setAuthMode('signin');
-        setFormData(prev => ({ ...prev, password: '', name: '' }));
-        // Don't navigate - let user sign in with new credentials
+        const result = await sendSignupVerification(formData.email.trim(), formData.password, formData.name.trim());
+        console.log('✅ Verification email sent, navigating to verification page');
+        // Navigate to verification page with email
+        navigate('/verify', { 
+          state: { 
+            email: result.email,
+            type: 'signup'
+          }
+        });
       }
     } catch (error) {
       console.error('❌ Email auth failed:', error);
