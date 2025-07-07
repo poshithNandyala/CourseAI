@@ -23,6 +23,7 @@ import { fetchCourseById, fetchCourseComments, addCourseComment, toggleCourseLik
 import { useAuthStore } from '../../store/authStore';
 import { VideoPlayer } from './VideoPlayer';
 import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
+import { geminiAPI } from '../../services/geminiApi';
 import toast from 'react-hot-toast';
 
 export const PublicCourseViewer: React.FC = () => {
@@ -39,6 +40,8 @@ export const PublicCourseViewer: React.FC = () => {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [lessonSummary, setLessonSummary] = useState<string>('');
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -50,6 +53,13 @@ export const PublicCourseViewer: React.FC = () => {
     loadPublicCourse();
     loadComments();
   }, [id]);
+
+  // Generate summary for initial lesson when lessons are loaded
+  useEffect(() => {
+    if (lessons.length > 0 && selectedLessonIndex >= 0 && !lessonSummary) {
+      generateLessonSummary(lessons[selectedLessonIndex]);
+    }
+  }, [lessons, selectedLessonIndex]);
 
   const loadPublicCourse = async () => {
     if (!id) return;
@@ -133,6 +143,19 @@ export const PublicCourseViewer: React.FC = () => {
       toast.success(result.isLiked ? 'Course liked!' : 'Course unliked!');
     } catch (error) {
       console.error('Error toggling course like:', error);
+    }
+  };
+
+  const generateLessonSummary = async (lesson: any) => {
+    try {
+      setLoadingSummary(true);
+      const summary = await geminiAPI.generateLessonSummary(lesson.title, lesson.content);
+      setLessonSummary(summary);
+    } catch (error) {
+      console.error('Error generating lesson summary:', error);
+      setLessonSummary(`In this lesson, you will learn about ${lesson.title}. This lesson covers the fundamental concepts and provides practical insights to help you understand the core principles and apply them effectively.`);
+    } finally {
+      setLoadingSummary(false);
     }
   };
 
@@ -360,7 +383,10 @@ export const PublicCourseViewer: React.FC = () => {
                 {lessons.map((lesson, index) => (
                   <button
                     key={index}
-                    onClick={() => setSelectedLessonIndex(index)}
+                    onClick={() => {
+                      setSelectedLessonIndex(index);
+                      generateLessonSummary(lesson);
+                    }}
                     className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
                       selectedLessonIndex === index
                         ? 'bg-brand-500 text-white'
@@ -397,24 +423,30 @@ export const PublicCourseViewer: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Lesson Content */}
+                  {/* AI-Generated Summary */}
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
-                    <div className="prose dark:prose-invert max-w-none">
-                      {selectedLesson.content.split('\n').map((line: string, index: number) => {
-                        if (line.startsWith('# ')) {
-                          return <h1 key={index} className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{line.substring(2)}</h1>;
-                        } else if (line.startsWith('## ')) {
-                          return <h2 key={index} className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">{line.substring(3)}</h2>;
-                        } else if (line.startsWith('### ')) {
-                          return <h3 key={index} className="text-lg font-medium mb-2 text-gray-900 dark:text-white">{line.substring(4)}</h3>;
-                        } else if (line.startsWith('- ')) {
-                          return <li key={index} className="ml-4 text-gray-700 dark:text-gray-300">{line.substring(2)}</li>;
-                        } else if (line.trim()) {
-                          return <p key={index} className="mb-3 text-gray-700 dark:text-gray-300">{line}</p>;
-                        }
-                        return <br key={index} />;
-                      })}
-                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                      <BookOpen className="h-5 w-5 text-blue-500" />
+                      <span>What You'll Learn</span>
+                    </h4>
+                    {loadingSummary ? (
+                      <div className="flex items-center space-x-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500"></div>
+                        <span className="text-gray-600 dark:text-gray-400">Generating lesson summary with AI...</span>
+                      </div>
+                    ) : lessonSummary ? (
+                      <div className="prose dark:prose-invert max-w-none">
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                          {lessonSummary}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="prose dark:prose-invert max-w-none">
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                          In this lesson on {selectedLesson.title}, you will learn key concepts and practical skills related to this topic. You'll develop a thorough understanding of important principles and learn how to apply them effectively. By the end of this lesson, you'll have gained valuable knowledge and be ready to confidently move forward with your learning journey.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Real YouTube Videos */}

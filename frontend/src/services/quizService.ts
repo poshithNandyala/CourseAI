@@ -18,7 +18,7 @@ export interface QuizGenerationOptions {
 
 class QuizService {
   generateQuizQuestions(options: QuizGenerationOptions): QuizQuestion[] {
-    const { topic, subtopic, keyPoints, difficulty, questionCount = 6 } = options;
+    const { topic, subtopic, keyPoints, difficulty, questionCount = 30 } = options;
     
     const questions: QuizQuestion[] = [];
     

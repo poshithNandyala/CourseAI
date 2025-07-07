@@ -460,6 +460,9 @@ export const CourseViewer: React.FC = () => {
                 <InteractiveQuiz
                   questions={selectedLesson.quiz_questions}
                   title={`${selectedLesson.title} - Quiz`}
+                  lessons={lessons}
+                  selectedLessonIndex={selectedLessonIndex}
+                  onLessonChange={setSelectedLessonIndex}
                   onComplete={(score, total) => {
                     toast.success(
                       `Quiz completed! You scored ${score}/${total} (${Math.round(
