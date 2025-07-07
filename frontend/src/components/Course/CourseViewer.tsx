@@ -8,7 +8,6 @@ import {
   Star,
   Users,
   ArrowLeft,
-  CheckCircle,
   Youtube,
   FileText,
   HelpCircle,
@@ -455,7 +454,33 @@ export const CourseViewer: React.FC = () => {
           )}
 
           {activeTab === "quiz" && (
-            <div>
+            <div className="space-y-8">
+              {/* Lesson Selector for Quiz */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {lessons.map((lesson, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedLessonIndex(index)}
+                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
+                      selectedLessonIndex === index
+                        ? "bg-brand-500 text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    <span>Lesson {index + 1}</span>
+                    {lesson.quiz_questions && lesson.quiz_questions.length > 0 && (
+                      <div className="flex items-center space-x-1">
+                        <HelpCircle className="h-3 w-3" />
+                        <span className="text-xs">
+                          ({lesson.quiz_questions.length})
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Quiz Content */}
               {hasQuizQuestions ? (
                 <InteractiveQuiz
                   questions={selectedLesson.quiz_questions}
@@ -478,23 +503,10 @@ export const CourseViewer: React.FC = () => {
                     No Quiz Available
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    Select a lesson with quiz questions to take an interactive
-                    quiz.
+                    This lesson doesn't have quiz questions yet. Quiz questions might still be generating.
                   </p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {lessons.map(
-                      (lesson, index) =>
-                        lesson.quiz_questions &&
-                        lesson.quiz_questions.length > 0 && (
-                          <button
-                            key={index}
-                            onClick={() => setSelectedLessonIndex(index)}
-                            className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
-                          >
-                            Lesson {index + 1} Quiz
-                          </button>
-                        )
-                    )}
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Try selecting another lesson or wait for quiz generation to complete.
                   </div>
                 </div>
               )}

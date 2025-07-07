@@ -46,7 +46,7 @@ export interface GeminiQuizQuestion {
 class GeminiAPIService {
   private apiKey: string;
   private baseUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
 
   constructor() {
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
@@ -189,22 +189,147 @@ Make it comprehensive and educational.
     const topicLower = topic.toLowerCase();
     const contentLower = content.toLowerCase();
 
-    // Programming/Development
+    // C++ Programming
+    if (
+      topicLower.includes("c++") ||
+      topicLower.includes("cpp") ||
+      contentLower.includes("c++") ||
+      contentLower.includes("cpp") ||
+      contentLower.includes("iostream") ||
+      contentLower.includes("cout") ||
+      contentLower.includes("cin") ||
+      contentLower.includes("namespace std")
+    ) {
+      return "cpp";
+    }
+
+    // Python Programming
+    if (
+      topicLower.includes("python") ||
+      contentLower.includes("python") ||
+      contentLower.includes("def ") ||
+      contentLower.includes("import ") ||
+      contentLower.includes("print(") ||
+      contentLower.includes("if __name__")
+    ) {
+      return "python";
+    }
+
+    // JavaScript Programming
+    if (
+      topicLower.includes("javascript") ||
+      topicLower.includes("js") ||
+      topicLower.includes("react") ||
+      topicLower.includes("node") ||
+      contentLower.includes("javascript") ||
+      contentLower.includes("function") ||
+      contentLower.includes("var ") ||
+      contentLower.includes("let ") ||
+      contentLower.includes("const ") ||
+      contentLower.includes("console.log")
+    ) {
+      return "javascript";
+    }
+
+    // Java Programming
+    if (
+      (topicLower.includes("java") && !topicLower.includes("javascript")) ||
+      contentLower.includes("public class") ||
+      contentLower.includes("public static void main") ||
+      contentLower.includes("system.out.println")
+    ) {
+      return "java";
+    }
+
+    // General Programming
     if (
       topicLower.includes("programming") ||
       topicLower.includes("coding") ||
-      topicLower.includes("javascript") ||
-      topicLower.includes("python") ||
-      topicLower.includes("java") ||
-      topicLower.includes("c++") ||
-      topicLower.includes("react") ||
       topicLower.includes("web development") ||
+      topicLower.includes("software") ||
       contentLower.includes("code") ||
-      contentLower.includes("function") ||
-      contentLower.includes("variable") ||
-      contentLower.includes("syntax")
+      contentLower.includes("algorithm") ||
+      contentLower.includes("syntax") ||
+      contentLower.includes("loop") ||
+      contentLower.includes("array") ||
+      contentLower.includes("object")
     ) {
       return "programming";
+    }
+
+    // Data Science/Machine Learning
+    if (
+      topicLower.includes("data science") ||
+      topicLower.includes("machine learning") ||
+      topicLower.includes("artificial intelligence") ||
+      topicLower.includes("ai") ||
+      topicLower.includes("ml") ||
+      contentLower.includes("dataset") ||
+      contentLower.includes("neural") ||
+      contentLower.includes("tensorflow") ||
+      contentLower.includes("pandas") ||
+      contentLower.includes("numpy")
+    ) {
+      return "datascience";
+    }
+
+    // Mathematics
+    if (
+      topicLower.includes("mathematics") ||
+      topicLower.includes("math") ||
+      topicLower.includes("calculus") ||
+      topicLower.includes("algebra") ||
+      topicLower.includes("geometry") ||
+      topicLower.includes("statistics") ||
+      contentLower.includes("equation") ||
+      contentLower.includes("formula") ||
+      contentLower.includes("theorem") ||
+      contentLower.includes("derivative") ||
+      contentLower.includes("integral")
+    ) {
+      return "mathematics";
+    }
+
+    // Physics
+    if (
+      topicLower.includes("physics") ||
+      contentLower.includes("physics") ||
+      contentLower.includes("force") ||
+      contentLower.includes("energy") ||
+      contentLower.includes("momentum") ||
+      contentLower.includes("velocity") ||
+      contentLower.includes("acceleration") ||
+      contentLower.includes("newton")
+    ) {
+      return "physics";
+    }
+
+    // Chemistry
+    if (
+      topicLower.includes("chemistry") ||
+      contentLower.includes("chemistry") ||
+      contentLower.includes("molecule") ||
+      contentLower.includes("atom") ||
+      contentLower.includes("element") ||
+      contentLower.includes("compound") ||
+      contentLower.includes("reaction") ||
+      contentLower.includes("periodic table")
+    ) {
+      return "chemistry";
+    }
+
+    // Biology
+    if (
+      topicLower.includes("biology") ||
+      contentLower.includes("biology") ||
+      contentLower.includes("cell") ||
+      contentLower.includes("dna") ||
+      contentLower.includes("gene") ||
+      contentLower.includes("organism") ||
+      contentLower.includes("evolution") ||
+      contentLower.includes("ecosystem")
+    ) {
+      return "biology";
     }
 
     // Arts/Dance/Music
@@ -221,28 +346,18 @@ Make it comprehensive and educational.
       return "arts";
     }
 
-    // Science/Math
-    if (
-      topicLower.includes("math") ||
-      topicLower.includes("science") ||
-      topicLower.includes("physics") ||
-      topicLower.includes("chemistry") ||
-      topicLower.includes("biology") ||
-      contentLower.includes("formula") ||
-      contentLower.includes("equation") ||
-      contentLower.includes("calculate")
-    ) {
-      return "science";
-    }
-
     // Business/Marketing
     if (
       topicLower.includes("business") ||
       topicLower.includes("marketing") ||
       topicLower.includes("management") ||
+      topicLower.includes("finance") ||
+      topicLower.includes("economics") ||
       contentLower.includes("strategy") ||
       contentLower.includes("market") ||
-      contentLower.includes("customer")
+      contentLower.includes("customer") ||
+      contentLower.includes("revenue") ||
+      contentLower.includes("profit")
     ) {
       return "business";
     }
@@ -254,7 +369,9 @@ Make it comprehensive and educational.
       contentLower.includes("behavior") ||
       contentLower.includes("mind") ||
       contentLower.includes("emotion") ||
-      contentLower.includes("cognitive")
+      contentLower.includes("cognitive") ||
+      contentLower.includes("therapy") ||
+      contentLower.includes("mental health")
     ) {
       return "psychology";
     }
@@ -302,6 +419,112 @@ PREMIUM QUESTION DESIGN PRINCIPLES:
     let specificInstructions = "";
 
     switch (contentType) {
+      case "cpp":
+        specificInstructions = `
+C++ PROGRAMMING-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 18-20 code-based questions with REAL, EXECUTABLE C++ code snippets
+- Focus on C++ specific features: classes, objects, inheritance, polymorphism, templates, STL
+- Add syntax, logic, and output prediction questions with ACTUAL C++ CODE
+- Include debugging scenarios with REAL buggy C++ code examples
+- Ask about memory management, pointers, references, and RAII principles
+- Test understanding of OOP concepts specific to C++
+- Include questions about C++ standard library (iostream, vector, string, algorithms)
+- Test knowledge of C++ specific features like operator overloading, friend functions, virtual functions
+
+MANDATORY C++ CODE EXAMPLES (Include these types):
+1. Output Prediction with C++ Code: "What will this C++ code output?\n\`\`\`cpp\n#include <iostream>\nusing namespace std;\nclass Base {\npublic:\n    virtual void show() { cout << \"Base\"; }\n};\nclass Derived : public Base {\npublic:\n    void show() override { cout << \"Derived\"; }\n};\nint main() {\n    Base* ptr = new Derived();\n    ptr->show();\n    delete ptr;\n    return 0;\n}\n\`\`\`"
+
+2. Memory Management: "What's the issue with this C++ code?\n\`\`\`cpp\nint* createArray(int size) {\n    int* arr = new int[size];\n    for(int i = 0; i < size; i++) {\n        arr[i] = i * 2;\n    }\n    return arr;\n}\nint main() {\n    int* myArray = createArray(10);\n    // Use array\n    return 0;\n}\n\`\`\`"
+
+3. STL and Templates: "What does this C++ template code do?\n\`\`\`cpp\ntemplate<typename T>\nT maximum(T a, T b) {\n    return (a > b) ? a : b;\n}\nint main() {\n    cout << maximum<int>(5, 10) << endl;\n    cout << maximum<double>(3.7, 2.1) << endl;\n    return 0;\n}\n\`\`\`"
+
+4. Class and Object Concepts: "In this C++ class, what will happen?\n\`\`\`cpp\nclass Rectangle {\nprivate:\n    int width, height;\npublic:\n    Rectangle(int w, int h) : width(w), height(h) {}\n    int area() const { return width * height; }\n    Rectangle operator+(const Rectangle& other) {\n        return Rectangle(width + other.width, height + other.height);\n    }\n};\n\`\`\`"
+
+5. Inheritance and Polymorphism: "Which method will be called?\n\`\`\`cpp\nclass Animal {\npublic:\n    virtual void makeSound() { cout << \"Animal sound\"; }\n};\nclass Dog : public Animal {\npublic:\n    void makeSound() override { cout << \"Woof!\"; }\n};\nAnimal* pet = new Dog();\npet->makeSound();\n\`\`\`"
+
+6. Pointer and Reference Questions: "What's the difference between these declarations?"
+7. Exception Handling: "How should this C++ code handle exceptions?"
+8. Constructor/Destructor concepts: "What happens in this object lifecycle?"
+
+FOCUS ON C++ SPECIFICS: Classes, Objects, Inheritance, Polymorphism, Templates, STL, Memory Management, Operator Overloading, Virtual Functions, Friend Functions, Exception Handling!`;
+        break;
+
+      case "python":
+        specificInstructions = `
+PYTHON PROGRAMMING-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 18-20 code-based questions with REAL, EXECUTABLE Python code snippets
+- Focus on Python specific features: list comprehensions, decorators, generators, context managers
+- Add syntax, logic, and output prediction questions with ACTUAL Python CODE
+- Include debugging scenarios with REAL buggy Python code examples
+- Test understanding of Python data structures: lists, dictionaries, sets, tuples
+- Include questions about Python libraries: pandas, numpy, matplotlib (if applicable)
+- Test knowledge of Python OOP, file handling, and exception handling
+- Include questions about Python-specific concepts like duck typing, LEGB scope
+
+MANDATORY PYTHON CODE EXAMPLES (Include these types):
+1. List Comprehensions: "What will this Python code output?\n\`\`\`python\nnumbers = [1, 2, 3, 4, 5]\nsquared_evens = [x**2 for x in numbers if x % 2 == 0]\nprint(squared_evens)\n\`\`\`"
+
+2. Dictionary and Functions: "What's the output?\n\`\`\`python\ndef update_scores(scores, **kwargs):\n    scores.update(kwargs)\n    return scores\n\nplayer_scores = {'Alice': 10, 'Bob': 15}\nresult = update_scores(player_scores, Charlie=20, Alice=25)\nprint(player_scores)\nprint(result)\n\`\`\`"
+
+3. Decorators: "What does this decorator do?\n\`\`\`python\ndef timer(func):\n    def wrapper(*args, **kwargs):\n        import time\n        start = time.time()\n        result = func(*args, **kwargs)\n        print(f'Time: {time.time() - start}')\n        return result\n    return wrapper\n\`\`\`"
+
+4. Exception Handling: "What will happen with this code?"
+5. Class and Inheritance: "How does Python multiple inheritance work?"
+6. File Operations: "What's the best practice for file handling?"
+7. Lambda and Map/Filter: "What does this functional programming code do?"
+8. Generator Functions: "How do yield and generators work?"
+
+FOCUS ON PYTHON SPECIFICS: List/Dict Comprehensions, Decorators, Generators, Context Managers, Duck Typing, Exception Handling, File Operations!`;
+        break;
+
+      case "javascript":
+        specificInstructions = `
+JAVASCRIPT PROGRAMMING-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 18-20 code-based questions with REAL, EXECUTABLE JavaScript code snippets
+- Focus on JavaScript specific features: closures, promises, async/await, prototype chain
+- Add syntax, logic, and output prediction questions with ACTUAL JavaScript CODE
+- Include debugging scenarios with REAL buggy JavaScript code examples
+- Test understanding of DOM manipulation, event handling, and asynchronous programming
+- Include questions about ES6+ features: arrow functions, destructuring, template literals
+- Test knowledge of JavaScript frameworks like React (if applicable)
+- Include questions about scope, hoisting, and JavaScript's event loop
+
+MANDATORY JAVASCRIPT CODE EXAMPLES (Include these types):
+1. Closures and Scope: "What will this JavaScript code output?\n\`\`\`javascript\nfunction createCounter() {\n    let count = 0;\n    return function() {\n        count++;\n        return count;\n    };\n}\nconst counter1 = createCounter();\nconst counter2 = createCounter();\nconsole.log(counter1()); // ?\nconsole.log(counter1()); // ?\nconsole.log(counter2()); // ?\n\`\`\`"
+
+2. Promises and Async: "What's the output order?\n\`\`\`javascript\nconsole.log('1');\nsetTimeout(() => console.log('2'), 0);\nPromise.resolve().then(() => console.log('3'));\nconsole.log('4');\n\`\`\`"
+
+3. Array Methods: "What does this code return?\n\`\`\`javascript\nconst numbers = [1, 2, 3, 4, 5];\nconst result = numbers\n    .filter(n => n % 2 === 0)\n    .map(n => n * 3)\n    .reduce((sum, n) => sum + n, 0);\nconsole.log(result);\n\`\`\`"
+
+4. Object Destructuring: "What values are extracted?"
+5. This Context: "What does 'this' refer to in different contexts?"
+6. Event Loop: "How does JavaScript handle asynchronous operations?"
+7. Prototype Chain: "How does JavaScript inheritance work?"
+8. Arrow Functions vs Regular Functions: "What's the difference?"
+
+FOCUS ON JAVASCRIPT SPECIFICS: Closures, Promises, Async/Await, Prototypes, Event Loop, ES6+ Features, DOM Manipulation!`;
+        break;
+
+      case "java":
+        specificInstructions = `
+JAVA PROGRAMMING-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 18-20 code-based questions with REAL, EXECUTABLE Java code snippets
+- Focus on Java specific features: interfaces, abstract classes, collections framework
+- Add syntax, logic, and output prediction questions with ACTUAL Java CODE
+- Include debugging scenarios with REAL buggy Java code examples
+- Test understanding of OOP principles in Java context
+- Include questions about Java collections, generics, and exception handling
+- Test knowledge of Java-specific concepts like static methods, final keyword
+- Include questions about Java memory management and garbage collection
+
+MANDATORY JAVA CODE EXAMPLES (Include these types):
+1. Inheritance and Polymorphism: "What will this Java code output?\n\`\`\`java\nabstract class Animal {\n    abstract void makeSound();\n    void sleep() { System.out.println(\"Sleeping...\"); }\n}\nclass Dog extends Animal {\n    void makeSound() { System.out.println(\"Woof!\"); }\n}\npublic class Main {\n    public static void main(String[] args) {\n        Animal pet = new Dog();\n        pet.makeSound();\n        pet.sleep();\n    }\n}\n\`\`\`"
+
+2. Collections Framework: "What's the output?\n\`\`\`java\nArrayList<Integer> numbers = new ArrayList<>();\nnumbers.add(10);\nnumbers.add(20);\nnumbers.add(10);\nSet<Integer> uniqueNumbers = new HashSet<>(numbers);\nSystem.out.println(uniqueNumbers.size());\n\`\`\`"
+
+FOCUS ON JAVA SPECIFICS: Classes, Interfaces, Collections, Generics, Exception Handling, Static Methods, Final Keyword!`;
+        break;
+
       case "programming":
         specificInstructions = `
 PROGRAMMING-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
@@ -349,6 +572,143 @@ PREMIUM PRACTICAL EXAMPLES (Include these types):
 8. Creative Process: "When choreographing a piece, what is the most important consideration for creating meaningful movement? A) Technical difficulty level B) Relationship between movement and musical/emotional content C) Audience appeal and entertainment value D) Number of dancers involved"
 
 MAKE QUESTIONS PROFESSIONAL-GRADE - Focus on artistry, technique, cultural understanding, and real performance situations that serious dancers and choreographers encounter!`;
+        break;
+
+      case "datascience":
+        specificInstructions = `
+DATA SCIENCE/MACHINE LEARNING-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 15-18 practical data science questions with REAL datasets and scenarios
+- Focus on data analysis, machine learning algorithms, and statistical concepts
+- Include questions about data preprocessing, feature engineering, and model evaluation
+- Test understanding of Python libraries: pandas, numpy, scikit-learn, matplotlib
+- Include questions about different ML algorithms: linear regression, decision trees, neural networks
+- Test knowledge of data visualization and statistical analysis
+- Include questions about data ethics, bias, and model interpretability
+
+MANDATORY DATA SCIENCE EXAMPLES (Include these types):
+1. Data Analysis: "Given this dataset, what does this pandas code do?\n\`\`\`python\nimport pandas as pd\ndf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})\nresult = df.groupby('A').agg({'B': ['mean', 'sum']})\nprint(result)\n\`\`\`"
+
+2. Machine Learning: "Which algorithm is best for this classification problem with 1000 features and 100 samples?"
+3. Statistical Analysis: "What does a p-value of 0.03 indicate in this hypothesis test?"
+4. Data Preprocessing: "How should you handle missing values in this scenario?"
+5. Model Evaluation: "What's the difference between precision and recall?"
+6. Feature Engineering: "How would you encode categorical variables?"
+7. Data Visualization: "Which plot type best shows correlation between variables?"
+8. Ethics in AI: "What bias might exist in this training dataset?"
+
+FOCUS ON: Data Analysis, Machine Learning, Statistics, Python Libraries, Model Evaluation, Data Ethics!`;
+        break;
+
+      case "mathematics":
+        specificInstructions = `
+MATHEMATICS-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 15-18 mathematical problems with REAL calculations and formulas
+- Focus on problem-solving, step-by-step solutions, and mathematical reasoning
+- Include questions about algebra, calculus, geometry, statistics (as applicable)
+- Test understanding of mathematical concepts through practical applications
+- Include questions with graphs, equations, and mathematical notation
+- Test knowledge of mathematical proofs and logical reasoning
+- Include real-world word problems that require mathematical modeling
+
+MANDATORY MATHEMATICS EXAMPLES (Include these types):
+1. Calculus: "Find the derivative of f(x) = 3x³ - 2x² + 5x - 1. A) 9x² - 4x + 5 B) 9x² - 4x + 5x C) 3x² - 2x + 5 D) 9x² - 4x"
+
+2. Algebra: "Solve for x: 2(x + 3) = 4x - 8. A) x = 7 B) x = 5 C) x = 3 D) x = 1"
+
+3. Geometry: "A circle has radius 5 cm. What's its area? A) 25π cm² B) 10π cm² C) 25 cm² D) 50π cm²"
+
+4. Statistics: "In a normal distribution with mean 100 and standard deviation 15, what percentage of values fall within one standard deviation?"
+
+5. Word Problems: "A train travels 240 miles in 4 hours. What's its average speed?"
+6. Functions: "What's the domain of f(x) = 1/(x-2)?"
+7. Probability: "What's the probability of getting two heads in three coin flips?"
+8. Trigonometry: "If sin(θ) = 3/5, what is cos(θ)?"
+
+FOCUS ON: Problem-solving, Calculations, Mathematical Reasoning, Real-world Applications!`;
+        break;
+
+      case "physics":
+        specificInstructions = `
+PHYSICS-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 15-18 physics problems with REAL calculations and formulas
+- Focus on mechanics, thermodynamics, electromagnetism, waves, and modern physics
+- Include questions with numerical calculations and unit analysis
+- Test understanding of physics concepts through practical scenarios
+- Include questions about force, energy, momentum, electricity, and magnetism
+- Test knowledge of physics laws and principles
+- Include real-world physics applications and problem-solving
+
+MANDATORY PHYSICS EXAMPLES (Include these types):
+1. Mechanics: "A 10 kg object moves at 5 m/s. What's its kinetic energy? A) 125 J B) 250 J C) 50 J D) 25 J"
+
+2. Force and Motion: "F = ma. If F = 20 N and a = 4 m/s², what's the mass? A) 5 kg B) 80 kg C) 16 kg D) 24 kg"
+
+3. Electricity: "V = IR. If voltage is 12V and resistance is 4Ω, what's the current? A) 3 A B) 8 A C) 48 A D) 16 A"
+
+4. Energy: "A ball dropped from 10m height. Using PE = mgh, what happens to potential energy?"
+
+5. Waves: "If a wave has frequency 50 Hz and wavelength 2m, what's its speed?"
+6. Thermodynamics: "How does heat transfer in different methods?"
+7. Optics: "What happens to light when it passes through a convex lens?"
+8. Modern Physics: "What's the relationship between energy and mass (E=mc²)?"
+
+FOCUS ON: Problem-solving, Calculations, Physics Laws, Real-world Applications, Units and Measurements!`;
+        break;
+
+      case "chemistry":
+        specificInstructions = `
+CHEMISTRY-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 15-18 chemistry problems with REAL chemical equations and calculations
+- Focus on atomic structure, chemical bonding, reactions, and stoichiometry
+- Include questions with molecular formulas, chemical equations, and calculations
+- Test understanding of periodic table, chemical properties, and reactions
+- Include questions about acids, bases, pH, organic chemistry
+- Test knowledge of chemical laws and principles
+- Include real-world chemistry applications and problem-solving
+
+MANDATORY CHEMISTRY EXAMPLES (Include these types):
+1. Stoichiometry: "In the reaction 2H₂ + O₂ → 2H₂O, how many moles of water form from 4 moles of H₂? A) 2 mol B) 4 mol C) 8 mol D) 1 mol"
+
+2. Atomic Structure: "How many electrons does a neutral carbon atom have? A) 6 B) 12 C) 14 D) 8"
+
+3. Chemical Bonding: "What type of bond exists between Na and Cl in NaCl? A) Ionic B) Covalent C) Metallic D) Hydrogen"
+
+4. pH Calculations: "What's the pH of a solution with [H⁺] = 1×10⁻³ M? A) 3 B) -3 C) 11 D) 7"
+
+5. Balancing Equations: "Balance this equation: C₃H₈ + O₂ → CO₂ + H₂O"
+6. Periodic Trends: "How does atomic radius change across a period?"
+7. Organic Chemistry: "What functional group is -OH?"
+8. Gas Laws: "Using PV = nRT, what happens when temperature increases?"
+
+FOCUS ON: Chemical Equations, Calculations, Periodic Table, Chemical Bonding, Real-world Applications!`;
+        break;
+
+      case "biology":
+        specificInstructions = `
+BIOLOGY-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
+- Include 15-18 biology questions covering cell biology, genetics, ecology, evolution
+- Focus on biological processes, systems, and scientific understanding
+- Include questions about DNA, proteins, cellular respiration, photosynthesis
+- Test understanding of biological concepts through scenarios and applications
+- Include questions about human biology, plant biology, and animal behavior
+- Test knowledge of biological classification and evolution
+- Include real-world biology applications and environmental science
+
+MANDATORY BIOLOGY EXAMPLES (Include these types):
+1. Cell Biology: "What organelle is responsible for protein synthesis? A) Nucleus B) Ribosome C) Mitochondria D) Golgi apparatus"
+
+2. Genetics: "In a cross between Aa × Aa, what's the probability of AA offspring? A) 25% B) 50% C) 75% D) 100%"
+
+3. Photosynthesis: "What's the overall equation for photosynthesis? Include CO₂, H₂O, glucose, and O₂"
+
+4. Evolution: "What mechanism explains how giraffes developed long necks? A) Natural selection B) Genetic drift C) Mutation D) Gene flow"
+
+5. Ecology: "In a food chain, what are organisms that make their own food called?"
+6. Human Biology: "Which organ system transports oxygen throughout the body?"
+7. DNA Structure: "What are the four bases in DNA?"
+8. Classification: "What's the correct order of taxonomic hierarchy?"
+
+FOCUS ON: Biological Processes, Systems, Genetics, Evolution, Ecology, Human Biology, Scientific Method!`;
         break;
 
       case "science":
@@ -638,7 +998,185 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     }
 
     const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    const rawResponse = data.candidates[0].content.parts[0].text;
+    console.log("🔍 Raw Gemini API response:", rawResponse.substring(0, 200) + "...");
+    return rawResponse;
+  }
+
+  /**
+   * Centralized JSON parser for all Gemini API responses
+   * Handles string responses and converts them to proper JSON objects
+   */
+  private parseJsonResponse(rawResponse: string): any {
+    try {
+      console.log("🔄 Attempting to parse JSON from raw response");
+      
+      // First, try to parse the entire response as JSON
+      try {
+        const directParse = JSON.parse(rawResponse);
+        console.log("✅ Successfully parsed entire response as JSON");
+        return directParse;
+      } catch (directError) {
+        console.log("⚠️ Direct JSON parse failed, trying extraction methods");
+      }
+
+      // Clean the response
+      let cleanResponse = rawResponse.trim();
+      
+      // Remove markdown code blocks
+      cleanResponse = cleanResponse.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '');
+      
+      // Remove JavaScript-style comments that cause JSON parsing issues
+      cleanResponse = cleanResponse.replace(/\/\/.*$/gm, ''); // Remove single-line comments
+      cleanResponse = cleanResponse.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+      
+      // Remove any leading/trailing text that's not JSON
+      cleanResponse = cleanResponse.replace(/^[^[\{]*/, '').replace(/[^}\]]*$/, '');
+      
+      // Try multiple JSON extraction strategies
+      const strategies = [
+        // Strategy 1: Find complete JSON object
+        (text: string) => {
+          const objectMatch = text.match(/\{[\s\S]*\}/);
+          return objectMatch ? JSON.parse(objectMatch[0]) : null;
+        },
+        
+        // Strategy 2: Find JSON array
+        (text: string) => {
+          const arrayMatch = text.match(/\[[\s\S]*\]/);
+          return arrayMatch ? JSON.parse(arrayMatch[0]) : null;
+        },
+        
+        // Strategy 3: Clean and parse with bracket completion
+        (text: string) => {
+          let cleaned = text
+            .replace(/[\u0000-\u001f\u007f-\u009f]/g, '') // Remove control characters
+            .replace(/,\s*}/g, '}') // Remove trailing commas
+            .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
+            .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
+            .replace(/'/g, '"') // Convert single quotes to double
+            .replace(/\n/g, ' ') // Replace newlines with spaces
+            .replace(/\s+/g, ' '); // Normalize whitespace
+          
+          // Complete any incomplete JSON structures
+          const openBraces = (cleaned.match(/\{/g) || []).length;
+          const closeBraces = (cleaned.match(/\}/g) || []).length;
+          const openBrackets = (cleaned.match(/\[/g) || []).length;
+          const closeBrackets = (cleaned.match(/\]/g) || []).length;
+          
+          // Add missing closing braces and brackets
+          for (let i = 0; i < openBraces - closeBraces; i++) {
+            cleaned += '}';
+          }
+          for (let i = 0; i < openBrackets - closeBrackets; i++) {
+            cleaned += ']';
+          }
+          
+          return JSON.parse(cleaned);
+        }
+      ];
+
+      for (const strategy of strategies) {
+        try {
+          const result = strategy(cleanResponse);
+          if (result) {
+            console.log("✅ Successfully parsed JSON using extraction strategy");
+            return result;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+      
+      console.error("❌ All JSON parsing strategies failed");
+      throw new Error("Unable to parse JSON from response");
+      
+    } catch (error) {
+      console.error("❌ JSON parsing failed:", error);
+      console.log("📄 Problematic response:", rawResponse.substring(0, 500) + "...");
+      throw new Error(`JSON parsing failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Main entry point for processing any API response
+   * Converts string responses to JSON and validates the data type
+   */
+  public processApiResponse(rawResponse: string, expectedType: 'course' | 'quiz' | 'topic' = 'course'): any {
+    console.log(`🚀 Processing API response for type: ${expectedType}`);
+    
+    // First check if response is already parsed JSON
+    if (typeof rawResponse === 'object') {
+      console.log("✅ Response is already parsed JSON");
+      return this.extractSpecificDataStructure(rawResponse, expectedType);
+    }
+    
+    // If it's a string, parse it as JSON
+    return this.extractJsonData(rawResponse, expectedType);
+  }
+
+  /**
+   * Enhanced method to extract JSON data from any Gemini response
+   * Works for both course and quiz data
+   */
+  private extractJsonData(rawResponse: string, expectedType: 'course' | 'quiz' | 'topic' = 'course'): any {
+    try {
+      // First try centralized JSON parser
+      const parsed = this.parseJsonResponse(rawResponse);
+      
+      // Validate the parsed data based on expected type
+      if (expectedType === 'course' && this.isValidCourseData(parsed)) {
+        return parsed;
+      } else if (expectedType === 'quiz' && this.isValidQuizData(parsed)) {
+        return parsed;
+      } else if (expectedType === 'topic' && this.isValidTopicData(parsed)) {
+        return parsed;
+      }
+      
+      // If validation fails, try to extract specific data structures
+      return this.extractSpecificDataStructure(parsed, expectedType);
+      
+    } catch (error) {
+      console.error(`❌ Failed to extract ${expectedType} JSON data:`, error);
+      throw error;
+    }
+  }
+
+  private isValidCourseData(data: any): boolean {
+    return data && (
+      (data.course && data.subtopics) || 
+      (data.title && data.lessons) ||
+      (Array.isArray(data.subtopics) && data.subtopics.length > 0)
+    );
+  }
+
+  private isValidQuizData(data: any): boolean {
+    return data && (
+      Array.isArray(data) ||
+      (data.questions && Array.isArray(data.questions)) ||
+      (data.quiz && Array.isArray(data.quiz))
+    );
+  }
+
+  private isValidTopicData(data: any): boolean {
+    return data && (
+      data.mainTopic || 
+      data.topic ||
+      (data.subtopics && Array.isArray(data.subtopics))
+    );
+  }
+
+  private extractSpecificDataStructure(data: any, type: string): any {
+    switch (type) {
+      case 'course':
+        return data.course || data.courseStructure || data;
+      case 'quiz':
+        return data.questions || data.quiz || (Array.isArray(data) ? data : [data]);
+      case 'topic':
+        return data.topic || data.extraction || data;
+      default:
+        return data;
+    }
   }
 
   private parseTopicExtraction(
@@ -646,20 +1184,20 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     originalPrompt: string
   ): ExtractedTopic {
     try {
-      // Extract JSON from response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          mainTopic:
-            parsed.mainTopic || this.extractMainTopicFromPrompt(originalPrompt),
-          subtopics: parsed.subtopics || [],
-          difficulty: parsed.difficulty || "beginner",
-          estimatedDuration: parsed.estimatedDuration || 6,
-          prerequisites: parsed.prerequisites || [],
-          learningObjectives: parsed.learningObjectives || [],
-        };
-      }
+      console.log("🔍 Parsing topic extraction from response");
+      
+      // Use centralized JSON parser
+      const parsed = this.extractJsonData(response, 'topic');
+      
+      return {
+        mainTopic:
+          parsed.mainTopic || parsed.topic || this.extractMainTopicFromPrompt(originalPrompt),
+        subtopics: parsed.subtopics || [],
+        difficulty: parsed.difficulty || "beginner",
+        estimatedDuration: parsed.estimatedDuration || 6,
+        prerequisites: parsed.prerequisites || [],
+        learningObjectives: parsed.learningObjectives || [],
+      };
     } catch (error) {
       console.error("Failed to parse Gemini response:", error);
     }
@@ -672,28 +1210,32 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     extractedTopic: ExtractedTopic
   ): GeminiCourseStructure {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          title: parsed.title || `Complete ${extractedTopic.mainTopic} Course`,
-          description:
-            parsed.description ||
-            `Learn ${extractedTopic.mainTopic} from ${extractedTopic.difficulty} to advanced level`,
-          mainTopic: parsed.mainTopic || extractedTopic.mainTopic,
-          subtopics: parsed.subtopics || [],
-          totalDuration:
-            parsed.totalDuration || extractedTopic.estimatedDuration * 60,
-          difficulty: parsed.difficulty || extractedTopic.difficulty,
-          prerequisites: parsed.prerequisites || extractedTopic.prerequisites,
-          learningObjectives:
-            parsed.learningObjectives || extractedTopic.learningObjectives,
-        };
-      }
+      console.log("🔍 Parsing course structure from response");
+      
+      // Use centralized JSON parser
+      const parsed = this.extractJsonData(response, 'course');
+      
+      console.log("✅ Successfully parsed course structure JSON");
+      return {
+        title: parsed.title || `Complete ${extractedTopic.mainTopic} Course`,
+        description:
+          parsed.description ||
+          `Learn ${extractedTopic.mainTopic} from ${extractedTopic.difficulty} to advanced level`,
+        mainTopic: parsed.mainTopic || extractedTopic.mainTopic,
+        subtopics: parsed.subtopics || [],
+        totalDuration:
+          parsed.totalDuration || extractedTopic.estimatedDuration * 60,
+        difficulty: parsed.difficulty || extractedTopic.difficulty,
+        prerequisites: parsed.prerequisites || extractedTopic.prerequisites,
+        learningObjectives:
+          parsed.learningObjectives || extractedTopic.learningObjectives,
+      };
     } catch (error) {
       console.error("Failed to parse course structure:", error);
+      console.log("Course structure response that failed to parse:", response.substring(0, 500) + "...");
     }
 
+    console.warn("Falling back to structured course generation");
     return this.generateStructuredCourse(extractedTopic);
   }
 
@@ -703,23 +1245,557 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     subtopic: string
   ): GeminiQuizQuestion[] {
     try {
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+      console.log(`🔍 Starting quiz parsing for ${topic} - ${subtopic}`);
+      console.log(`📝 Response length: ${response.length}`);
+      
+      // First, try the centralized JSON parser
+      try {
+        const parsed = this.extractJsonData(response, 'quiz');
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((q) => ({
-            question: q.question,
-            options: q.options,
-            correctAnswer: q.correctAnswer,
-            explanation: q.explanation,
-          }));
+          const validatedQuestions = this.validateAndFormatQuestions(parsed);
+          if (validatedQuestions.length > 0) {
+            console.log(`✅ Successfully parsed ${validatedQuestions.length} questions using centralized parser`);
+            return validatedQuestions;
+          }
+        }
+      } catch (jsonError) {
+        console.log("🔄 Centralized JSON parsing failed, trying specific methods...");
+      }
+      
+      // Fallback to the enhanced JSON parsing
+      const jsonResult = this.parseJsonQuestions(response);
+      if (jsonResult.length > 0) {
+        console.log(`✅ Successfully parsed ${jsonResult.length} questions from specific JSON parser`);
+        return jsonResult;
+      }
+      
+      // Fallback to text extraction
+      console.log("🔄 JSON parsing failed, attempting text extraction...");
+      const textResult = this.extractQuestionsFromText(response, topic, subtopic);
+      if (textResult.length > 0) {
+        console.log(`✅ Successfully extracted ${textResult.length} questions from text`);
+        return textResult;
+      }
+      
+      // If all else fails, return basic questions
+      console.log("⚠️ All parsing methods failed, generating basic questions");
+      return this.generateBasicQuizQuestions(topic, subtopic, []);
+      
+    } catch (error) {
+      console.error("❌ Quiz parsing failed completely:", error);
+      console.log("📄 Response preview:", response.substring(0, 500) + "...");
+      return this.generateBasicQuizQuestions(topic, subtopic, []);
+    }
+  }
+
+  private parseJsonQuestions(response: string): GeminiQuizQuestion[] {
+    try {
+      // Step 1: Clean the response
+      let cleanResponse = response.trim();
+      
+      // Remove markdown code blocks
+      cleanResponse = cleanResponse.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '');
+      
+      // Remove any leading/trailing text that's not JSON
+      cleanResponse = cleanResponse.replace(/^[^[\{]*/, '').replace(/[^}\]]*$/, '');
+      
+      // Step 2: Find JSON structures
+      const jsonCandidates = this.findJsonStructures(cleanResponse);
+      
+      for (const candidate of jsonCandidates) {
+        try {
+          const parsed = this.attemptJsonParse(candidate);
+          if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+            return this.validateAndFormatQuestions(parsed);
+          }
+        } catch (error) {
+          console.warn(`Failed to parse JSON candidate: ${error}`);
+          continue;
         }
       }
+      
+      return [];
     } catch (error) {
-      console.error("Failed to parse quiz questions:", error);
+      console.error("JSON parsing failed:", error);
+      return [];
     }
+  }
 
-    return this.generateBasicQuizQuestions(topic, subtopic, []);
+  private findJsonStructures(text: string): string[] {
+    const candidates: string[] = [];
+    
+    // Pattern 1: Complete JSON array
+    const arrayMatch = text.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      candidates.push(arrayMatch[0]);
+    }
+    
+    // Pattern 2: Incomplete JSON array (missing closing bracket)
+    const incompleteArrayMatch = text.match(/\[[\s\S]*$/);
+    if (incompleteArrayMatch) {
+      const incomplete = incompleteArrayMatch[0];
+      const completed = this.completeJsonStructure(incomplete);
+      candidates.push(completed);
+    }
+    
+    // Pattern 3: Multiple JSON objects
+    const objectPattern = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
+    const objectMatches = text.match(objectPattern);
+    if (objectMatches && objectMatches.length > 1) {
+      candidates.push('[' + objectMatches.join(',') + ']');
+    }
+    
+    return candidates;
+  }
+
+  private completeJsonStructure(jsonString: string): string {
+    // Count opening and closing brackets/braces
+    const openBraces = (jsonString.match(/\{/g) || []).length;
+    const closeBraces = (jsonString.match(/\}/g) || []).length;
+    const openBrackets = (jsonString.match(/\[/g) || []).length;
+    const closeBrackets = (jsonString.match(/\]/g) || []).length;
+    
+    let completed = jsonString;
+    
+    // Add missing closing braces
+    for (let i = 0; i < openBraces - closeBraces; i++) {
+      completed += '}';
+    }
+    
+    // Add missing closing brackets
+    for (let i = 0; i < openBrackets - closeBrackets; i++) {
+      completed += ']';
+    }
+    
+    return completed;
+  }
+
+  private attemptJsonParse(jsonString: string): any {
+    // Multiple parsing strategies
+    const strategies = [
+      // Strategy 1: Direct parse
+      (str: string) => JSON.parse(str),
+      
+      // Strategy 2: Basic cleaning
+      (str: string) => {
+        const cleaned = str
+          .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
+          .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
+          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
+          .replace(/:\s*([0-9]+)(?=\s*[,}])/g, ': $1') // Preserve numbers
+          .replace(/'/g, '"') // Convert single quotes to double
+          .replace(/[\u0000-\u001f\u007f-\u009f]/g, ''); // Remove control characters
+        return JSON.parse(cleaned);
+      },
+      
+      // Strategy 3: Advanced cleaning
+      (str: string) => {
+        const cleaned = str
+          .replace(/[\u0000-\u001f\u007f-\u009f]/g, '') // Remove control characters
+          .replace(/\r?\n/g, ' ') // Replace newlines with spaces
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote keys
+          .replace(/:\s*'([^']*)'(?=\s*[,}])/g, ': "$1"') // Convert single quotes
+          .replace(/:\s*([^",\[\]{}]+)(?=\s*[,}])/g, (_, value) => {
+            // Quote non-number values
+            return isNaN(Number(value.trim())) ? `: "${value.trim()}"` : `: ${value.trim()}`;
+          })
+          .replace(/,\s*[,}]/g, '}') // Remove duplicate commas
+          .replace(/,\s*]/g, ']') // Remove trailing commas
+          .replace(/([^\\])\\([^"\\\/bfnrt])/g, '$1\\\\$2'); // Fix unescaped backslashes
+        return JSON.parse(cleaned);
+      },
+      
+      // Strategy 4: Extract individual objects
+      (str: string) => {
+        const objectPattern = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
+        const objects = str.match(objectPattern);
+        if (objects) {
+          const parsedObjects = objects.map(obj => {
+            const cleaned = obj
+              .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+              .replace(/,\s*}/g, '}')
+              .replace(/([{,]\s*)(\w+):/g, '$1"$2":')
+              .replace(/:\s*'([^']*)'(?=\s*[,}])/g, ': "$1"')
+              .replace(/:\s*([^",\[\]{}]+)(?=\s*[,}])/g, (_, value) => {
+                return isNaN(Number(value.trim())) ? `: "${value.trim()}"` : `: ${value.trim()}`;
+              });
+            return JSON.parse(cleaned);
+          });
+          return parsedObjects;
+        }
+        throw new Error('No objects found');
+      }
+    ];
+    
+    for (const strategy of strategies) {
+      try {
+        const result = strategy(jsonString);
+        if (result) {
+          return result;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    
+    throw new Error('All parsing strategies failed');
+  }
+
+  private validateAndFormatQuestions(parsed: any[]): GeminiQuizQuestion[] {
+    return parsed
+      .filter(q => q && typeof q === 'object') // Only valid objects
+      .map((q, index) => {
+        // Normalize question text
+        const question = this.normalizeText(q.question || q.text || q.prompt || `Question ${index + 1}`);
+        
+        // Normalize options
+        let options: string[] = [];
+        if (Array.isArray(q.options)) {
+          options = q.options.map((opt: any) => this.normalizeText(opt));
+        } else if (Array.isArray(q.choices)) {
+          options = q.choices.map((opt: any) => this.normalizeText(opt));
+        } else if (q.a && q.b && q.c && q.d) {
+          options = [q.a, q.b, q.c, q.d].map((opt: any) => this.normalizeText(opt));
+        }
+        
+        // Ensure we have at least 4 options
+        while (options.length < 4) {
+          options.push(`Option ${String.fromCharCode(65 + options.length)}`);
+        }
+        options = options.slice(0, 4); // Limit to 4 options
+        
+        // Normalize correct answer
+        let correctAnswer = 0;
+        if (typeof q.correctAnswer === 'number') {
+          correctAnswer = Math.max(0, Math.min(3, q.correctAnswer));
+        } else if (typeof q.correct_answer === 'number') {
+          correctAnswer = Math.max(0, Math.min(3, q.correct_answer));
+        } else if (typeof q.correctAnswer === 'string') {
+          const index = options.findIndex(opt => opt === q.correctAnswer);
+          correctAnswer = index !== -1 ? index : 0;
+        } else if (typeof q.correct_answer === 'string') {
+          const index = options.findIndex(opt => opt === q.correct_answer);
+          correctAnswer = index !== -1 ? index : 0;
+        } else if (typeof q.answer === 'string') {
+          // Handle single letter answers like 'A', 'B', 'C', 'D'
+          const letterAnswer = q.answer.toUpperCase();
+          if (['A', 'B', 'C', 'D'].includes(letterAnswer)) {
+            correctAnswer = letterAnswer.charCodeAt(0) - 65;
+          }
+        }
+        
+        // Normalize explanation
+        const explanation = this.normalizeText(q.explanation || q.reason || q.rationale || `This is the correct answer for question ${index + 1}.`);
+        
+        return {
+          question,
+          options,
+          correctAnswer,
+          explanation,
+        };
+      })
+      .filter(q => q.question.length > 5 && q.options.length === 4); // Final validation
+  }
+
+  private normalizeText(text: string): string {
+    if (!text || typeof text !== 'string') return '';
+    
+    return text
+      .replace(/[\u0000-\u001f\u007f-\u009f]/g, '') // Remove control characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/^\d+\.\s*/, '') // Remove leading numbers
+      .replace(/^[A-D]\)\s*/, '') // Remove leading option letters
+      .trim();
+  }
+
+  private extractQuestionsFromText(
+    response: string,
+    topic: string,
+    subtopic: string
+  ): GeminiQuizQuestion[] {
+    try {
+      console.log("📝 Attempting text extraction from response");
+      
+      // Multiple extraction strategies
+      const strategies = [
+        () => this.extractWithPatterns(response),
+        () => this.extractWithRegex(response),
+        () => this.extractWithLines(response),
+        () => this.extractWithBlocks(response)
+      ];
+      
+      for (const strategy of strategies) {
+        try {
+          const extracted = strategy();
+          if (extracted.length > 0) {
+            console.log(`✅ Text extraction successful with ${extracted.length} questions`);
+            return extracted;
+          }
+        } catch (error) {
+          console.warn("Text extraction strategy failed:", error);
+          continue;
+        }
+      }
+      
+      // If all strategies fail, return basic questions
+      console.log("⚠️ All text extraction strategies failed, generating basic questions");
+      return this.generateBasicQuizQuestions(topic, subtopic, []);
+      
+    } catch (error) {
+      console.error("❌ Text extraction failed completely:", error);
+      return this.generateBasicQuizQuestions(topic, subtopic, []);
+    }
+  }
+
+  private extractWithPatterns(response: string): GeminiQuizQuestion[] {
+    const questions: GeminiQuizQuestion[] = [];
+    const lines = response.split('\n').filter(line => line.trim());
+    
+    let currentQuestion: any = {};
+    let questionCount = 0;
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      // Enhanced question patterns
+      if (this.isQuestionLine(trimmedLine)) {
+        if (currentQuestion.question && questionCount < 30) {
+          questions.push(this.finalizeQuestion(currentQuestion, questionCount));
+          questionCount++;
+        }
+        currentQuestion = {
+          question: this.extractQuestionText(trimmedLine),
+          options: [],
+          correctAnswer: 0,
+          explanation: ''
+        };
+      }
+      // Enhanced option patterns
+      else if (this.isOptionLine(trimmedLine)) {
+        currentQuestion.options = currentQuestion.options || [];
+        currentQuestion.options.push(this.extractOptionText(trimmedLine));
+      }
+      // Enhanced answer patterns
+      else if (this.isAnswerLine(trimmedLine)) {
+        const answerIndex = this.extractAnswerIndex(trimmedLine);
+        if (answerIndex !== -1) {
+          currentQuestion.correctAnswer = answerIndex;
+        }
+      }
+      // Enhanced explanation patterns
+      else if (this.isExplanationLine(trimmedLine)) {
+        currentQuestion.explanation = this.extractExplanationText(trimmedLine);
+      }
+    }
+    
+    // Add the last question
+    if (currentQuestion.question && questionCount < 30) {
+      questions.push(this.finalizeQuestion(currentQuestion, questionCount));
+    }
+    
+    return questions;
+  }
+
+  private extractWithRegex(response: string): GeminiQuizQuestion[] {
+    const questions: GeminiQuizQuestion[] = [];
+    
+    // Pattern for complete question blocks
+    const questionBlockPattern = /(?:(?:^\d+[\.\)]?\s*)|(?:^Q\d*[\.\)]?\s*)|(?:^Question\s*\d*[\.\)]?\s*))([^\n]+)[\s\S]*?(?:(?:A[\.\)]?\s*([^\n]+))|(?:a[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:B[\.\)]?\s*([^\n]+))|(?:b[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:C[\.\)]?\s*([^\n]+))|(?:c[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:D[\.\)]?\s*([^\n]+))|(?:d[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:Answer|Correct|answer|correct)[\s\S]*?([A-Da-d]))?[\s\S]*?(?:(?:Explanation|explanation)[\s\S]*?([^\n]+))?/gim;
+    
+    let match;
+    while ((match = questionBlockPattern.exec(response)) !== null && questions.length < 30) {
+      const question = match[1]?.trim();
+      const options = [
+        match[2] || match[3],
+        match[4] || match[5],
+        match[6] || match[7],
+        match[8] || match[9]
+      ].filter(opt => opt && opt.trim()).map(opt => opt.trim());
+      
+      if (question && options.length >= 4) {
+        let correctAnswer = 0;
+        if (match[10]) {
+          const answerLetter = match[10].toUpperCase();
+          correctAnswer = ['A', 'B', 'C', 'D'].indexOf(answerLetter);
+          if (correctAnswer === -1) correctAnswer = 0;
+        }
+        
+        const explanation = match[11]?.trim() || `This is the correct answer for this question about ${question.substring(0, 30)}...`;
+        
+        questions.push({
+          question,
+          options: options.slice(0, 4),
+          correctAnswer,
+          explanation
+        });
+      }
+    }
+    
+    return questions;
+  }
+
+  private extractWithLines(response: string): GeminiQuizQuestion[] {
+    const questions: GeminiQuizQuestion[] = [];
+    const lines = response.split('\n').map(line => line.trim()).filter(line => line);
+    
+    for (let i = 0; i < lines.length && questions.length < 30; i++) {
+      const line = lines[i];
+      
+      // Check if this line looks like a question
+      if (this.isQuestionLine(line)) {
+        const question = this.extractQuestionText(line);
+        const options: string[] = [];
+        let correctAnswer = 0;
+        let explanation = '';
+        
+        // Look for options in the next few lines
+        for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+          const nextLine = lines[j];
+          
+          if (this.isOptionLine(nextLine)) {
+            options.push(this.extractOptionText(nextLine));
+          } else if (this.isAnswerLine(nextLine)) {
+            const answerIndex = this.extractAnswerIndex(nextLine);
+            if (answerIndex !== -1) {
+              correctAnswer = answerIndex;
+            }
+          } else if (this.isExplanationLine(nextLine)) {
+            explanation = this.extractExplanationText(nextLine);
+          } else if (this.isQuestionLine(nextLine)) {
+            // Next question found, stop looking
+            break;
+          }
+        }
+        
+        if (options.length >= 4) {
+          questions.push({
+            question,
+            options: options.slice(0, 4),
+            correctAnswer,
+            explanation: explanation || `This is the correct answer for: ${question.substring(0, 50)}...`
+          });
+        }
+      }
+    }
+    
+    return questions;
+  }
+
+  private extractWithBlocks(response: string): GeminiQuizQuestion[] {
+    const questions: GeminiQuizQuestion[] = [];
+    
+    // Split response into blocks based on double newlines or question markers
+    const blocks = response.split(/\n\s*\n|\n(?=\d+[\.\)]?\s)|\n(?=Q\d*[\.\)]?\s)|\n(?=Question\s*\d*[\.\)]?\s)/i);
+    
+    for (const block of blocks) {
+      if (questions.length >= 30) break;
+      
+      const lines = block.split('\n').map(line => line.trim()).filter(line => line);
+      if (lines.length < 4) continue; // Need at least question + 3 options
+      
+      let question = '';
+      const options: string[] = [];
+      let correctAnswer = 0;
+      let explanation = '';
+      
+      for (const line of lines) {
+        if (this.isQuestionLine(line) && !question) {
+          question = this.extractQuestionText(line);
+        } else if (this.isOptionLine(line) && options.length < 4) {
+          options.push(this.extractOptionText(line));
+        } else if (this.isAnswerLine(line)) {
+          const answerIndex = this.extractAnswerIndex(line);
+          if (answerIndex !== -1) {
+            correctAnswer = answerIndex;
+          }
+        } else if (this.isExplanationLine(line)) {
+          explanation = this.extractExplanationText(line);
+        }
+      }
+      
+      if (question && options.length >= 4) {
+        questions.push({
+          question,
+          options: options.slice(0, 4),
+          correctAnswer,
+          explanation: explanation || `This is the correct answer for: ${question.substring(0, 50)}...`
+        });
+      }
+    }
+    
+    return questions;
+  }
+
+  private isQuestionLine(line: string): boolean {
+    return /^\d+[\.\)]?\s+/.test(line) || 
+           /^Q\d*[\.\)]?\s+/i.test(line) ||
+           /^Question\s*\d*[\.\)]?\s+/i.test(line) ||
+           line.toLowerCase().includes('question') ||
+           line.includes('?');
+  }
+
+  private isOptionLine(line: string): boolean {
+    return /^[A-Da-d][\.\)]?\s+/.test(line) ||
+           /^\([A-Da-d]\)\s+/.test(line) ||
+           /^-\s+/.test(line) ||
+           /^\*\s+/.test(line);
+  }
+
+  private isAnswerLine(line: string): boolean {
+    return /^(?:answer|correct|solution)[\s:]*[A-Da-d]/i.test(line) ||
+           /[A-Da-d]\s*(?:is|are)?\s*(?:the)?\s*(?:correct|right|answer)/i.test(line);
+  }
+
+  private isExplanationLine(line: string): boolean {
+    return /^(?:explanation|reason|because|rationale)[\s:]/i.test(line) ||
+           line.toLowerCase().includes('explanation') ||
+           line.toLowerCase().includes('because');
+  }
+
+  private extractQuestionText(line: string): string {
+    return line
+      .replace(/^\d+[\.\)]?\s+/, '')
+      .replace(/^Q\d*[\.\)]?\s+/i, '')
+      .replace(/^Question\s*\d*[\.\)]?\s+/i, '')
+      .trim();
+  }
+
+  private extractOptionText(line: string): string {
+    return line
+      .replace(/^[A-Da-d][\.\)]?\s+/, '')
+      .replace(/^\([A-Da-d]\)\s+/, '')
+      .replace(/^-\s+/, '')
+      .replace(/^\*\s+/, '')
+      .trim();
+  }
+
+  private extractAnswerIndex(line: string): number {
+    const match = line.match(/[A-Da-d]/);
+    if (match) {
+      const letter = match[0].toUpperCase();
+      return ['A', 'B', 'C', 'D'].indexOf(letter);
+    }
+    return -1;
+  }
+
+  private extractExplanationText(line: string): string {
+    return line
+      .replace(/^(?:explanation|reason|because|rationale)[\s:]*/i, '')
+      .trim();
+  }
+
+  private finalizeQuestion(questionData: any, index: number): GeminiQuizQuestion {
+    return {
+      question: questionData.question || `Question ${index + 1}`,
+      options: questionData.options && questionData.options.length >= 4 
+        ? questionData.options.slice(0, 4) 
+        : ['Option A', 'Option B', 'Option C', 'Option D'],
+      correctAnswer: typeof questionData.correctAnswer === 'number' 
+        ? Math.max(0, Math.min(3, questionData.correctAnswer))
+        : 0,
+      explanation: questionData.explanation || `Explanation for question ${index + 1}`
+    };
   }
 
   private intelligentTopicExtraction(prompt: string): ExtractedTopic {

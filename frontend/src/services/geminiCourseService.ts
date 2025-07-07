@@ -162,7 +162,9 @@ class GeminiCourseService {
               question: q.question,
               type: 'multiple_choice' as const,
               options: q.options,
-              correct_answer: q.correctAnswer,
+              correct_answer: typeof q.correctAnswer === 'number' 
+                ? q.options[q.correctAnswer] || q.options[0]
+                : q.correctAnswer.toString(),
               explanation: q.explanation,
               difficulty: (q as any).difficulty || 'intermediate'
             }));

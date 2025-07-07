@@ -3,12 +3,10 @@ import { motion } from 'framer-motion';
 import { 
   Send, 
   Loader, 
-  Brain, 
   Video, 
   FileText, 
   HelpCircle, 
   Play, 
-  ExternalLink, 
   CheckCircle, 
   Clock, 
   Settings,
@@ -19,7 +17,6 @@ import {
   AlertCircle,
   Sparkles,
   Target,
-  Zap,
   Save
 } from 'lucide-react';
 import { geminiCourseService, GeminiCourseData } from '../../services/geminiCourseService';
@@ -61,9 +58,10 @@ export const GeminiCourseBuilder: React.FC = () => {
     'Analyzing your course request with Gemini AI...',
     'Extracting main topic and subtopics...',
     'Generating detailed course structure...',
-    'Searching YouTube for relevant educational videos...',
+    'Searching YouTube for educational videos...',
     'Evaluating video quality and relevance...',
-    'Creating interactive quiz questions...',
+    'Generating quiz questions for each lesson...',
+    'Creating interactive assessments...',
     'Finalizing course content and structure...',
     'Preparing to save course to database...'
   ];
@@ -467,6 +465,21 @@ export const GeminiCourseBuilder: React.FC = () => {
                 {generationProgress}
               </p>
               
+              {/* Additional progress info */}
+              {currentStep >= 4 && currentStep <= 7 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-pulse h-2 w-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm text-blue-700 dark:text-blue-300">
+                      {currentStep === 4 && "Finding the best educational videos for your course..."}
+                      {currentStep === 5 && "Analyzing video quality and educational value..."}
+                      {currentStep === 6 && "Creating personalized quiz questions for each lesson..."}
+                      {currentStep === 7 && "Developing interactive assessments and explanations..."}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
               {/* Progress Steps */}
               <div className="max-w-2xl mx-auto mb-6">
                 <div className="flex items-center justify-between">
@@ -488,7 +501,7 @@ export const GeminiCourseBuilder: React.FC = () => {
               
               <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-500"></div>
-                <span>This may take 2-3 minutes for quality content...</span>
+                <span>This may take 2-10 minutes for quality content...</span>
               </div>
             </motion.div>
           )}
@@ -686,12 +699,41 @@ export const GeminiCourseBuilder: React.FC = () => {
               )}
 
               {activeTab === 'quiz' && (
-                <div>
+                <div className="space-y-8">
+                  {/* Lesson Selector for Quiz */}
+                  {/* <div className="flex flex-wrap gap-2 mb-6">
+                    {generatedCourse.lessons.map((lesson, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedLessonIndex(index)}
+                        className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
+                          selectedLessonIndex === index
+                            ? "bg-brand-500 text-white"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        <span>Lesson {index + 1}</span>
+                        {lesson.quiz_questions && lesson.quiz_questions.length > 0 && (
+                          <div className="flex items-center space-x-1">
+                            <HelpCircle className="h-3 w-3" />
+                            <span className="text-xs">
+                              ({lesson.quiz_questions.length})
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div> */}
+
+                  {/* Quiz Content */}
                   {generatedCourse.lessons[selectedLessonIndex]?.quiz_questions && 
                    generatedCourse.lessons[selectedLessonIndex].quiz_questions.length > 0 ? (
                     <InteractiveQuiz
                       questions={generatedCourse.lessons[selectedLessonIndex].quiz_questions}
                       title={`${generatedCourse.lessons[selectedLessonIndex].title} - Quiz`}
+                      lessons={generatedCourse.lessons}
+                      selectedLessonIndex={selectedLessonIndex}
+                      onLessonChange={setSelectedLessonIndex}
                       onComplete={(score, total) => {
                         toast.success(`Quiz completed! You scored ${score}/${total} (${Math.round((score/total)*100)}%)`);
                       }}
@@ -700,9 +742,12 @@ export const GeminiCourseBuilder: React.FC = () => {
                     <div className="text-center py-12">
                       <HelpCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Quiz Available</h3>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        Select a lesson with quiz questions to take an interactive quiz.
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        This lesson doesn't have quiz questions yet. Quiz questions might still be generating.
                       </p>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Try selecting another lesson or wait for quiz generation to complete.
+                      </div>
                     </div>
                   )}
                 </div>

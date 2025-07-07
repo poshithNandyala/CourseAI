@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  RotateCcw, 
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  RotateCcw,
   Trophy,
   Target,
   Brain,
   ArrowRight,
   ArrowLeft,
-  Play
-} from 'lucide-react';
+  Play,
+} from "lucide-react";
 
 interface QuizQuestion {
   id: string;
@@ -25,12 +25,22 @@ interface QuizSectionProps {
   questions: QuizQuestion[];
   title: string;
   onComplete?: (score: number, totalQuestions: number) => void;
+  lessons?: Array<{
+    id: string;
+    title: string;
+    quiz_questions: QuizQuestion[];
+  }>;
+  selectedLessonIndex?: number;
+  onLessonChange?: (lessonIndex: number) => void;
 }
 
-export const QuizSection: React.FC<QuizSectionProps> = ({ 
-  questions, 
-  title, 
-  onComplete 
+export const QuizSection: React.FC<QuizSectionProps> = ({
+  questions,
+  title,
+  onComplete,
+  lessons,
+  selectedLessonIndex = 0,
+  onLessonChange,
 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
@@ -41,12 +51,14 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const hasAnsweredCurrent = userAnswers[currentQuestionIndex] !== undefined;
-  const allQuestionsAnswered = questions.every((_, index) => userAnswers[index] !== undefined);
+  const allQuestionsAnswered = questions.every(
+    (_, index) => userAnswers[index] !== undefined
+  );
 
   const handleAnswerSelect = (answer: string) => {
-    setUserAnswers(prev => ({
+    setUserAnswers((prev) => ({
       ...prev,
-      [currentQuestionIndex]: answer
+      [currentQuestionIndex]: answer,
     }));
   };
 
@@ -54,13 +66,13 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
     if (isLastQuestion && allQuestionsAnswered) {
       finishQuiz();
     } else if (!isLastQuestion) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex((prev) => prev - 1);
     }
   };
 
@@ -81,27 +93,37 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
     });
 
     const percentage = Math.round((correct / questions.length) * 100);
-    
+
     return {
       correct,
       total: questions.length,
       percentage,
-      timeSpent
+      timeSpent,
     };
   };
 
   const getScoreColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600 dark:text-green-400';
-    if (percentage >= 60) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (percentage >= 80) return "text-green-600 dark:text-green-400";
+    if (percentage >= 60) return "text-yellow-600 dark:text-yellow-400";
+    return "text-red-600 dark:text-red-400";
   };
 
   const getScoreMessage = (percentage: number) => {
-    if (percentage >= 90) return 'Excellent! You have mastered this topic.';
-    if (percentage >= 80) return 'Great job! You have a strong understanding.';
-    if (percentage >= 70) return 'Good work! You understand most concepts.';
-    if (percentage >= 60) return 'Not bad! Review the material and try again.';
-    return 'Keep studying! Review the lessons and retake the quiz.';
+    if (percentage >= 90) return "Excellent! You have mastered this topic.";
+    if (percentage >= 80) return "Great job! You have a strong understanding.";
+    if (percentage >= 70) return "Good work! You understand most concepts.";
+    if (percentage >= 60) return "Not bad! Review the material and try again.";
+    return "Keep studying! Review the lessons and retake the quiz.";
+  };
+
+  const handleLessonSwitch = (lessonIndex: number) => {
+    if (onLessonChange) {
+      // Reset quiz state when switching lessons
+      setCurrentQuestionIndex(0);
+      setUserAnswers({});
+      setShowResults(false);
+      onLessonChange(lessonIndex);
+    }
   };
 
   const restartQuiz = () => {
@@ -111,33 +133,83 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
     setTimeSpent(0);
   };
 
+  // Horizontal Lesson Navigation Component
+  const LessonNavigation = () => {
+    if (!lessons || lessons.length === 0) return null;
+
+    return (
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-600">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 text-center">
+          Select Lesson:
+        </h3>
+        <div className="flex flex-wrap gap-3 justify-center">
+          {lessons.map((lesson, index) => (
+            <motion.button
+              key={lesson.id}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleLessonSwitch(index)}
+              className={`px-5 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-sm ${
+                selectedLessonIndex === index
+                  ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg ring-2 ring-brand-300"
+                  : "bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-500"
+              }`}
+            >
+              <span>Lesson {index + 1}</span>
+              {lesson.quiz_questions && lesson.quiz_questions.length > 0 && (
+                <span className="text-xs opacity-75 bg-black/10 px-2 py-1 rounded-full">
+                  {lesson.quiz_questions.length}
+                </span>
+              )}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   if (showResults) {
     const results = calculateResults();
-    
+
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft-lg border border-gray-200 dark:border-gray-800"
       >
+        {/* Horizontal Lesson Navigation */}
+        <LessonNavigation />
+
         <div className="text-center mb-8">
           <div className="bg-gradient-to-r from-brand-500 to-accent-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Trophy className="h-10 w-10 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Quiz Complete!</h2>
-          <p className="text-gray-600 dark:text-gray-400">Here are your results for {title}</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Quiz Complete!
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Here are your results for {title}
+          </p>
         </div>
 
         {/* Overall Score */}
         <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 mb-6">
           <div className="text-center">
-            <div className={`text-6xl font-bold mb-2 ${getScoreColor(results.percentage)}`}>
+            <div
+              className={`text-6xl font-bold mb-2 ${getScoreColor(
+                results.percentage
+              )}`}
+            >
               {results.percentage}%
             </div>
             <div className="text-lg text-gray-600 dark:text-gray-400 mb-2">
               {results.correct} out of {results.total} correct
             </div>
-            <div className={`text-lg font-medium ${getScoreColor(results.percentage)}`}>
+            <div
+              className={`text-lg font-medium ${getScoreColor(
+                results.percentage
+              )}`}
+            >
               {getScoreMessage(results.percentage)}
             </div>
           </div>
@@ -147,7 +219,9 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
         <div className="flex items-center justify-center space-x-6 text-sm text-gray-500 dark:text-gray-400 mb-6">
           <div className="flex items-center space-x-1">
             <Clock className="h-4 w-4" />
-            <span>{Math.floor(timeSpent / 60)}m {timeSpent % 60}s</span>
+            <span>
+              {Math.floor(timeSpent / 60)}m {timeSpent % 60}s
+            </span>
           </div>
           <div className="flex items-center space-x-1">
             <Target className="h-4 w-4" />
@@ -157,15 +231,26 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
 
         {/* Detailed Results - ONLY SHOWN AFTER COMPLETION */}
         <div className="space-y-3 mb-8">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Question Review</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+            Question Review
+          </h3>
           {questions.map((question, index) => {
             const userAnswer = userAnswers[index];
             const isCorrect = userAnswer === question.correct_answer;
-            
+
             return (
-              <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+              <div
+                key={index}
+                className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
+              >
                 <div className="flex items-start space-x-3">
-                  <div className={`p-1 rounded-full ${isCorrect ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  <div
+                    className={`p-1 rounded-full ${
+                      isCorrect
+                        ? "bg-green-100 dark:bg-green-900/30"
+                        : "bg-red-100 dark:bg-red-900/30"
+                    }`}
+                  >
                     {isCorrect ? (
                       <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                     ) : (
@@ -178,11 +263,23 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
                     </div>
                     <div className="text-sm space-y-1">
                       <div className="text-gray-600 dark:text-gray-400">
-                        Your answer: <span className={isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{userAnswer}</span>
+                        Your answer:{" "}
+                        <span
+                          className={
+                            isCorrect
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                          }
+                        >
+                          {userAnswer}
+                        </span>
                       </div>
                       {!isCorrect && (
                         <div className="text-gray-600 dark:text-gray-400">
-                          Correct answer: <span className="text-green-600 dark:text-green-400">{question.correct_answer}</span>
+                          Correct answer:{" "}
+                          <span className="text-green-600 dark:text-green-400">
+                            {question.correct_answer}
+                          </span>
                         </div>
                       )}
                       <div className="text-xs text-gray-500 dark:text-gray-500 italic">
@@ -226,12 +323,19 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
       animate={{ opacity: 1, y: 0 }}
       className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft-lg border border-gray-200 dark:border-gray-800"
     >
+      {/* Horizontal Lesson Navigation */}
+      <LessonNavigation />
+
       {/* Quiz Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{title}</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            {title}
+          </h2>
           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-            <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
+            <span>
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </span>
             <span className="text-xs">Answer all questions to see results</span>
           </div>
         </div>
@@ -244,12 +348,18 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
       <div className="mb-8">
         <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
           <span>Progress</span>
-          <span>{Object.keys(userAnswers).length}/{questions.length} answered</span>
+          <span>
+            {Object.keys(userAnswers).length}/{questions.length} answered
+          </span>
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${(Object.keys(userAnswers).length / questions.length) * 100}%` }}
+            animate={{
+              width: `${
+                (Object.keys(userAnswers).length / questions.length) * 100
+              }%`,
+            }}
             transition={{ duration: 0.3 }}
             className="bg-gradient-to-r from-brand-500 to-accent-500 h-2 rounded-full"
           />
@@ -269,7 +379,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
               {currentQuestion.question}
             </h3>
-            
+
             <div className="space-y-3">
               {currentQuestion.options.map((option, index) => (
                 <motion.button
@@ -279,16 +389,18 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
                   onClick={() => handleAnswerSelect(option)}
                   className={`w-full p-4 text-left rounded-xl border-2 transition-all duration-200 ${
                     userAnswers[currentQuestionIndex] === option
-                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
+                      ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300"
+                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300"
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      userAnswers[currentQuestionIndex] === option
-                        ? 'border-brand-500 bg-brand-500'
-                        : 'border-gray-300 dark:border-gray-600'
-                    }`}>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        userAnswers[currentQuestionIndex] === option
+                          ? "border-brand-500 bg-brand-500"
+                          : "border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
                       {userAnswers[currentQuestionIndex] === option && (
                         <div className="w-2 h-2 bg-white rounded-full" />
                       )}
@@ -319,10 +431,12 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleNext}
-          disabled={!hasAnsweredCurrent || (isLastQuestion && !allQuestionsAnswered)}
+          disabled={
+            !hasAnsweredCurrent || (isLastQuestion && !allQuestionsAnswered)
+          }
           className="flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>{isLastQuestion ? 'Finish Quiz' : 'Next'}</span>
+          <span>{isLastQuestion ? "Finish Quiz" : "Next"}</span>
           <ArrowRight className="h-5 w-5" />
         </motion.button>
       </div>
@@ -333,7 +447,8 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
           <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
             <Play className="h-4 w-4" />
             <span className="text-sm font-medium">
-              Answer all {questions.length} questions to see your results and explanations
+              Answer all {questions.length} questions to see your results and
+              explanations
             </span>
           </div>
         </div>

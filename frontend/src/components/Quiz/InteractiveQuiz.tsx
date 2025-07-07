@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle,
@@ -52,10 +52,31 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
   const [startTime] = useState(Date.now());
   const [quizStarted, setQuizStarted] = useState(false);
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  // Get current lesson's questions (either from lessons prop or fallback to questions prop)
+  const currentLessonQuestions =
+    lessons && lessons[selectedLessonIndex]?.quiz_questions
+      ? lessons[selectedLessonIndex].quiz_questions
+      : questions;
+
+  // Get current lesson title
+  const currentLessonTitle =
+    lessons && lessons[selectedLessonIndex]?.title
+      ? `${lessons[selectedLessonIndex].title} - Quiz`
+      : title;
+
+  // Reset quiz state when lesson changes
+  useEffect(() => {
+    setCurrentQuestionIndex(0);
+    setUserAnswers({});
+    setShowResults(false);
+    setQuizStarted(false);
+  }, [selectedLessonIndex]);
+
+  const currentQuestion = currentLessonQuestions[currentQuestionIndex];
+  const isLastQuestion =
+    currentQuestionIndex === currentLessonQuestions.length - 1;
   const hasAnsweredCurrent = userAnswers[currentQuestionIndex] !== undefined;
-  const allQuestionsAnswered = questions.every(
+  const allQuestionsAnswered = currentLessonQuestions.every(
     (_, index) => userAnswers[index] !== undefined
   );
   const totalAnswered = Object.keys(userAnswers).length;
@@ -111,43 +132,78 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
       intermediateTotal = 0,
       advancedTotal = 0;
 
-    questions.forEach((question, index) => {
-      const userAnswer = userAnswers[index];
-      // Handle both string and number correct answers
-      const correctAnswer =
-        typeof question.correct_answer === "number"
-          ? question.options[question.correct_answer]
-          : question.correct_answer;
-      const isCorrect = userAnswer === correctAnswer;
+    currentLessonQuestions.forEach((question, index) => {
+      try {
+        const userAnswer = userAnswers[index];
 
-      if (isCorrect) correct++;
+        // Enhanced handling of correct answers with better validation
+        let correctAnswer: string;
 
-      // Use actual difficulty from question or fallback to distribution
-      const difficulty =
-        question.difficulty ||
-        (index < questions.length / 3
-          ? "basic"
-          : index < (questions.length * 2) / 3
-          ? "intermediate"
-          : "advanced");
+        if (typeof question.correct_answer === "number") {
+          // Handle numeric index (0, 1, 2, 3)
+          const answerIndex = Math.max(0, Math.min(3, question.correct_answer));
+          correctAnswer = question.options[answerIndex] || question.options[0];
+        } else if (typeof question.correct_answer === "string") {
+          // Handle string answer
+          correctAnswer = question.correct_answer;
+        } else if (typeof (question as any).correctAnswer === "number") {
+          // Alternative property name
+          const answerIndex = Math.max(
+            0,
+            Math.min(3, (question as any).correctAnswer)
+          );
+          correctAnswer = question.options[answerIndex] || question.options[0];
+        } else if (typeof (question as any).correctAnswer === "string") {
+          correctAnswer = (question as any).correctAnswer;
+        } else {
+          // Fallback to first option if no valid answer found
+          console.warn(
+            `Invalid correct answer format for question ${index + 1}:`,
+            question
+          );
+          correctAnswer = question.options[0];
+        }
 
-      if (difficulty === "basic" || difficulty === "easy") {
-        basicTotal++;
-        if (isCorrect) basicCorrect++;
-      } else if (difficulty === "intermediate" || difficulty === "medium") {
-        intermediateTotal++;
-        if (isCorrect) intermediateCorrect++;
-      } else {
-        advancedTotal++;
-        if (isCorrect) advancedCorrect++;
+        const isCorrect = userAnswer === correctAnswer;
+        if (isCorrect) correct++;
+
+        // Use actual difficulty from question or fallback to distribution
+        const difficulty =
+          question.difficulty ||
+          (index < currentLessonQuestions.length / 3
+            ? "basic"
+            : index < (currentLessonQuestions.length * 2) / 3
+            ? "intermediate"
+            : "advanced");
+
+        if (difficulty === "basic" || difficulty === "easy") {
+          basicTotal++;
+          if (isCorrect) basicCorrect++;
+        } else if (difficulty === "intermediate" || difficulty === "medium") {
+          intermediateTotal++;
+          if (isCorrect) intermediateCorrect++;
+        } else {
+          advancedTotal++;
+          if (isCorrect) advancedCorrect++;
+        }
+      } catch (error) {
+        console.error(
+          `Error processing question ${index + 1}:`,
+          error,
+          question
+        );
+        // Continue processing other questions
       }
     });
 
-    const percentage = Math.round((correct / questions.length) * 100);
+    const percentage =
+      currentLessonQuestions.length > 0
+        ? Math.round((correct / currentLessonQuestions.length) * 100)
+        : 0;
 
     return {
       correct,
-      total: questions.length,
+      total: currentLessonQuestions.length,
       percentage,
       basicScore:
         basicTotal > 0 ? Math.round((basicCorrect / basicTotal) * 100) : 0,
@@ -216,11 +272,14 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
 
   // Horizontal Lesson Navigation Component
   const LessonNavigation = () => {
-    if (!lessons || lessons.length <= 1) return null;
+    if (!lessons || lessons.length === 0) return null;
 
     return (
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 mb-6">
-        <div className="flex flex-wrap gap-2 justify-center">
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Select Lesson:
+        </h3>
+        <div className="flex flex-wrap gap-2">
           {lessons.map((lesson, index) => (
             <motion.button
               key={lesson.id}
@@ -230,14 +289,17 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
               className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
                 selectedLessonIndex === index
                   ? "bg-brand-500 text-white shadow-lg"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
               <span>Lesson {index + 1}</span>
               {lesson.quiz_questions && lesson.quiz_questions.length > 0 && (
-                <span className="text-xs opacity-75">
-                  ({lesson.quiz_questions.length})
-                </span>
+                <div className="flex items-center space-x-1">
+                  <Brain className="h-3 w-3" />
+                  <span className="text-xs">
+                    ({lesson.quiz_questions.length})
+                  </span>
+                </div>
               )}
             </motion.button>
           ))}
@@ -259,10 +321,11 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
             <Brain className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            {title}
+            {currentLessonTitle}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-lg mb-6">
-            Test your knowledge with {questions.length} interactive questions
+            Test your knowledge with {currentLessonQuestions.length} interactive
+            questions
           </p>
         </div>
 
@@ -278,7 +341,8 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-brand-500 rounded-full"></div>
                 <span>
-                  Answer all {questions.length} questions to see your results
+                  Answer all {currentLessonQuestions.length} questions to see
+                  your results
                 </span>
               </div>
               <div className="flex items-center space-x-2">
@@ -336,7 +400,7 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
             Quiz Complete!
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Here are your results for {title}
+            Here are your results for {currentLessonTitle}
           </p>
         </div>
 
@@ -408,86 +472,138 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
         {/* Detailed Results - ONLY SHOWN AFTER COMPLETION */}
         <div className="space-y-3 mb-8 max-h-96 overflow-y-auto">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-            Question Review ({questions.length} Questions)
+            Question Review ({currentLessonQuestions.length} Questions)
           </h3>
-          {questions.map((question, index) => {
-            const userAnswer = userAnswers[index];
-            const correctAnswer =
-              typeof question.correct_answer === "number"
-                ? question.options[question.correct_answer]
-                : question.correct_answer;
-            const isCorrect = userAnswer === correctAnswer;
+          {currentLessonQuestions.map((question, index) => {
+            try {
+              const userAnswer = userAnswers[index];
 
-            return (
-              <div
-                key={index}
-                className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
-              >
-                <div className="flex items-start space-x-3">
-                  <div
-                    className={`p-1 rounded-full shrink-0 ${
-                      isCorrect
-                        ? "bg-green-100 dark:bg-green-900/30"
-                        : "bg-red-100 dark:bg-red-900/30"
-                    }`}
-                  >
-                    {isCorrect ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
-                        Q{index + 1}
-                      </span>
-                      {question.difficulty && (
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full ${
-                            question.difficulty === "basic"
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                              : question.difficulty === "intermediate"
-                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                          }`}
-                        >
-                          {question.difficulty}
-                        </span>
+              // Enhanced handling with better validation
+              let correctAnswer: string;
+
+              if (typeof question.correct_answer === "number") {
+                const answerIndex = Math.max(
+                  0,
+                  Math.min(3, question.correct_answer)
+                );
+                correctAnswer =
+                  question.options[answerIndex] || question.options[0];
+              } else if (typeof question.correct_answer === "string") {
+                correctAnswer = question.correct_answer;
+              } else if (typeof (question as any).correctAnswer === "number") {
+                const answerIndex = Math.max(
+                  0,
+                  Math.min(3, (question as any).correctAnswer)
+                );
+                correctAnswer =
+                  question.options[answerIndex] || question.options[0];
+              } else if (typeof (question as any).correctAnswer === "string") {
+                correctAnswer = (question as any).correctAnswer;
+              } else {
+                console.warn(
+                  `Invalid correct answer format for question ${index + 1}:`,
+                  question
+                );
+                correctAnswer = question.options[0];
+              }
+
+              const isCorrect = userAnswer === correctAnswer;
+
+              return (
+                <div
+                  key={index}
+                  className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div
+                      className={`p-1 rounded-full shrink-0 ${
+                        isCorrect
+                          ? "bg-green-100 dark:bg-green-900/30"
+                          : "bg-red-100 dark:bg-red-900/30"
+                      }`}
+                    >
+                      {isCorrect ? (
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                       )}
                     </div>
-                    <div className="font-medium text-gray-900 dark:text-white mb-2 break-words">
-                      {question.question}
-                    </div>
-                    <div className="text-sm space-y-1">
-                      <div className="text-gray-600 dark:text-gray-400">
-                        Your answer:{" "}
-                        <span
-                          className={`font-medium ${
-                            isCorrect
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
-                          }`}
-                        >
-                          {userAnswer}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                          Q{index + 1}
                         </span>
+                        {question.difficulty && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              question.difficulty === "basic"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                : question.difficulty === "intermediate"
+                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                            }`}
+                          >
+                            {question.difficulty}
+                          </span>
+                        )}
                       </div>
-                      {!isCorrect && (
+                      <div className="font-medium text-gray-900 dark:text-white mb-2 break-words">
+                        {question.question}
+                      </div>
+                      <div className="text-sm space-y-1">
                         <div className="text-gray-600 dark:text-gray-400">
-                          Correct answer:{" "}
-                          <span className="font-medium text-green-600 dark:text-green-400">
-                            {correctAnswer}
+                          Your answer:{" "}
+                          <span
+                            className={`font-medium ${
+                              isCorrect
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {userAnswer || "No answer"}
                           </span>
                         </div>
-                      )}
-                      <div className="text-xs text-gray-500 dark:text-gray-500 italic p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                        💡 {question.explanation}
+                        {!isCorrect && (
+                          <div className="text-gray-600 dark:text-gray-400">
+                            Correct answer:{" "}
+                            <span className="font-medium text-green-600 dark:text-green-400">
+                              {correctAnswer}
+                            </span>
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 dark:text-gray-500 italic p-2 bg-gray-100 dark:bg-gray-700 rounded">
+                          💡{" "}
+                          {question.explanation || "No explanation available"}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
+              );
+            } catch (error) {
+              console.error(
+                `Error rendering question ${index + 1}:`,
+                error,
+                question
+              );
+              return (
+                <div
+                  key={index}
+                  className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800"
+                >
+                  <div className="flex items-center space-x-2 text-red-700 dark:text-red-300">
+                    <XCircle className="h-5 w-5" />
+                    <span className="font-medium">
+                      Question {index + 1} - Error loading
+                    </span>
+                  </div>
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                    This question couldn't be displayed properly due to a
+                    parsing error.
+                  </p>
+                </div>
+              );
+            }
           })}
         </div>
 
@@ -529,11 +645,12 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            {title}
+            {currentLessonTitle}
           </h2>
           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
             <span>
-              Question {currentQuestionIndex + 1} of {questions.length}
+              Question {currentQuestionIndex + 1} of{" "}
+              {currentLessonQuestions.length}
             </span>
             <span className="text-xs">Answer all questions to see results</span>
           </div>
@@ -548,13 +665,17 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
         <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
           <span>Progress</span>
           <span>
-            {totalAnswered}/{questions.length} answered
+            {totalAnswered}/{currentLessonQuestions.length} answered
           </span>
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${(totalAnswered / questions.length) * 100}%` }}
+            animate={{
+              width: `${
+                (totalAnswered / currentLessonQuestions.length) * 100
+              }%`,
+            }}
             transition={{ duration: 0.3 }}
             className="bg-gradient-to-r from-brand-500 to-accent-500 h-2 rounded-full"
           />
@@ -642,8 +763,8 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
           <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
             <Play className="h-4 w-4" />
             <span className="text-sm font-medium">
-              Answer all {questions.length} questions to see your results and
-              explanations
+              Answer all {currentLessonQuestions.length} questions to see your
+              results and explanations
             </span>
           </div>
         </div>
