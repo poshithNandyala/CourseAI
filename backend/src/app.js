@@ -21,7 +21,7 @@ app.use(cors({
 
 // Handle preflight requests
 app.options('*', cors())
-app.use(express.json({limit:"16mb"}))
+app.use(express.json({ limit: "16mb" }))
 app.use(express.urlencoded({ extended: true, limit: "16mb" }))
 app.use(express.static("public"))
 app.use(cookieParser())
@@ -31,7 +31,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { 
+    cookie: {
         secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
@@ -51,12 +51,14 @@ import userRoutes from "./routes/user.route.js"
 import courseRoutes from "./routes/course.route.js"
 import authRoutes from "./routes/auth.route.js"
 import verificationRoutes from "./routes/verification.route.js"
+import apiKeysRoutes from "./routes/api_keys.route.js"
 
 //routes declaration
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/courses", courseRoutes)
 app.use("/api/v1/auth", authRoutes)
 app.use("/api/v1/verification", verificationRoutes)
+app.use("/api/v1/api-keys", apiKeysRoutes)
 
 // Root API endpoint
 app.get('/api/v1', (req, res) => {
@@ -88,4 +90,4 @@ app.use('*', (req, res) => {
     })
 })
 
-export {app}
+export { app }

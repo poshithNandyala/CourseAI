@@ -36,7 +36,7 @@ export const generateAccessAndRefreshTokens = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
     console.log('📝 Direct registration attempt (use email verification instead)');
-    
+
     // Redirect to email verification flow
     throw new ApiError(400, "Please use email verification for registration. Send a POST request to /api/v1/verification/send-signup-verification with your details.");
 });
@@ -168,18 +168,14 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
-    const { fullname, email } = req.body;
-    if (!fullname && !email) {
-        throw new ApiError(400, "At least one field (fullname or email) must be provided");
+    const { fullname } = req.body;
+    if (!fullname) {
+        throw new ApiError(400, "Full name is required");
     }
-
-    const updateData = {};
-    if (fullname) updateData.fullname = fullname.trim();
-    if (email) updateData.email = email.toLowerCase().trim();
 
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        { $set: updateData },
+        { $set: { fullname: fullname.trim() } },
         { new: true, runValidators: true }
     ).select("-password_hash -refresh_token");
 
@@ -193,13 +189,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    if (!avatar.url) {
+    if (!avatar || !avatar.secure_url) {
         throw new ApiError(500, "Error while uploading avatar");
     }
 
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        { $set: { avatar_url: avatar.url } },
+        { $set: { avatar_url: avatar.secure_url } },
         { new: true }
     ).select("-password_hash -refresh_token");
 
@@ -262,6 +258,45 @@ const getMyPublishedCoursesLikes = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { totalLikes }, "Total likes for your published courses"));
 });
 
+const deleteUserAccount = asyncHandler(async (req, res) => {
+    console.log('🗑️ Account deletion request for user:', req.user._id);
+
+    try {
+        const userId = req.user._id;
+
+        // Start a transaction to ensure all deletions are atomic
+        const session = await mongoose.startSession();
+        await session.withTransaction(async () => {
+            // Delete all courses owned by the user
+            await Course.deleteMany({ owner_id: userId }, { session });
+
+            // Delete all course likes by the user
+            await CourseLike.deleteMany({ user_id: userId }, { session });
+
+            // Delete user's API keys (if exists)
+            const { UserApiKeys } = await import('../models/user_api_keys.model.js');
+            await UserApiKeys.deleteOne({ user_id: userId }, { session });
+
+            // Delete the user account
+            await User.findByIdAndDelete(userId, { session });
+        });
+
+        console.log('✅ Account deletion completed for user:', userId);
+
+        // Clear cookies
+        res.clearCookie('accessToken', cookieOptions);
+        res.clearCookie('refreshToken', cookieOptions);
+
+        return res.status(200).json(
+            new ApiResponse(200, {}, "Account deleted successfully")
+        );
+
+    } catch (error) {
+        console.error('❌ Account deletion failed:', error);
+        throw new ApiError(500, "Failed to delete account. Please contact support.");
+    }
+});
+
 export {
     registerUser,
     loginUser,
@@ -273,4 +308,5 @@ export {
     updateUserAvatar,
     getLikedCourses,
     getMyPublishedCoursesLikes,
+    deleteUserAccount,
 };

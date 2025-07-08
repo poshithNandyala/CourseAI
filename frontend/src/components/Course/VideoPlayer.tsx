@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Play, ExternalLink, Clock, Eye, Maximize } from 'lucide-react';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Play, ExternalLink, Clock, Eye, Maximize } from "lucide-react";
 
 interface VideoPlayerProps {
   video: {
@@ -17,12 +17,15 @@ interface VideoPlayerProps {
   autoplay?: boolean;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = false }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  video,
+  autoplay = false,
+}) => {
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handlePlayClick = () => {
-    console.log('▶️ Playing video:', video.title);
+    console.log("▶️ Playing video:", video.title);
     setIsPlaying(true);
   };
 
@@ -32,27 +35,37 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
 
   // Ensure we have all required video properties
   const safeVideo = {
-    id: video.id || 'unknown',
-    title: video.title || 'Untitled Video',
-    description: video.description || 'No description available',
-    duration: video.duration || '0:00',
-    thumbnailUrl: video.thumbnailUrl || 'https://via.placeholder.com/480x360?text=No+Thumbnail',
-    channelTitle: video.channelTitle || 'Unknown Channel',
+    id: video.id || "unknown",
+    title: video.title || "Untitled Video",
+    description: video.description || "No description available",
+    duration: video.duration || "0:00",
+    thumbnailUrl:
+      video.thumbnailUrl ||
+      "https://via.placeholder.com/480x360?text=No+Thumbnail",
+    channelTitle: video.channelTitle || "Unknown Channel",
     viewCount: video.viewCount || 0,
     embedUrl: video.embedUrl || `https://www.youtube.com/embed/${video.id}`,
-    watchUrl: video.watchUrl || `https://www.youtube.com/watch?v=${video.id}`
+    watchUrl: video.watchUrl || `https://www.youtube.com/watch?v=${video.id}`,
   };
 
   return (
-    <div className={`bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-soft border border-gray-200 dark:border-gray-800 ${
-      isFullscreen ? 'fixed inset-4 z-50' : ''
-    }`}>
+    <div
+      className={`bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-soft border border-gray-200 dark:border-gray-800 ${
+        isFullscreen ? "fixed inset-4 z-50" : ""
+      }`}
+    >
       {/* Video Player Area */}
-      <div className={`relative bg-gray-900 ${isFullscreen ? 'h-full' : 'aspect-video'}`}>
+      <div
+        className={`relative bg-gray-900 ${
+          isFullscreen ? "h-full" : "aspect-video"
+        }`}
+      >
         {isPlaying ? (
           <div className="relative w-full h-full">
             <iframe
-              src={`${safeVideo.embedUrl}${safeVideo.embedUrl.includes('?') ? '&' : '?'}autoplay=0&modestbranding=1&rel=0&showinfo=0`}
+              src={`${safeVideo.embedUrl}${
+                safeVideo.embedUrl.includes("?") ? "&" : "?"
+              }autoplay=0&modestbranding=1&rel=0&showinfo=0`}
               title={safeVideo.title}
               className="w-full h-full"
               frameBorder="0"
@@ -72,7 +85,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
             </div>
           </div>
         ) : (
-          <div className="relative w-full h-full group cursor-pointer" onClick={handlePlayClick}>
+          <div
+            className="relative w-full h-full group cursor-pointer"
+            onClick={handlePlayClick}
+          >
             <img
               src={safeVideo.thumbnailUrl}
               alt={safeVideo.title}
@@ -103,9 +119,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
             {safeVideo.title}
           </h3>
-          
+
           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
-            <span className="font-medium text-gray-700 dark:text-gray-300">{safeVideo.channelTitle}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {safeVideo.channelTitle}
+            </span>
             <div className="flex items-center space-x-1">
               <Eye className="h-4 w-4" />
               <span>{safeVideo.viewCount.toLocaleString()} views</span>
@@ -132,7 +150,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
                 <span>Play Video</span>
               </motion.button>
             )}
-            
+
             <a
               href={safeVideo.watchUrl}
               target="_blank"

@@ -1,4 +1,6 @@
 // Gemini AI API service for intelligent course generation
+import { userApiKeyService } from "./userApiKeyService";
+
 export interface GeminiCourseRequest {
   topic: string;
   difficulty: "beginner" | "intermediate" | "advanced";
@@ -44,17 +46,29 @@ export interface GeminiQuizQuestion {
 }
 
 class GeminiAPIService {
-  private apiKey: string;
+  // Comment out old API key approach - now using user's keys
+  // private apiKey: string;
   private baseUrl =
     "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+    // Old approach - using developer's API key (commented out)
+    // this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+  }
+
+  // Get user's API key dynamically
+  private async getApiKey(): Promise<string> {
+    return await userApiKeyService.getGeminiApiKey();
   }
 
   async extractTopicAndStructure(userPrompt: string): Promise<ExtractedTopic> {
-    if (!this.apiKey) {
-      console.warn("Gemini API key not configured, using intelligent parsing");
+    try {
+      await this.getApiKey(); // Check if API key exists
+    } catch (error) {
+      console.warn(
+        "User's Gemini API key not configured, using intelligent parsing. Error:",
+        error
+      );
       return this.intelligentTopicExtraction(userPrompt);
     }
 
@@ -98,17 +112,24 @@ Create 6-12 logical subtopics that build upon each other within this EXACT topic
   async generateCourseStructure(
     extractedTopic: ExtractedTopic
   ): Promise<GeminiCourseStructure> {
-    if (!this.apiKey) {
+    try {
+      await this.getApiKey(); // Check if API key exists
+    } catch (error) {
+      console.warn("User's Gemini API key not configured, using fallback. Error:", error);
       return this.generateStructuredCourse(extractedTopic);
     }
 
     try {
       const prompt = `
-CRITICAL: Stay EXACTLY focused on "${extractedTopic.mainTopic}". Do not deviate from this topic.
+CRITICAL: Stay EXACTLY focused on "${
+        extractedTopic.mainTopic
+      }". Do not deviate from this topic.
 
 Create a comprehensive course structure for: "${extractedTopic.mainTopic}"
 
-MANDATORY: All content must be directly about "${extractedTopic.mainTopic}" - do not generalize or suggest related topics.
+MANDATORY: All content must be directly about "${
+        extractedTopic.mainTopic
+      }" - do not generalize or suggest related topics.
 
 Subtopics to cover: ${extractedTopic.subtopics.join(", ")}
 Difficulty: ${extractedTopic.difficulty}
@@ -170,7 +191,10 @@ Make it comprehensive and educational.
     lessonContent: string,
     questionsPerLesson: number = 30
   ): Promise<GeminiQuizQuestion[]> {
-    if (!this.apiKey) {
+    try {
+      await this.getApiKey(); // Check if API key exists
+    } catch (error) {
+      console.warn("User's Gemini API key not configured, using basic quiz. Error:", error);
       return this.generateBasicQuizQuestions(topic, lessonTitle, []);
     }
 
@@ -400,7 +424,7 @@ Make it comprehensive and educational.
     const basicCount = Math.floor(questionsPerLesson * 0.3);
     const intermediateCount = Math.floor(questionsPerLesson * 0.5);
     const advancedCount = questionsPerLesson - basicCount - intermediateCount;
-    
+
     const basePrompt = `
 You are a world-class educational assessment expert and quiz creator with expertise in cognitive science and learning theory. Create ${questionsPerLesson} exceptional, high-quality multiple-choice questions about "${lessonTitle}" within the topic of "${topic}".
 
@@ -888,7 +912,10 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     keyPoints: string[],
     questionsPerLesson: number = 30
   ): Promise<GeminiQuizQuestion[]> {
-    if (!this.apiKey) {
+    try {
+      await this.getApiKey(); // Check if API key exists
+    } catch (error) {
+      console.warn("User's Gemini API key not configured, using enhanced quiz. Error:", error);
       return this.generateEnhancedBasicQuizQuestions(
         topic,
         subtopic,
@@ -901,7 +928,7 @@ Make each question a valuable learning opportunity that reinforces key concepts,
       const basicCount = Math.floor(questionsPerLesson * 0.3);
       const intermediateCount = Math.floor(questionsPerLesson * 0.5);
       const advancedCount = questionsPerLesson - basicCount - intermediateCount;
-      
+
       const prompt = `
 You are an expert quiz creator and educational specialist. Create ${questionsPerLesson} comprehensive, high-quality multiple-choice questions about "${subtopic}" within the topic of "${topic}".
 
@@ -986,7 +1013,8 @@ Make each question a valuable learning opportunity that reinforces key concepts,
   }
 
   private async callGeminiAPI(prompt: string): Promise<string> {
-    const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+    const apiKey = await this.getApiKey();
+    const response = await fetch(`${this.baseUrl}?key=${apiKey}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1021,7 +1049,10 @@ Make each question a valuable learning opportunity that reinforces key concepts,
 
     const data = await response.json();
     const rawResponse = data.candidates[0].content.parts[0].text;
-    console.log("🔍 Raw Gemini API response:", rawResponse.substring(0, 200) + "...");
+    console.log(
+      "🔍 Raw Gemini API response:",
+      rawResponse.substring(0, 200) + "..."
+    );
     return rawResponse;
   }
 
@@ -1032,7 +1063,7 @@ Make each question a valuable learning opportunity that reinforces key concepts,
   private parseJsonResponse(rawResponse: string): any {
     try {
       console.log("🔄 Attempting to parse JSON from raw response");
-      
+
       // First, try to parse the entire response as JSON
       try {
         const directParse = JSON.parse(rawResponse);
@@ -1044,17 +1075,21 @@ Make each question a valuable learning opportunity that reinforces key concepts,
 
       // Clean the response
       let cleanResponse = rawResponse.trim();
-      
+
       // Remove markdown code blocks
-      cleanResponse = cleanResponse.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '');
-      
+      cleanResponse = cleanResponse
+        .replace(/```(?:json)?\s*/g, "")
+        .replace(/```\s*/g, "");
+
       // Remove JavaScript-style comments that cause JSON parsing issues
-      cleanResponse = cleanResponse.replace(/\/\/.*$/gm, ''); // Remove single-line comments
-      cleanResponse = cleanResponse.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
-      
+      cleanResponse = cleanResponse.replace(/\/\/.*$/gm, ""); // Remove single-line comments
+      cleanResponse = cleanResponse.replace(/\/\*[\s\S]*?\*\//g, ""); // Remove multi-line comments
+
       // Remove any leading/trailing text that's not JSON
-      cleanResponse = cleanResponse.replace(/^[^[\{]*/, '').replace(/[^}\]]*$/, '');
-      
+      cleanResponse = cleanResponse
+        .replace(/^[^[\{]*/, "")
+        .replace(/[^}\]]*$/, "");
+
       // Try multiple JSON extraction strategies
       const strategies = [
         // Strategy 1: Find complete JSON object
@@ -1062,61 +1097,69 @@ Make each question a valuable learning opportunity that reinforces key concepts,
           const objectMatch = text.match(/\{[\s\S]*\}/);
           return objectMatch ? JSON.parse(objectMatch[0]) : null;
         },
-        
+
         // Strategy 2: Find JSON array
         (text: string) => {
           const arrayMatch = text.match(/\[[\s\S]*\]/);
           return arrayMatch ? JSON.parse(arrayMatch[0]) : null;
         },
-        
+
         // Strategy 3: Clean and parse with bracket completion
         (text: string) => {
           let cleaned = text
-            .replace(/[\u0000-\u001f\u007f-\u009f]/g, '') // Remove control characters
-            .replace(/,\s*}/g, '}') // Remove trailing commas
-            .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
+            .replace(/[\u0000-\u001f\u007f-\u009f]/g, "") // Remove control characters
+            .replace(/,\s*}/g, "}") // Remove trailing commas
+            .replace(/,\s*]/g, "]") // Remove trailing commas in arrays
             .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
             .replace(/'/g, '"') // Convert single quotes to double
-            .replace(/\n/g, ' ') // Replace newlines with spaces
-            .replace(/\s+/g, ' '); // Normalize whitespace
-          
+            .replace(/\n/g, " ") // Replace newlines with spaces
+            .replace(/\s+/g, " "); // Normalize whitespace
+
           // Complete any incomplete JSON structures
           const openBraces = (cleaned.match(/\{/g) || []).length;
           const closeBraces = (cleaned.match(/\}/g) || []).length;
           const openBrackets = (cleaned.match(/\[/g) || []).length;
           const closeBrackets = (cleaned.match(/\]/g) || []).length;
-          
+
           // Add missing closing braces and brackets
           for (let i = 0; i < openBraces - closeBraces; i++) {
-            cleaned += '}';
+            cleaned += "}";
           }
           for (let i = 0; i < openBrackets - closeBrackets; i++) {
-            cleaned += ']';
+            cleaned += "]";
           }
-          
+
           return JSON.parse(cleaned);
-        }
+        },
       ];
 
       for (const strategy of strategies) {
         try {
           const result = strategy(cleanResponse);
           if (result) {
-            console.log("✅ Successfully parsed JSON using extraction strategy");
+            console.log(
+              "✅ Successfully parsed JSON using extraction strategy"
+            );
             return result;
           }
         } catch (error) {
           continue;
         }
       }
-      
+
       console.error("❌ All JSON parsing strategies failed");
       throw new Error("Unable to parse JSON from response");
-      
     } catch (error) {
       console.error("❌ JSON parsing failed:", error);
-      console.log("📄 Problematic response:", rawResponse.substring(0, 500) + "...");
-      throw new Error(`JSON parsing failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(
+        "📄 Problematic response:",
+        rawResponse.substring(0, 500) + "..."
+      );
+      throw new Error(
+        `JSON parsing failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 
@@ -1124,15 +1167,18 @@ Make each question a valuable learning opportunity that reinforces key concepts,
    * Main entry point for processing any API response
    * Converts string responses to JSON and validates the data type
    */
-  public processApiResponse(rawResponse: string, expectedType: 'course' | 'quiz' | 'topic' = 'course'): any {
+  public processApiResponse(
+    rawResponse: string,
+    expectedType: "course" | "quiz" | "topic" = "course"
+  ): any {
     console.log(`🚀 Processing API response for type: ${expectedType}`);
-    
+
     // First check if response is already parsed JSON
-    if (typeof rawResponse === 'object') {
+    if (typeof rawResponse === "object") {
       console.log("✅ Response is already parsed JSON");
       return this.extractSpecificDataStructure(rawResponse, expectedType);
     }
-    
+
     // If it's a string, parse it as JSON
     return this.extractJsonData(rawResponse, expectedType);
   }
@@ -1141,23 +1187,25 @@ Make each question a valuable learning opportunity that reinforces key concepts,
    * Enhanced method to extract JSON data from any Gemini response
    * Works for both course and quiz data
    */
-  private extractJsonData(rawResponse: string, expectedType: 'course' | 'quiz' | 'topic' = 'course'): any {
+  private extractJsonData(
+    rawResponse: string,
+    expectedType: "course" | "quiz" | "topic" = "course"
+  ): any {
     try {
       // First try centralized JSON parser
       const parsed = this.parseJsonResponse(rawResponse);
-      
+
       // Validate the parsed data based on expected type
-      if (expectedType === 'course' && this.isValidCourseData(parsed)) {
+      if (expectedType === "course" && this.isValidCourseData(parsed)) {
         return parsed;
-      } else if (expectedType === 'quiz' && this.isValidQuizData(parsed)) {
+      } else if (expectedType === "quiz" && this.isValidQuizData(parsed)) {
         return parsed;
-      } else if (expectedType === 'topic' && this.isValidTopicData(parsed)) {
+      } else if (expectedType === "topic" && this.isValidTopicData(parsed)) {
         return parsed;
       }
-      
+
       // If validation fails, try to extract specific data structures
       return this.extractSpecificDataStructure(parsed, expectedType);
-      
     } catch (error) {
       console.error(`❌ Failed to extract ${expectedType} JSON data:`, error);
       throw error;
@@ -1165,36 +1213,41 @@ Make each question a valuable learning opportunity that reinforces key concepts,
   }
 
   private isValidCourseData(data: any): boolean {
-    return data && (
-      (data.course && data.subtopics) || 
-      (data.title && data.lessons) ||
-      (Array.isArray(data.subtopics) && data.subtopics.length > 0)
+    return (
+      data &&
+      ((data.course && data.subtopics) ||
+        (data.title && data.lessons) ||
+        (Array.isArray(data.subtopics) && data.subtopics.length > 0))
     );
   }
 
   private isValidQuizData(data: any): boolean {
-    return data && (
-      Array.isArray(data) ||
-      (data.questions && Array.isArray(data.questions)) ||
-      (data.quiz && Array.isArray(data.quiz))
+    return (
+      data &&
+      (Array.isArray(data) ||
+        (data.questions && Array.isArray(data.questions)) ||
+        (data.quiz && Array.isArray(data.quiz)))
     );
   }
 
   private isValidTopicData(data: any): boolean {
-    return data && (
-      data.mainTopic || 
-      data.topic ||
-      (data.subtopics && Array.isArray(data.subtopics))
+    return (
+      data &&
+      (data.mainTopic ||
+        data.topic ||
+        (data.subtopics && Array.isArray(data.subtopics)))
     );
   }
 
   private extractSpecificDataStructure(data: any, type: string): any {
     switch (type) {
-      case 'course':
+      case "course":
         return data.course || data.courseStructure || data;
-      case 'quiz':
-        return data.questions || data.quiz || (Array.isArray(data) ? data : [data]);
-      case 'topic':
+      case "quiz":
+        return (
+          data.questions || data.quiz || (Array.isArray(data) ? data : [data])
+        );
+      case "topic":
         return data.topic || data.extraction || data;
       default:
         return data;
@@ -1207,13 +1260,15 @@ Make each question a valuable learning opportunity that reinforces key concepts,
   ): ExtractedTopic {
     try {
       console.log("🔍 Parsing topic extraction from response");
-      
+
       // Use centralized JSON parser
-      const parsed = this.extractJsonData(response, 'topic');
-      
+      const parsed = this.extractJsonData(response, "topic");
+
       return {
         mainTopic:
-          parsed.mainTopic || parsed.topic || this.extractMainTopicFromPrompt(originalPrompt),
+          parsed.mainTopic ||
+          parsed.topic ||
+          this.extractMainTopicFromPrompt(originalPrompt),
         subtopics: parsed.subtopics || [],
         difficulty: parsed.difficulty || "beginner",
         estimatedDuration: parsed.estimatedDuration || 6,
@@ -1233,10 +1288,10 @@ Make each question a valuable learning opportunity that reinforces key concepts,
   ): GeminiCourseStructure {
     try {
       console.log("🔍 Parsing course structure from response");
-      
+
       // Use centralized JSON parser
-      const parsed = this.extractJsonData(response, 'course');
-      
+      const parsed = this.extractJsonData(response, "course");
+
       console.log("✅ Successfully parsed course structure JSON");
       return {
         title: parsed.title || `Complete ${extractedTopic.mainTopic} Course`,
@@ -1254,7 +1309,10 @@ Make each question a valuable learning opportunity that reinforces key concepts,
       };
     } catch (error) {
       console.error("Failed to parse course structure:", error);
-      console.log("Course structure response that failed to parse:", response.substring(0, 500) + "...");
+      console.log(
+        "Course structure response that failed to parse:",
+        response.substring(0, 500) + "..."
+      );
     }
 
     console.warn("Falling back to structured course generation");
@@ -1269,40 +1327,51 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     try {
       console.log(`🔍 Starting quiz parsing for ${topic} - ${subtopic}`);
       console.log(`📝 Response length: ${response.length}`);
-      
+
       // First, try the centralized JSON parser
       try {
-        const parsed = this.extractJsonData(response, 'quiz');
+        const parsed = this.extractJsonData(response, "quiz");
         if (Array.isArray(parsed) && parsed.length > 0) {
           const validatedQuestions = this.validateAndFormatQuestions(parsed);
           if (validatedQuestions.length > 0) {
-            console.log(`✅ Successfully parsed ${validatedQuestions.length} questions using centralized parser`);
+            console.log(
+              `✅ Successfully parsed ${validatedQuestions.length} questions using centralized parser`
+            );
             return validatedQuestions;
           }
         }
       } catch (jsonError) {
-        console.log("🔄 Centralized JSON parsing failed, trying specific methods...");
+        console.log(
+          "🔄 Centralized JSON parsing failed, trying specific methods..."
+        );
       }
-      
+
       // Fallback to the enhanced JSON parsing
       const jsonResult = this.parseJsonQuestions(response);
       if (jsonResult.length > 0) {
-        console.log(`✅ Successfully parsed ${jsonResult.length} questions from specific JSON parser`);
+        console.log(
+          `✅ Successfully parsed ${jsonResult.length} questions from specific JSON parser`
+        );
         return jsonResult;
       }
-      
+
       // Fallback to text extraction
       console.log("🔄 JSON parsing failed, attempting text extraction...");
-      const textResult = this.extractQuestionsFromText(response, topic, subtopic);
+      const textResult = this.extractQuestionsFromText(
+        response,
+        topic,
+        subtopic
+      );
       if (textResult.length > 0) {
-        console.log(`✅ Successfully extracted ${textResult.length} questions from text`);
+        console.log(
+          `✅ Successfully extracted ${textResult.length} questions from text`
+        );
         return textResult;
       }
-      
+
       // If all else fails, return basic questions
       console.log("⚠️ All parsing methods failed, generating basic questions");
       return this.generateBasicQuizQuestions(topic, subtopic, []);
-      
     } catch (error) {
       console.error("❌ Quiz parsing failed completely:", error);
       console.log("📄 Response preview:", response.substring(0, 500) + "...");
@@ -1314,16 +1383,20 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     try {
       // Step 1: Clean the response
       let cleanResponse = response.trim();
-      
+
       // Remove markdown code blocks
-      cleanResponse = cleanResponse.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '');
-      
+      cleanResponse = cleanResponse
+        .replace(/```(?:json)?\s*/g, "")
+        .replace(/```\s*/g, "");
+
       // Remove any leading/trailing text that's not JSON
-      cleanResponse = cleanResponse.replace(/^[^[\{]*/, '').replace(/[^}\]]*$/, '');
-      
+      cleanResponse = cleanResponse
+        .replace(/^[^[\{]*/, "")
+        .replace(/[^}\]]*$/, "");
+
       // Step 2: Find JSON structures
       const jsonCandidates = this.findJsonStructures(cleanResponse);
-      
+
       for (const candidate of jsonCandidates) {
         try {
           const parsed = this.attemptJsonParse(candidate);
@@ -1335,7 +1408,7 @@ Make each question a valuable learning opportunity that reinforces key concepts,
           continue;
         }
       }
-      
+
       return [];
     } catch (error) {
       console.error("JSON parsing failed:", error);
@@ -1345,13 +1418,13 @@ Make each question a valuable learning opportunity that reinforces key concepts,
 
   private findJsonStructures(text: string): string[] {
     const candidates: string[] = [];
-    
+
     // Pattern 1: Complete JSON array
     const arrayMatch = text.match(/\[[\s\S]*\]/);
     if (arrayMatch) {
       candidates.push(arrayMatch[0]);
     }
-    
+
     // Pattern 2: Incomplete JSON array (missing closing bracket)
     const incompleteArrayMatch = text.match(/\[[\s\S]*$/);
     if (incompleteArrayMatch) {
@@ -1359,14 +1432,14 @@ Make each question a valuable learning opportunity that reinforces key concepts,
       const completed = this.completeJsonStructure(incomplete);
       candidates.push(completed);
     }
-    
+
     // Pattern 3: Multiple JSON objects
     const objectPattern = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
     const objectMatches = text.match(objectPattern);
     if (objectMatches && objectMatches.length > 1) {
-      candidates.push('[' + objectMatches.join(',') + ']');
+      candidates.push("[" + objectMatches.join(",") + "]");
     }
-    
+
     return candidates;
   }
 
@@ -1376,19 +1449,19 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     const closeBraces = (jsonString.match(/\}/g) || []).length;
     const openBrackets = (jsonString.match(/\[/g) || []).length;
     const closeBrackets = (jsonString.match(/\]/g) || []).length;
-    
+
     let completed = jsonString;
-    
+
     // Add missing closing braces
     for (let i = 0; i < openBraces - closeBraces; i++) {
-      completed += '}';
+      completed += "}";
     }
-    
+
     // Add missing closing brackets
     for (let i = 0; i < openBrackets - closeBrackets; i++) {
-      completed += ']';
+      completed += "]";
     }
-    
+
     return completed;
   }
 
@@ -1397,59 +1470,63 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     const strategies = [
       // Strategy 1: Direct parse
       (str: string) => JSON.parse(str),
-      
+
       // Strategy 2: Basic cleaning
       (str: string) => {
         const cleaned = str
-          .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
-          .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
+          .replace(/,\s*]/g, "]") // Remove trailing commas in arrays
+          .replace(/,\s*}/g, "}") // Remove trailing commas in objects
           .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
-          .replace(/:\s*([0-9]+)(?=\s*[,}])/g, ': $1') // Preserve numbers
+          .replace(/:\s*([0-9]+)(?=\s*[,}])/g, ": $1") // Preserve numbers
           .replace(/'/g, '"') // Convert single quotes to double
-          .replace(/[\u0000-\u001f\u007f-\u009f]/g, ''); // Remove control characters
+          .replace(/[\u0000-\u001f\u007f-\u009f]/g, ""); // Remove control characters
         return JSON.parse(cleaned);
       },
-      
+
       // Strategy 3: Advanced cleaning
       (str: string) => {
         const cleaned = str
-          .replace(/[\u0000-\u001f\u007f-\u009f]/g, '') // Remove control characters
-          .replace(/\r?\n/g, ' ') // Replace newlines with spaces
-          .replace(/\s+/g, ' ') // Normalize whitespace
+          .replace(/[\u0000-\u001f\u007f-\u009f]/g, "") // Remove control characters
+          .replace(/\r?\n/g, " ") // Replace newlines with spaces
+          .replace(/\s+/g, " ") // Normalize whitespace
           .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote keys
           .replace(/:\s*'([^']*)'(?=\s*[,}])/g, ': "$1"') // Convert single quotes
           .replace(/:\s*([^",\[\]{}]+)(?=\s*[,}])/g, (_, value) => {
             // Quote non-number values
-            return isNaN(Number(value.trim())) ? `: "${value.trim()}"` : `: ${value.trim()}`;
+            return isNaN(Number(value.trim()))
+              ? `: "${value.trim()}"`
+              : `: ${value.trim()}`;
           })
-          .replace(/,\s*[,}]/g, '}') // Remove duplicate commas
-          .replace(/,\s*]/g, ']') // Remove trailing commas
-          .replace(/([^\\])\\([^"\\\/bfnrt])/g, '$1\\\\$2'); // Fix unescaped backslashes
+          .replace(/,\s*[,}]/g, "}") // Remove duplicate commas
+          .replace(/,\s*]/g, "]") // Remove trailing commas
+          .replace(/([^\\])\\([^"\\\/bfnrt])/g, "$1\\\\$2"); // Fix unescaped backslashes
         return JSON.parse(cleaned);
       },
-      
+
       // Strategy 4: Extract individual objects
       (str: string) => {
         const objectPattern = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
         const objects = str.match(objectPattern);
         if (objects) {
-          const parsedObjects = objects.map(obj => {
+          const parsedObjects = objects.map((obj) => {
             const cleaned = obj
-              .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
-              .replace(/,\s*}/g, '}')
+              .replace(/[\u0000-\u001f\u007f-\u009f]/g, "")
+              .replace(/,\s*}/g, "}")
               .replace(/([{,]\s*)(\w+):/g, '$1"$2":')
               .replace(/:\s*'([^']*)'(?=\s*[,}])/g, ': "$1"')
               .replace(/:\s*([^",\[\]{}]+)(?=\s*[,}])/g, (_, value) => {
-                return isNaN(Number(value.trim())) ? `: "${value.trim()}"` : `: ${value.trim()}`;
+                return isNaN(Number(value.trim()))
+                  ? `: "${value.trim()}"`
+                  : `: ${value.trim()}`;
               });
             return JSON.parse(cleaned);
           });
           return parsedObjects;
         }
-        throw new Error('No objects found');
-      }
+        throw new Error("No objects found");
+      },
     ];
-    
+
     for (const strategy of strategies) {
       try {
         const result = strategy(jsonString);
@@ -1460,17 +1537,19 @@ Make each question a valuable learning opportunity that reinforces key concepts,
         continue;
       }
     }
-    
-    throw new Error('All parsing strategies failed');
+
+    throw new Error("All parsing strategies failed");
   }
 
   private validateAndFormatQuestions(parsed: any[]): GeminiQuizQuestion[] {
     return parsed
-      .filter(q => q && typeof q === 'object') // Only valid objects
+      .filter((q) => q && typeof q === "object") // Only valid objects
       .map((q, index) => {
         // Normalize question text
-        const question = this.normalizeText(q.question || q.text || q.prompt || `Question ${index + 1}`);
-        
+        const question = this.normalizeText(
+          q.question || q.text || q.prompt || `Question ${index + 1}`
+        );
+
         // Normalize options
         let options: string[] = [];
         if (Array.isArray(q.options)) {
@@ -1478,38 +1557,45 @@ Make each question a valuable learning opportunity that reinforces key concepts,
         } else if (Array.isArray(q.choices)) {
           options = q.choices.map((opt: any) => this.normalizeText(opt));
         } else if (q.a && q.b && q.c && q.d) {
-          options = [q.a, q.b, q.c, q.d].map((opt: any) => this.normalizeText(opt));
+          options = [q.a, q.b, q.c, q.d].map((opt: any) =>
+            this.normalizeText(opt)
+          );
         }
-        
+
         // Ensure we have at least 4 options
         while (options.length < 4) {
           options.push(`Option ${String.fromCharCode(65 + options.length)}`);
         }
         options = options.slice(0, 4); // Limit to 4 options
-        
+
         // Normalize correct answer
         let correctAnswer = 0;
-        if (typeof q.correctAnswer === 'number') {
+        if (typeof q.correctAnswer === "number") {
           correctAnswer = Math.max(0, Math.min(3, q.correctAnswer));
-        } else if (typeof q.correct_answer === 'number') {
+        } else if (typeof q.correct_answer === "number") {
           correctAnswer = Math.max(0, Math.min(3, q.correct_answer));
-        } else if (typeof q.correctAnswer === 'string') {
-          const index = options.findIndex(opt => opt === q.correctAnswer);
+        } else if (typeof q.correctAnswer === "string") {
+          const index = options.findIndex((opt) => opt === q.correctAnswer);
           correctAnswer = index !== -1 ? index : 0;
-        } else if (typeof q.correct_answer === 'string') {
-          const index = options.findIndex(opt => opt === q.correct_answer);
+        } else if (typeof q.correct_answer === "string") {
+          const index = options.findIndex((opt) => opt === q.correct_answer);
           correctAnswer = index !== -1 ? index : 0;
-        } else if (typeof q.answer === 'string') {
+        } else if (typeof q.answer === "string") {
           // Handle single letter answers like 'A', 'B', 'C', 'D'
           const letterAnswer = q.answer.toUpperCase();
-          if (['A', 'B', 'C', 'D'].includes(letterAnswer)) {
+          if (["A", "B", "C", "D"].includes(letterAnswer)) {
             correctAnswer = letterAnswer.charCodeAt(0) - 65;
           }
         }
-        
+
         // Normalize explanation
-        const explanation = this.normalizeText(q.explanation || q.reason || q.rationale || `This is the correct answer for question ${index + 1}.`);
-        
+        const explanation = this.normalizeText(
+          q.explanation ||
+            q.reason ||
+            q.rationale ||
+            `This is the correct answer for question ${index + 1}.`
+        );
+
         return {
           question,
           options,
@@ -1517,17 +1603,17 @@ Make each question a valuable learning opportunity that reinforces key concepts,
           explanation,
         };
       })
-      .filter(q => q.question.length > 5 && q.options.length === 4); // Final validation
+      .filter((q) => q.question.length > 5 && q.options.length === 4); // Final validation
   }
 
   private normalizeText(text: string): string {
-    if (!text || typeof text !== 'string') return '';
-    
+    if (!text || typeof text !== "string") return "";
+
     return text
-      .replace(/[\u0000-\u001f\u007f-\u009f]/g, '') // Remove control characters
-      .replace(/\s+/g, ' ') // Normalize whitespace
-      .replace(/^\d+\.\s*/, '') // Remove leading numbers
-      .replace(/^[A-D]\)\s*/, '') // Remove leading option letters
+      .replace(/[\u0000-\u001f\u007f-\u009f]/g, "") // Remove control characters
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .replace(/^\d+\.\s*/, "") // Remove leading numbers
+      .replace(/^[A-D]\)\s*/, "") // Remove leading option letters
       .trim();
   }
 
@@ -1538,20 +1624,22 @@ Make each question a valuable learning opportunity that reinforces key concepts,
   ): GeminiQuizQuestion[] {
     try {
       console.log("📝 Attempting text extraction from response");
-      
+
       // Multiple extraction strategies
       const strategies = [
         () => this.extractWithPatterns(response),
         () => this.extractWithRegex(response),
         () => this.extractWithLines(response),
-        () => this.extractWithBlocks(response)
+        () => this.extractWithBlocks(response),
       ];
-      
+
       for (const strategy of strategies) {
         try {
           const extracted = strategy();
           if (extracted.length > 0) {
-            console.log(`✅ Text extraction successful with ${extracted.length} questions`);
+            console.log(
+              `✅ Text extraction successful with ${extracted.length} questions`
+            );
             return extracted;
           }
         } catch (error) {
@@ -1559,11 +1647,12 @@ Make each question a valuable learning opportunity that reinforces key concepts,
           continue;
         }
       }
-      
+
       // If all strategies fail, return basic questions
-      console.log("⚠️ All text extraction strategies failed, generating basic questions");
+      console.log(
+        "⚠️ All text extraction strategies failed, generating basic questions"
+      );
       return this.generateBasicQuizQuestions(topic, subtopic, []);
-      
     } catch (error) {
       console.error("❌ Text extraction failed completely:", error);
       return this.generateBasicQuizQuestions(topic, subtopic, []);
@@ -1572,14 +1661,14 @@ Make each question a valuable learning opportunity that reinforces key concepts,
 
   private extractWithPatterns(response: string): GeminiQuizQuestion[] {
     const questions: GeminiQuizQuestion[] = [];
-    const lines = response.split('\n').filter(line => line.trim());
-    
+    const lines = response.split("\n").filter((line) => line.trim());
+
     let currentQuestion: any = {};
     let questionCount = 0;
-    
+
     for (const line of lines) {
       const trimmedLine = line.trim();
-      
+
       // Enhanced question patterns
       if (this.isQuestionLine(trimmedLine)) {
         if (currentQuestion.question && questionCount < 30) {
@@ -1590,7 +1679,7 @@ Make each question a valuable learning opportunity that reinforces key concepts,
           question: this.extractQuestionText(trimmedLine),
           options: [],
           correctAnswer: 0,
-          explanation: ''
+          explanation: "",
         };
       }
       // Enhanced option patterns
@@ -1610,71 +1699,85 @@ Make each question a valuable learning opportunity that reinforces key concepts,
         currentQuestion.explanation = this.extractExplanationText(trimmedLine);
       }
     }
-    
+
     // Add the last question
     if (currentQuestion.question && questionCount < 30) {
       questions.push(this.finalizeQuestion(currentQuestion, questionCount));
     }
-    
+
     return questions;
   }
 
   private extractWithRegex(response: string): GeminiQuizQuestion[] {
     const questions: GeminiQuizQuestion[] = [];
-    
+
     // Pattern for complete question blocks
-    const questionBlockPattern = /(?:(?:^\d+[\.\)]?\s*)|(?:^Q\d*[\.\)]?\s*)|(?:^Question\s*\d*[\.\)]?\s*))([^\n]+)[\s\S]*?(?:(?:A[\.\)]?\s*([^\n]+))|(?:a[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:B[\.\)]?\s*([^\n]+))|(?:b[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:C[\.\)]?\s*([^\n]+))|(?:c[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:D[\.\)]?\s*([^\n]+))|(?:d[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:Answer|Correct|answer|correct)[\s\S]*?([A-Da-d]))?[\s\S]*?(?:(?:Explanation|explanation)[\s\S]*?([^\n]+))?/gim;
-    
+    const questionBlockPattern =
+      /(?:(?:^\d+[\.\)]?\s*)|(?:^Q\d*[\.\)]?\s*)|(?:^Question\s*\d*[\.\)]?\s*))([^\n]+)[\s\S]*?(?:(?:A[\.\)]?\s*([^\n]+))|(?:a[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:B[\.\)]?\s*([^\n]+))|(?:b[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:C[\.\)]?\s*([^\n]+))|(?:c[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:D[\.\)]?\s*([^\n]+))|(?:d[\.\)]?\s*([^\n]+)))[\s\S]*?(?:(?:Answer|Correct|answer|correct)[\s\S]*?([A-Da-d]))?[\s\S]*?(?:(?:Explanation|explanation)[\s\S]*?([^\n]+))?/gim;
+
     let match;
-    while ((match = questionBlockPattern.exec(response)) !== null && questions.length < 30) {
+    while (
+      (match = questionBlockPattern.exec(response)) !== null &&
+      questions.length < 30
+    ) {
       const question = match[1]?.trim();
       const options = [
         match[2] || match[3],
         match[4] || match[5],
         match[6] || match[7],
-        match[8] || match[9]
-      ].filter(opt => opt && opt.trim()).map(opt => opt.trim());
-      
+        match[8] || match[9],
+      ]
+        .filter((opt) => opt && opt.trim())
+        .map((opt) => opt.trim());
+
       if (question && options.length >= 4) {
         let correctAnswer = 0;
         if (match[10]) {
           const answerLetter = match[10].toUpperCase();
-          correctAnswer = ['A', 'B', 'C', 'D'].indexOf(answerLetter);
+          correctAnswer = ["A", "B", "C", "D"].indexOf(answerLetter);
           if (correctAnswer === -1) correctAnswer = 0;
         }
-        
-        const explanation = match[11]?.trim() || `This is the correct answer for this question about ${question.substring(0, 30)}...`;
-        
+
+        const explanation =
+          match[11]?.trim() ||
+          `This is the correct answer for this question about ${question.substring(
+            0,
+            30
+          )}...`;
+
         questions.push({
           question,
           options: options.slice(0, 4),
           correctAnswer,
-          explanation
+          explanation,
         });
       }
     }
-    
+
     return questions;
   }
 
   private extractWithLines(response: string): GeminiQuizQuestion[] {
     const questions: GeminiQuizQuestion[] = [];
-    const lines = response.split('\n').map(line => line.trim()).filter(line => line);
-    
+    const lines = response
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line);
+
     for (let i = 0; i < lines.length && questions.length < 30; i++) {
       const line = lines[i];
-      
+
       // Check if this line looks like a question
       if (this.isQuestionLine(line)) {
         const question = this.extractQuestionText(line);
         const options: string[] = [];
         let correctAnswer = 0;
-        let explanation = '';
-        
+        let explanation = "";
+
         // Look for options in the next few lines
         for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
           const nextLine = lines[j];
-          
+
           if (this.isOptionLine(nextLine)) {
             options.push(this.extractOptionText(nextLine));
           } else if (this.isAnswerLine(nextLine)) {
@@ -1689,38 +1792,45 @@ Make each question a valuable learning opportunity that reinforces key concepts,
             break;
           }
         }
-        
+
         if (options.length >= 4) {
           questions.push({
             question,
             options: options.slice(0, 4),
             correctAnswer,
-            explanation: explanation || `This is the correct answer for: ${question.substring(0, 50)}...`
+            explanation:
+              explanation ||
+              `This is the correct answer for: ${question.substring(0, 50)}...`,
           });
         }
       }
     }
-    
+
     return questions;
   }
 
   private extractWithBlocks(response: string): GeminiQuizQuestion[] {
     const questions: GeminiQuizQuestion[] = [];
-    
+
     // Split response into blocks based on double newlines or question markers
-    const blocks = response.split(/\n\s*\n|\n(?=\d+[\.\)]?\s)|\n(?=Q\d*[\.\)]?\s)|\n(?=Question\s*\d*[\.\)]?\s)/i);
-    
+    const blocks = response.split(
+      /\n\s*\n|\n(?=\d+[\.\)]?\s)|\n(?=Q\d*[\.\)]?\s)|\n(?=Question\s*\d*[\.\)]?\s)/i
+    );
+
     for (const block of blocks) {
       if (questions.length >= 30) break;
-      
-      const lines = block.split('\n').map(line => line.trim()).filter(line => line);
+
+      const lines = block
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line);
       if (lines.length < 4) continue; // Need at least question + 3 options
-      
-      let question = '';
+
+      let question = "";
       const options: string[] = [];
       let correctAnswer = 0;
-      let explanation = '';
-      
+      let explanation = "";
+
       for (const line of lines) {
         if (this.isQuestionLine(line) && !question) {
           question = this.extractQuestionText(line);
@@ -1735,60 +1845,70 @@ Make each question a valuable learning opportunity that reinforces key concepts,
           explanation = this.extractExplanationText(line);
         }
       }
-      
+
       if (question && options.length >= 4) {
         questions.push({
           question,
           options: options.slice(0, 4),
           correctAnswer,
-          explanation: explanation || `This is the correct answer for: ${question.substring(0, 50)}...`
+          explanation:
+            explanation ||
+            `This is the correct answer for: ${question.substring(0, 50)}...`,
         });
       }
     }
-    
+
     return questions;
   }
 
   private isQuestionLine(line: string): boolean {
-    return /^\d+[\.\)]?\s+/.test(line) || 
-           /^Q\d*[\.\)]?\s+/i.test(line) ||
-           /^Question\s*\d*[\.\)]?\s+/i.test(line) ||
-           line.toLowerCase().includes('question') ||
-           line.includes('?');
+    return (
+      /^\d+[\.\)]?\s+/.test(line) ||
+      /^Q\d*[\.\)]?\s+/i.test(line) ||
+      /^Question\s*\d*[\.\)]?\s+/i.test(line) ||
+      line.toLowerCase().includes("question") ||
+      line.includes("?")
+    );
   }
 
   private isOptionLine(line: string): boolean {
-    return /^[A-Da-d][\.\)]?\s+/.test(line) ||
-           /^\([A-Da-d]\)\s+/.test(line) ||
-           /^-\s+/.test(line) ||
-           /^\*\s+/.test(line);
+    return (
+      /^[A-Da-d][\.\)]?\s+/.test(line) ||
+      /^\([A-Da-d]\)\s+/.test(line) ||
+      /^-\s+/.test(line) ||
+      /^\*\s+/.test(line)
+    );
   }
 
   private isAnswerLine(line: string): boolean {
-    return /^(?:answer|correct|solution)[\s:]*[A-Da-d]/i.test(line) ||
-           /[A-Da-d]\s*(?:is|are)?\s*(?:the)?\s*(?:correct|right|answer)/i.test(line);
+    return (
+      /^(?:answer|correct|solution)[\s:]*[A-Da-d]/i.test(line) ||
+      /[A-Da-d]\s*(?:is|are)?\s*(?:the)?\s*(?:correct|right|answer)/i.test(line)
+    );
   }
 
   private isExplanationLine(line: string): boolean {
-    return /^(?:explanation|reason|because|rationale)[\s:]/i.test(line) ||
-           line.toLowerCase().includes('explanation') ||
-           line.toLowerCase().includes('because');
+    return (
+      /^(?:explanation|reason|because|rationale)[\s:]/i.test(line) ||
+      line.toLowerCase().includes("explanation") ||
+      line.toLowerCase().includes("because")
+    );
   }
 
   private extractQuestionText(line: string): string {
     return line
-      .replace(/^\d+[\.\)]?\s+/, '')
-      .replace(/^Q\d*[\.\)]?\s+/i, '')
-      .replace(/^Question\s*\d*[\.\)]?\s+/i, '')
+      .replace(/^\d+[\.\)]?\s+/, "")
+      .replace(/^Q\d*[\.\)]?\s+/i, "")
+      .replace(/^Question\s*\d*[\.\)]?\s+/i, "")
       .trim();
   }
 
   private extractOptionText(line: string): string {
     return line
-      .replace(/^[A-Da-d][\.\)]?\s+/, '')
-      .replace(/^\([A-Da-d]\)\s+/, '')
-      .replace(/^-\s+/, '')
-      .replace(/^\*\s+/, '')
+      .replace(/^[A-Da-d][\.\)]?\s+/, "")
+      .replace(/^\([A-Da-d]\)\s+/, "")
+      .replace(/^-\s+/, "")
+      .replace(/^\*\s+/, "")
       .trim();
   }
 
@@ -1796,27 +1916,33 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     const match = line.match(/[A-Da-d]/);
     if (match) {
       const letter = match[0].toUpperCase();
-      return ['A', 'B', 'C', 'D'].indexOf(letter);
+      return ["A", "B", "C", "D"].indexOf(letter);
     }
     return -1;
   }
 
   private extractExplanationText(line: string): string {
     return line
-      .replace(/^(?:explanation|reason|because|rationale)[\s:]*/i, '')
+      .replace(/^(?:explanation|reason|because|rationale)[\s:]*/i, "")
       .trim();
   }
 
-  private finalizeQuestion(questionData: any, index: number): GeminiQuizQuestion {
+  private finalizeQuestion(
+    questionData: any,
+    index: number
+  ): GeminiQuizQuestion {
     return {
       question: questionData.question || `Question ${index + 1}`,
-      options: questionData.options && questionData.options.length >= 4 
-        ? questionData.options.slice(0, 4) 
-        : ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctAnswer: typeof questionData.correctAnswer === 'number' 
-        ? Math.max(0, Math.min(3, questionData.correctAnswer))
-        : 0,
-      explanation: questionData.explanation || `Explanation for question ${index + 1}`
+      options:
+        questionData.options && questionData.options.length >= 4
+          ? questionData.options.slice(0, 4)
+          : ["Option A", "Option B", "Option C", "Option D"],
+      correctAnswer:
+        typeof questionData.correctAnswer === "number"
+          ? Math.max(0, Math.min(3, questionData.correctAnswer))
+          : 0,
+      explanation:
+        questionData.explanation || `Explanation for question ${index + 1}`,
     };
   }
 
@@ -2034,7 +2160,10 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     lessonTitle: string,
     lessonContent: string
   ): Promise<string> {
-    if (!this.apiKey) {
+    try {
+      await this.getApiKey(); // Check if API key exists
+    } catch (error) {
+      console.warn("User's Gemini API key not configured, using basic summary. Error:", error);
       return this.generateBasicSummary(lessonTitle, lessonContent);
     }
 

@@ -1,24 +1,24 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircle2, 
-  Clock, 
-  Play, 
-  HelpCircle, 
-  Sparkles, 
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  CheckCircle2,
+  Clock,
+  Play,
+  HelpCircle,
+  Sparkles,
   BookOpen,
   Video,
   Brain,
   Loader2,
   Youtube,
-  Wand2
-} from 'lucide-react';
+  Wand2,
+} from "lucide-react";
 
 export interface GenerationStep {
   id: string;
   title: string;
-  type: 'subtopic' | 'videos' | 'quiz' | 'content';
-  status: 'pending' | 'in-progress' | 'completed' | 'error';
+  type: "subtopic" | "videos" | "quiz" | "content";
+  status: "pending" | "in-progress" | "completed" | "error";
   details?: string;
   estimatedDuration?: number;
 }
@@ -38,25 +38,25 @@ export const CourseGenerationModal: React.FC<CourseGenerationModalProps> = ({
   mainTopic,
   steps,
   currentStepId,
-  onClose
+  onClose,
 }) => {
   const getStepIcon = (step: GenerationStep) => {
-    if (step.status === 'completed') {
+    if (step.status === "completed") {
       return <CheckCircle2 className="h-6 w-6 text-green-500" />;
     }
-    
-    if (step.status === 'in-progress') {
+
+    if (step.status === "in-progress") {
       return <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />;
     }
 
     switch (step.type) {
-      case 'subtopic':
+      case "subtopic":
         return <BookOpen className="h-6 w-6 text-gray-400" />;
-      case 'videos':
+      case "videos":
         return <Youtube className="h-6 w-6 text-gray-400" />;
-      case 'quiz':
+      case "quiz":
         return <HelpCircle className="h-6 w-6 text-gray-400" />;
-      case 'content':
+      case "content":
         return <Brain className="h-6 w-6 text-gray-400" />;
       default:
         return <Clock className="h-6 w-6 text-gray-400" />;
@@ -65,36 +65,38 @@ export const CourseGenerationModal: React.FC<CourseGenerationModalProps> = ({
 
   const getStepColor = (step: GenerationStep) => {
     switch (step.status) {
-      case 'completed':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
-      case 'in-progress':
-        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-2 ring-blue-500/20';
-      case 'error':
-        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+      case "completed":
+        return "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+      case "in-progress":
+        return "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-2 ring-blue-500/20";
+      case "error":
+        return "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
       default:
-        return 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
+        return "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700";
     }
   };
 
   const getProgressPercentage = () => {
-    const completedSteps = steps.filter(step => step.status === 'completed').length;
+    const completedSteps = steps.filter(
+      (step) => step.status === "completed"
+    ).length;
     return (completedSteps / steps.length) * 100;
   };
 
   const getCurrentStepDetails = () => {
-    const currentStep = steps.find(step => step.id === currentStepId);
+    const currentStep = steps.find((step) => step.id === currentStepId);
     if (!currentStep) return null;
 
     const stepDescriptions = {
-      subtopic: 'Analyzing and structuring course content...',
-      videos: 'Searching for high-quality educational videos...',
-      quiz: 'Generating intelligent quiz questions...',
-      content: 'Creating comprehensive lesson content...'
+      subtopic: "Analyzing and structuring course content...",
+      videos: "Searching for high-quality educational videos...",
+      quiz: "Generating intelligent quiz questions...",
+      content: "Creating comprehensive lesson content...",
     };
 
     return {
       ...currentStep,
-      description: stepDescriptions[currentStep.type] || 'Processing...'
+      description: stepDescriptions[currentStep.type] || "Processing...",
     };
   };
 
@@ -124,7 +126,7 @@ export const CourseGenerationModal: React.FC<CourseGenerationModalProps> = ({
                   <p className="text-white/90">{courseTitle}</p>
                 </div>
               </div>
-              
+
               {/* Progress Bar */}
               <div className="mt-4">
                 <div className="flex justify-between text-sm text-white/80 mb-2">
@@ -168,13 +170,15 @@ export const CourseGenerationModal: React.FC<CourseGenerationModalProps> = ({
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`p-4 rounded-2xl border-2 transition-all duration-300 ${getStepColor(step)}`}
+                    className={`p-4 rounded-2xl border-2 transition-all duration-300 ${getStepColor(
+                      step
+                    )}`}
                   >
                     <div className="flex items-start space-x-4">
                       <div className="flex-shrink-0 mt-0.5">
                         {getStepIcon(step)}
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <h3 className="font-semibold text-gray-900 dark:text-white">
@@ -187,31 +191,43 @@ export const CourseGenerationModal: React.FC<CourseGenerationModalProps> = ({
                             </span>
                           )}
                         </div>
-                        
+
                         {step.details && (
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             {step.details}
                           </p>
                         )}
-                        
-                        {step.status === 'in-progress' && (
+
+                        {step.status === "in-progress" && (
                           <div className="mt-2">
                             <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
                               <div className="flex space-x-1">
                                 <motion.div
                                   className="w-1 h-1 bg-blue-500 rounded-full"
                                   animate={{ scale: [1, 1.5, 1] }}
-                                  transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                                  transition={{
+                                    duration: 1,
+                                    repeat: Infinity,
+                                    delay: 0,
+                                  }}
                                 />
                                 <motion.div
                                   className="w-1 h-1 bg-blue-500 rounded-full"
                                   animate={{ scale: [1, 1.5, 1] }}
-                                  transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                                  transition={{
+                                    duration: 1,
+                                    repeat: Infinity,
+                                    delay: 0.2,
+                                  }}
                                 />
                                 <motion.div
                                   className="w-1 h-1 bg-blue-500 rounded-full"
                                   animate={{ scale: [1, 1.5, 1] }}
-                                  transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                                  transition={{
+                                    duration: 1,
+                                    repeat: Infinity,
+                                    delay: 0.4,
+                                  }}
                                 />
                               </div>
                               <span>Processing...</span>
@@ -230,7 +246,9 @@ export const CourseGenerationModal: React.FC<CourseGenerationModalProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                   <Brain className="h-4 w-4" />
-                  <span>AI is creating high-quality educational content...</span>
+                  <span>
+                    AI is creating high-quality educational content...
+                  </span>
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   Topic: {mainTopic}
