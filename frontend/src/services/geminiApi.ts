@@ -60,28 +60,31 @@ class GeminiAPIService {
 
     try {
       const prompt = `
-Analyze this course request and extract the main topic and subtopics:
+CRITICAL: You must stay EXACTLY on the topic requested. Do not deviate or generalize.
 
 User Request: "${userPrompt}"
 
+Analyze this EXACT request and create subtopics that are DIRECTLY related to this specific topic only.
+
+STRICT RULES:
+- Keep the EXACT main topic from the user's request - do not change or generalize it
+- Create subtopics that are SPECIFICALLY about this topic, not general related concepts
+- Do NOT suggest alternative or broader topics
+- Stay focused on the user's EXACT request
+
 Please respond with a JSON object in this exact format:
 {
-  "mainTopic": "The main subject (e.g., Psychology, Machine Learning, etc.)",
-  "subtopics": ["Subtopic 1", "Subtopic 2", "Subtopic 3", ...],
+  "mainTopic": "Use the EXACT topic from user request",
+  "subtopics": ["Specific subtopic 1", "Specific subtopic 2", "Specific subtopic 3", ...],
   "difficulty": "beginner|intermediate|advanced",
   "estimatedDuration": 6,
   "prerequisites": ["Prerequisite 1", "Prerequisite 2"],
   "learningObjectives": ["Objective 1", "Objective 2", "Objective 3"]
 }
 
-Rules:
-- Extract 6-12 logical subtopics that build upon each other
-- Determine appropriate difficulty level from the request
-- Estimate duration in hours (4-12 hours typical)
-- List realistic prerequisites
-- Create 5-7 specific learning objectives
+EXAMPLE: If user asks "sex positions", main topic should be "sex positions" and subtopics should be specific types/categories of sex positions, NOT general relationship advice.
 
-Focus on creating a logical learning progression.
+Create 6-12 logical subtopics that build upon each other within this EXACT topic.
 `;
 
       const response = await this.callGeminiAPI(prompt);
@@ -101,18 +104,24 @@ Focus on creating a logical learning progression.
 
     try {
       const prompt = `
+CRITICAL: Stay EXACTLY focused on "${extractedTopic.mainTopic}". Do not deviate from this topic.
+
 Create a comprehensive course structure for: "${extractedTopic.mainTopic}"
+
+MANDATORY: All content must be directly about "${extractedTopic.mainTopic}" - do not generalize or suggest related topics.
 
 Subtopics to cover: ${extractedTopic.subtopics.join(", ")}
 Difficulty: ${extractedTopic.difficulty}
 Duration: ${extractedTopic.estimatedDuration} hours
 
 For each subtopic, provide:
-1. Detailed description
-2. 4-6 key learning points
+1. Detailed description specifically about "${extractedTopic.mainTopic}"
+2. 4-6 key learning points directly related to this subtopic
 3. Estimated duration (30-60 minutes)
-4. 3-5 YouTube search terms for finding relevant videos
-5. 30 comprehensive quiz questions with multiple choice answers
+4. 3-5 YouTube search terms that will find videos specifically about this subtopic
+5. Comprehensive quiz questions specifically about this subtopic
+
+IMPORTANT: Do not suggest alternative topics or broader concepts. Stay focused on the exact requested topic.
 
 Respond with JSON in this format:
 {

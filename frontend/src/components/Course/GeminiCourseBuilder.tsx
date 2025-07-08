@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { InteractiveQuiz } from '../Quiz/InteractiveQuiz';
 import { VideoPlayer } from './VideoPlayer';
 import { useAuthStore } from '../../store/authStore';
+import { CourseGenerationSidebar, RealGenerationStep } from './CourseGenerationSidebar';
 import toast from 'react-hot-toast';
 
 export const GeminiCourseBuilder: React.FC = () => {
@@ -44,7 +45,76 @@ export const GeminiCourseBuilder: React.FC = () => {
   });
   const [generationProgress, setGenerationProgress] = useState<string>('');
   const [currentStep, setCurrentStep] = useState<number>(0);
+  const [showGenerationSidebar, setShowGenerationSidebar] = useState<boolean>(false);
+  const [realGenerationSteps, setRealGenerationSteps] = useState<RealGenerationStep[]>([]);
+  const [courseSubtopics, setCourseSubtopics] = useState<any[]>([]);
+  const [currentStepId, setCurrentStepId] = useState<string>('');
   const { addCourse } = useCourseStore();
+
+  const createRealGenerationSteps = (subtopics: any[]): RealGenerationStep[] => {
+    const steps: RealGenerationStep[] = [];
+    
+    // Add extracting subtopics step
+    steps.push({
+      id: 'extracting-subtopics',
+      title: `Extracting subtopics`,
+      type: 'extracting',
+      status: 'completed'
+    });
+
+    // Add structure generation step
+    steps.push({
+      id: 'course-structure',
+      title: `Analyzing course structure`,
+      type: 'structure',
+      status: 'completed'
+    });
+
+    // Add steps for each lesson
+    subtopics.forEach((subtopic: any, index: number) => {
+      // Lesson content step
+      steps.push({
+        id: `lesson-${index + 1}-content`,
+        title: `Lesson ${index + 1}: ${subtopic.title}`,
+        type: 'lesson',
+        status: 'pending',
+        subtopicIndex: index
+      });
+
+      // Video search step
+      steps.push({
+        id: `lesson-${index + 1}-videos`,
+        title: `Finding videos: ${subtopic.title}`,
+        type: 'videos',
+        status: 'pending',
+        subtopicIndex: index
+      });
+
+      // Quiz generation step
+      if (courseSettings.includeQuizzes) {
+        steps.push({
+          id: `lesson-${index + 1}-quiz`,
+          title: `Creating quiz: ${subtopic.title}`,
+          type: 'quiz',
+          status: 'pending',
+          subtopicIndex: index
+        });
+      }
+    });
+
+    return steps;
+  };
+
+  const updateRealStepStatus = (stepId: string, status: 'pending' | 'in-progress' | 'completed') => {
+    setRealGenerationSteps(prevSteps => 
+      prevSteps.map(step => 
+        step.id === stepId ? { ...step, status } : step
+      )
+    );
+    if (status === 'in-progress') {
+      setCurrentStepId(stepId);
+    }
+  };
 
   useEffect(() => {
     // Check if user is logged in
@@ -54,7 +124,7 @@ export const GeminiCourseBuilder: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const generationSteps = [
+  const progressSteps = [
     'Checking YouTube API connection...',
     'Analyzing your course request with Gemini AI...',
     'Extracting main topic and subtopics...',
@@ -89,29 +159,75 @@ export const GeminiCourseBuilder: React.FC = () => {
 
     setIsGenerating(true);
     setCurrentStep(0);
-    setGenerationProgress(generationSteps[0]);
+    setGenerationProgress(progressSteps[0]);
+    
+    // Show sidebar when generation starts with initial extracting step
+    const initialSteps: RealGenerationStep[] = [
+      {
+        id: 'extracting-subtopics',
+        title: 'Extracting subtopics',
+        type: 'extracting',
+        status: 'in-progress'
+      }
+    ];
+    setRealGenerationSteps(initialSteps);
+    setCurrentStepId('extracting-subtopics');
+    setShowGenerationSidebar(true);
     
     try {
-      // Progress simulation
-      const progressInterval = setInterval(() => {
-        setCurrentStep(prev => {
-          const next = Math.min(prev + 1, generationSteps.length - 1);
-          setGenerationProgress(generationSteps[next]);
-          return next;
-        });
-      }, 3000);
+    // Progress simulation
+    const progressInterval = setInterval(() => {
+    setCurrentStep(prev => {
+    const next = Math.min(prev + 1, progressSteps.length - 1);
+    setGenerationProgress(progressSteps[next]);
+    return next;
+    });
+    }, 3000);
 
-      // Generate course with Gemini AI
+      // Generate course with Gemini AI  
       const result = await geminiCourseService.generateCourseWithGemini(userPrompt, {
         maxVideosPerSubtopic: courseSettings.maxVideosPerSubtopic,
         includeQuizzes: courseSettings.includeQuizzes,
-        questionsPerLesson: courseSettings.questionsPerLesson
+        questionsPerLesson: courseSettings.questionsPerLesson,
+        onStructureGenerated: (structure) => {
+          // Mark extracting as complete and set real subtopics
+          updateRealStepStatus('extracting-subtopics', 'completed');
+          setCourseSubtopics(structure.subtopics);
+          // Create real steps based on actual structure
+          const steps = createRealGenerationSteps(structure.subtopics);
+          setRealGenerationSteps(steps);
+        },
+        onLessonStart: (lessonIndex, lessonTitle) => {
+          updateRealStepStatus(`lesson-${lessonIndex + 1}-content`, 'in-progress');
+        },
+        onLessonVideosStart: (lessonIndex) => {
+          updateRealStepStatus(`lesson-${lessonIndex + 1}-content`, 'completed');
+          updateRealStepStatus(`lesson-${lessonIndex + 1}-videos`, 'in-progress');
+        },
+        onLessonVideosComplete: (lessonIndex) => {
+          updateRealStepStatus(`lesson-${lessonIndex + 1}-videos`, 'completed');
+        },
+        onLessonQuizStart: (lessonIndex) => {
+          if (courseSettings.includeQuizzes) {
+            updateRealStepStatus(`lesson-${lessonIndex + 1}-quiz`, 'in-progress');
+          }
+        },
+        onLessonQuizComplete: (lessonIndex) => {
+          if (courseSettings.includeQuizzes) {
+            updateRealStepStatus(`lesson-${lessonIndex + 1}-quiz`, 'completed');
+          }
+        },
+        onLessonComplete: (lessonIndex) => {
+          // Lesson is fully complete
+          console.log(`✅ Lesson ${lessonIndex + 1} completed`);
+        }
       });
 
       clearInterval(progressInterval);
       setGeneratedCourse(result);
       setGenerationProgress('');
       setCurrentStep(0);
+      setShowGenerationSidebar(false); // Hide sidebar when done
       
       toast.success(`🎉 Course generated! Found ${result.metadata.videoCount} real YouTube videos across ${result.metadata.subtopicsCount} topics.`);
       
@@ -276,12 +392,24 @@ export const GeminiCourseBuilder: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-12"
-      >
+    <>
+      {/* Course Generation Progress Sidebar */}
+      <CourseGenerationSidebar
+        isVisible={showGenerationSidebar}
+        courseTitle={generatedCourse?.course.title || userPrompt}
+        mainTopic={generatedCourse?.metadata.mainTopic || userPrompt.split(' ')[0] || "Course"}
+        subtopics={courseSubtopics}
+        steps={realGenerationSteps}
+        currentStep={currentStepId}
+        onClose={() => setShowGenerationSidebar(false)}
+      />
+
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
         <div className="flex items-center justify-center space-x-3 mb-4">
           <div className="bg-gradient-to-r from-brand-500 to-accent-500 p-3 rounded-2xl">
             <Sparkles className="h-8 w-8 text-white" />
@@ -505,7 +633,7 @@ export const GeminiCourseBuilder: React.FC = () => {
               {/* Progress Steps */}
               <div className="max-w-2xl mx-auto mb-6">
                 <div className="flex items-center justify-between">
-                  {generationSteps.map((step, index) => (
+                  {progressSteps.map((step, index) => (
                     <div
                       key={index}
                       className={`w-3 h-3 rounded-full transition-all duration-300 ${
@@ -517,7 +645,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                   ))}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Step {currentStep + 1} of {generationSteps.length}
+                  Step {currentStep + 1} of {progressSteps.length}
                 </div>
               </div>
               
@@ -649,9 +777,6 @@ export const GeminiCourseBuilder: React.FC = () => {
                               {getTypeIcon(lesson.type)}
                             </div>
                             <h4 className="font-semibold text-gray-900 dark:text-white">{lesson.title}</h4>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              ({lesson.estimatedDuration} min)
-                            </span>
                           </div>
                           <p className="text-gray-600 dark:text-gray-400 text-sm">
                             {lesson.videos.length} real videos • {lesson.articles.length} articles • {lesson.quiz_questions?.length || 0} quiz questions
@@ -690,10 +815,6 @@ export const GeminiCourseBuilder: React.FC = () => {
                           {generatedCourse.lessons[selectedLessonIndex].title}
                         </h3>
                         <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center space-x-1">
-                            <Clock className="h-4 w-4" />
-                            <span>{generatedCourse.lessons[selectedLessonIndex].estimatedDuration} minutes</span>
-                          </span>
                           <span className="flex items-center space-x-1">
                             <Video className="h-4 w-4" />
                             <span>{generatedCourse.lessons[selectedLessonIndex].videos.length} real videos</span>
@@ -868,6 +989,7 @@ export const GeminiCourseBuilder: React.FC = () => {
           </div>
         </motion.div>
       )}
-    </div>
+      </div>
+    </>
   );
 };

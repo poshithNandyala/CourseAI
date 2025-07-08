@@ -52,7 +52,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, autoplay = fals
         {isPlaying ? (
           <div className="relative w-full h-full">
             <iframe
-              src={`${safeVideo.embedUrl}${safeVideo.embedUrl.includes('?') ? '&' : '?'}autoplay=1&modestbranding=1&rel=0&showinfo=0`}
+              src={`${safeVideo.embedUrl}${safeVideo.embedUrl.includes('?') ? '&' : '?'}autoplay=0&modestbranding=1&rel=0&showinfo=0`}
               title={safeVideo.title}
               className="w-full h-full"
               frameBorder="0"

@@ -45,9 +45,27 @@ class GeminiCourseService {
       maxVideosPerSubtopic?: number;
       includeQuizzes?: boolean;
       questionsPerLesson?: number;
+      onStructureGenerated?: (structure: any) => void;
+      onLessonStart?: (lessonIndex: number, lessonTitle: string) => void;
+      onLessonVideosStart?: (lessonIndex: number) => void;
+      onLessonVideosComplete?: (lessonIndex: number) => void;
+      onLessonQuizStart?: (lessonIndex: number) => void;
+      onLessonQuizComplete?: (lessonIndex: number) => void;
+      onLessonComplete?: (lessonIndex: number) => void;
     } = {}
   ): Promise<GeminiCourseData> {
-    const { maxVideosPerSubtopic = 3, includeQuizzes = true, questionsPerLesson = 10 } = options;
+    const { 
+      maxVideosPerSubtopic = 3, 
+      includeQuizzes = true, 
+      questionsPerLesson = 10,
+      onStructureGenerated,
+      onLessonStart,
+      onLessonVideosStart,
+      onLessonVideosComplete,
+      onLessonQuizStart,
+      onLessonQuizComplete,
+      onLessonComplete
+    } = options;
 
     console.log(`🧠 Starting Gemini-powered course generation for: "${userPrompt}"`);
     
@@ -70,6 +88,11 @@ class GeminiCourseService {
       console.log('🏗️ Step 2: Generating detailed course structure...');
       const courseStructure = await geminiAPI.generateCourseStructure(extractedTopic);
       console.log('✅ Course structure generated with', courseStructure.subtopics.length, 'lessons');
+      
+      // Notify about structure generation
+      if (onStructureGenerated) {
+        onStructureGenerated(courseStructure);
+      }
 
       // Step 3: Fetch REAL YouTube videos for each subtopic
       console.log('🎥 Step 3: Fetching REAL YouTube videos for each subtopic...');
@@ -77,7 +100,15 @@ class GeminiCourseService {
         courseStructure,
         maxVideosPerSubtopic,
         includeQuizzes,
-        questionsPerLesson
+        questionsPerLesson,
+        {
+          onLessonStart,
+          onLessonVideosStart,
+          onLessonVideosComplete,
+          onLessonQuizStart,
+          onLessonQuizComplete,
+          onLessonComplete
+        }
       );
 
       // Step 4: Create course data
@@ -124,7 +155,15 @@ class GeminiCourseService {
     courseStructure: GeminiCourseStructure,
     maxVideosPerSubtopic: number,
     includeQuizzes: boolean,
-    questionsPerLesson: number
+    questionsPerLesson: number,
+    callbacks?: {
+      onLessonStart?: (lessonIndex: number, lessonTitle: string) => void;
+      onLessonVideosStart?: (lessonIndex: number) => void;
+      onLessonVideosComplete?: (lessonIndex: number) => void;
+      onLessonQuizStart?: (lessonIndex: number) => void;
+      onLessonQuizComplete?: (lessonIndex: number) => void;
+      onLessonComplete?: (lessonIndex: number) => void;
+    }
   ): Promise<GeminiLesson[]> {
     const enrichedLessons: GeminiLesson[] = [];
     const usedVideoIds = new Set<string>(); // Track used videos across all lessons
@@ -133,7 +172,17 @@ class GeminiCourseService {
       const subtopic = courseStructure.subtopics[i];
       console.log(`🔄 Processing lesson ${i + 1}/${courseStructure.subtopics.length}: "${subtopic.title}"`);
 
+      // Notify lesson start
+      if (callbacks?.onLessonStart) {
+        callbacks.onLessonStart(i, subtopic.title);
+      }
+
       try {
+        // Notify video search start
+        if (callbacks?.onLessonVideosStart) {
+          callbacks.onLessonVideosStart(i);
+        }
+
         // Fetch REAL YouTube videos using the Supabase service
         console.log(`  🎬 Searching for REAL videos...`);
         const videos = await supabaseYouTubeService.searchAndStoreVideosUnique(
@@ -147,12 +196,22 @@ class GeminiCourseService {
         // Add video IDs to used set
         videos.forEach(video => usedVideoIds.add(video.id));
 
+        // Notify video search complete
+        if (callbacks?.onLessonVideosComplete) {
+          callbacks.onLessonVideosComplete(i);
+        }
+
         // Generate articles (mock for now, can be enhanced with real article APIs)
         const articles = this.generateArticles(courseStructure.mainTopic, subtopic.title);
 
         // Generate comprehensive quiz questions using Gemini AI
         let quizQuestions: any[] = [];
         if (includeQuizzes) {
+          // Notify quiz generation start
+          if (callbacks?.onLessonQuizStart) {
+            callbacks.onLessonQuizStart(i);
+          }
+
           console.log(`  ❓ Generating comprehensive AI quiz (${questionsPerLesson} questions)...`);
           console.log(`  📝 Topic: ${courseStructure.mainTopic}, Lesson: ${subtopic.title}`);
           try {
@@ -241,6 +300,11 @@ class GeminiCourseService {
               console.log(`  ✅ FORCED generation of ${quizQuestions.length} enhanced manual quiz questions`);
             }
           }
+
+          // Notify quiz generation complete
+          if (callbacks?.onLessonQuizComplete) {
+            callbacks.onLessonQuizComplete(i);
+          }
         }
 
         // Create lesson with STORED video information
@@ -268,6 +332,11 @@ class GeminiCourseService {
         };
 
         enrichedLessons.push(lesson);
+
+        // Notify lesson completion
+        if (callbacks?.onLessonComplete) {
+          callbacks.onLessonComplete(i);
+        }
 
         // Add delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));

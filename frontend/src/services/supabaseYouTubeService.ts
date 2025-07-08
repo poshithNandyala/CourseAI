@@ -97,20 +97,23 @@ class SupabaseYouTubeService {
 
   private async performYouTubeSearch(query: string): Promise<YouTubeVideo[]> {
     // Step 1: Search for videos
+    // Add "tutorial OR educational OR guide" to improve relevance
+    const enhancedQuery = `${query} (tutorial OR educational OR guide OR lesson OR how to)`;
+    
     const searchParams = new URLSearchParams({
       part: 'snippet',
-      q: query,
+      q: enhancedQuery,
       type: 'video',
-      maxResults: '15', // Increased to get more options for filtering
+      maxResults: '20', // Increased for better filtering
       order: 'relevance',
-      videoDuration: 'any', // Allow different durations for better variety
-      videoDefinition: 'any', // Don't restrict to high def only
+      videoDuration: 'medium', // Exclude shorts (medium = 4-20 minutes)
+      videoDefinition: 'any',
       videoEmbeddable: 'true',
       videoSyndicated: 'true',
       safeSearch: 'strict',
       relevanceLanguage: 'en',
       regionCode: 'US',
-      publishedAfter: new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString(), // Extended to 3 years for more quality content
+      publishedAfter: new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString(),
       key: this.apiKey
     });
 
@@ -183,9 +186,12 @@ class SupabaseYouTubeService {
     const mainTopicLower = mainTopic.toLowerCase();
     const subtopicLower = subtopic.toLowerCase();
 
-    // Title relevance (highest weight)
-    if (titleLower.includes(mainTopicLower)) score += 30;
-    if (titleLower.includes(subtopicLower)) score += 25;
+    // Title relevance (highest weight) - exact topic matching
+    if (titleLower.includes(mainTopicLower)) score += 40;
+    if (titleLower.includes(subtopicLower)) score += 35;
+    
+    // Bonus for having both main topic and subtopic in title
+    if (titleLower.includes(mainTopicLower) && titleLower.includes(subtopicLower)) score += 20;
     
     // Educational keywords
     const educationalKeywords = ['tutorial', 'course', 'guide', 'how to', 'step by step', 'explained', 'beginner', 'complete', 'comprehensive', 'masterclass', 'professional'];
@@ -226,15 +232,20 @@ class SupabaseYouTubeService {
     const likeScore = video.viewCount > 0 ? Math.min((video.likeCount / video.viewCount) * 100, 10) : 0; // Like ratio
     score += viewScore + likeScore;
 
-    // Video duration preference (prefer 5-20 minute videos for tutorials)
+    // Video duration preference (prefer 5-20 minute videos, exclude shorts)
     const durationParts = video.duration.split(':');
     const totalMinutes = durationParts.length === 2 
       ? parseInt(durationParts[0]) 
       : parseInt(durationParts[0]) * 60 + parseInt(durationParts[1]);
     
-    if (totalMinutes >= 5 && totalMinutes <= 20) score += 10;
-    else if (totalMinutes >= 3 && totalMinutes <= 30) score += 5;
-    else if (totalMinutes < 2 || totalMinutes > 60) score -= 5;
+    // Heavily penalize shorts (under 1 minute)
+    if (totalMinutes < 1) score -= 50;
+    // Penalize very short videos (1-3 minutes, likely shorts)
+    else if (totalMinutes >= 1 && totalMinutes < 3) score -= 20;
+    // Prefer medium length educational videos
+    else if (totalMinutes >= 5 && totalMinutes <= 20) score += 15;
+    else if (totalMinutes >= 3 && totalMinutes <= 30) score += 10;
+    else if (totalMinutes > 60) score -= 10;
 
     // Recent content bonus
     const publishDate = new Date(video.publishedAt);
@@ -244,10 +255,15 @@ class SupabaseYouTubeService {
     else if (monthsOld < 24) score += 2;
 
     // Penalty for obviously irrelevant content
-    const irrelevantKeywords = ['reaction', 'drama', 'gossip', 'haul', 'unboxing', 'shopping', 'try not to', 'challenge', 'prank'];
+    const irrelevantKeywords = ['reaction', 'drama', 'gossip', 'haul', 'unboxing', 'shopping', 'try not to', 'challenge', 'prank', 'compilation', 'funny', 'meme', 'tiktok', 'shorts', 'vs', 'tier list'];
     irrelevantKeywords.forEach(keyword => {
-      if (titleLower.includes(keyword)) score -= 15;
+      if (titleLower.includes(keyword)) score -= 25;
     });
+
+    // Extra penalty for off-topic content 
+    if (!titleLower.includes(mainTopicLower) && !titleLower.includes(subtopicLower)) {
+      score -= 30;
+    }
 
     return Math.max(score, 0); // Ensure non-negative score
   }
@@ -256,16 +272,16 @@ class SupabaseYouTubeService {
     const topicLower = mainTopic.toLowerCase();
     const subtopicLower = subtopic.toLowerCase();
     
-    // Base search queries
+    // Base search queries - keep topic focused
     const baseQueries = [
-      `${mainTopic} ${subtopic} tutorial`,
-      `${subtopic} ${mainTopic} explained`,
-      `learn ${subtopic} ${mainTopic}`,
-      `${mainTopic} ${subtopic} course`,
-      `${subtopic} basics ${mainTopic}`,
-      `how to ${subtopic} ${mainTopic}`,
-      `${subtopic} guide ${mainTopic}`,
-      `${mainTopic} ${subtopic} step by step`
+      `"${mainTopic}" "${subtopic}" tutorial`,
+      `"${subtopic}" "${mainTopic}" explained`,
+      `"${mainTopic}" "${subtopic}" guide`,
+      `"${subtopic}" in "${mainTopic}"`,
+      `how to "${subtopic}" "${mainTopic}"`,
+      `"${mainTopic}" "${subtopic}" educational`,
+      `"${subtopic}" "${mainTopic}" lesson`,
+      `"${mainTopic}" "${subtopic}" comprehensive`
     ];
 
     // Topic-specific improvements
@@ -274,18 +290,16 @@ class SupabaseYouTubeService {
     // Beauty and skincare specific searches
     if (topicLower.includes('beauty') || topicLower.includes('skincare') || topicLower.includes('makeup')) {
       topicSpecificQueries = [
-        `${subtopic} skincare routine`,
-        `${subtopic} makeup tutorial`,
-        `beauty tips ${subtopic}`,
-        `${subtopic} skincare tips`,
-        `${subtopic} beauty routine`,
-        `professional ${subtopic} technique`,
-        `${subtopic} makeup artist`,
-        `${subtopic} beauty secrets`,
-        `${subtopic} skincare science`,
-        `${subtopic} dermatologist`,
-        `${subtopic} beauty review`,
-        `${subtopic} skin care ingredients`
+        `"${subtopic}" skincare routine`,
+        `"${subtopic}" makeup tutorial`,
+        `"${subtopic}" beauty tips`,
+        `"${subtopic}" skincare guide`,
+        `"${subtopic}" beauty technique`,
+        `"${subtopic}" professional method`,
+        `"${subtopic}" step by step beauty`,
+        `"${subtopic}" skincare education`,
+        `"${subtopic}" dermatologist advice`,
+        `"${subtopic}" beauty science`
       ];
     }
     
