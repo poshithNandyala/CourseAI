@@ -38,7 +38,12 @@ class SupabaseYouTubeService {
            url.startsWith('http');
   }
 
-  async searchAndStoreVideos(mainTopic: string, subtopic: string, maxResults = 3): Promise<YouTubeVideo[]> {
+  async searchAndStoreVideosUnique(mainTopic: string, subtopic: string, maxResults = 3, usedVideoIds?: Set<string>): Promise<YouTubeVideo[]> {
+    const videos = await this.searchAndStoreVideos(mainTopic, subtopic, maxResults * 3, usedVideoIds); // Search for more to account for filtering
+    return videos.slice(0, maxResults);
+  }
+
+  async searchAndStoreVideos(mainTopic: string, subtopic: string, maxResults = 3, usedVideoIds?: Set<string>): Promise<YouTubeVideo[]> {
     if (!this.apiKey) {
       console.error('❌ YouTube API key is missing!');
       throw new Error('YouTube API key is required. Please add VITE_YOUTUBE_API_KEY to your .env file');
@@ -49,14 +54,8 @@ class SupabaseYouTubeService {
     try {
       let allVideos: YouTubeVideo[] = [];
 
-      // Multiple search strategies for better results
-      const searchQueries = [
-        `${mainTopic} ${subtopic} tutorial`,
-        `${subtopic} ${mainTopic} explained`,
-        `learn ${subtopic} ${mainTopic}`,
-        `${mainTopic} ${subtopic} course`,
-        `${subtopic} basics ${mainTopic}`
-      ];
+      // Multiple search strategies for better results with topic-specific improvements
+      const searchQueries = this.generateImprovedSearchQueries(mainTopic, subtopic);
 
       for (const query of searchQueries) {
         if (allVideos.length >= maxResults * 2) break;
@@ -77,8 +76,13 @@ class SupabaseYouTubeService {
       // Remove duplicates and score
       const uniqueVideos = this.removeDuplicatesAndScore(allVideos, mainTopic, subtopic);
 
+      // Filter out already used videos across lessons
+      const filteredVideos = usedVideoIds 
+        ? uniqueVideos.filter(video => !usedVideoIds.has(video.id))
+        : uniqueVideos;
+
       // Sort by relevance and return top results
-      const bestVideos = uniqueVideos
+      const bestVideos = filteredVideos
         .sort((a, b) => b.relevanceScore - a.relevanceScore)
         .slice(0, maxResults);
 
@@ -97,16 +101,16 @@ class SupabaseYouTubeService {
       part: 'snippet',
       q: query,
       type: 'video',
-      maxResults: '10',
+      maxResults: '15', // Increased to get more options for filtering
       order: 'relevance',
-      videoDuration: 'medium',
-      videoDefinition: 'high',
+      videoDuration: 'any', // Allow different durations for better variety
+      videoDefinition: 'any', // Don't restrict to high def only
       videoEmbeddable: 'true',
       videoSyndicated: 'true',
       safeSearch: 'strict',
       relevanceLanguage: 'en',
       regionCode: 'US',
-      publishedAfter: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+      publishedAfter: new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString(), // Extended to 3 years for more quality content
       key: this.apiKey
     });
 
@@ -175,33 +179,187 @@ class SupabaseYouTubeService {
     
     const titleLower = video.title.toLowerCase();
     const descriptionLower = video.description.toLowerCase();
+    const channelLower = video.channelTitle.toLowerCase();
     const mainTopicLower = mainTopic.toLowerCase();
     const subtopicLower = subtopic.toLowerCase();
 
     // Title relevance (highest weight)
     if (titleLower.includes(mainTopicLower)) score += 30;
     if (titleLower.includes(subtopicLower)) score += 25;
-    if (titleLower.includes('tutorial')) score += 15;
-    if (titleLower.includes('course')) score += 15;
-    if (titleLower.includes('beginner')) score += 10;
-    if (titleLower.includes('explained')) score += 10;
+    
+    // Educational keywords
+    const educationalKeywords = ['tutorial', 'course', 'guide', 'how to', 'step by step', 'explained', 'beginner', 'complete', 'comprehensive', 'masterclass', 'professional'];
+    educationalKeywords.forEach(keyword => {
+      if (titleLower.includes(keyword)) score += 12;
+    });
 
     // Description relevance
     if (descriptionLower.includes(mainTopicLower)) score += 10;
     if (descriptionLower.includes(subtopicLower)) score += 10;
 
-    // Channel quality indicators
-    const educationalChannels = ['khan academy', 'coursera', 'edx', 'mit', 'stanford', 'harvard', 'crash course'];
-    if (educationalChannels.some(channel => video.channelTitle.toLowerCase().includes(channel))) {
-      score += 20;
+    // Topic-specific scoring
+    if (mainTopicLower.includes('beauty') || mainTopicLower.includes('skincare') || mainTopicLower.includes('makeup')) {
+      // Beauty-specific channels and keywords
+      const beautyChannels = ['james welsh', 'hyram', 'gothamista', 'mixed makeup', 'skincare by hyram', 'cassandra bankson', 'dr dray'];
+      const beautyKeywords = ['skincare', 'routine', 'glow', 'acne', 'anti-aging', 'moisturizer', 'serum', 'cleanser', 'makeup', 'foundation', 'concealer'];
+      
+      if (beautyChannels.some(channel => channelLower.includes(channel))) score += 25;
+      beautyKeywords.forEach(keyword => {
+        if (titleLower.includes(keyword) || descriptionLower.includes(keyword)) score += 8;
+      });
     }
 
-    // View count and engagement
-    const viewScore = Math.min(video.viewCount / 100000, 10);
-    const likeScore = Math.min(video.likeCount / 1000, 5);
+    // General educational channels
+    const educationalChannels = ['khan academy', 'coursera', 'edx', 'mit', 'stanford', 'harvard', 'crash course', 'ted-ed', 'freeCodeCamp'];
+    if (educationalChannels.some(channel => channelLower.includes(channel))) {
+      score += 25;
+    }
+
+    // Professional/Expert indicators
+    const expertIndicators = ['dr ', 'professor', 'phd', 'expert', 'professional', 'certified', 'licensed'];
+    if (expertIndicators.some(indicator => titleLower.includes(indicator) || channelLower.includes(indicator))) {
+      score += 15;
+    }
+
+    // View count and engagement (improved scoring)
+    const viewScore = Math.min(Math.log10(video.viewCount + 1) * 2, 15); // Logarithmic scaling
+    const likeScore = video.viewCount > 0 ? Math.min((video.likeCount / video.viewCount) * 100, 10) : 0; // Like ratio
     score += viewScore + likeScore;
 
-    return score;
+    // Video duration preference (prefer 5-20 minute videos for tutorials)
+    const durationParts = video.duration.split(':');
+    const totalMinutes = durationParts.length === 2 
+      ? parseInt(durationParts[0]) 
+      : parseInt(durationParts[0]) * 60 + parseInt(durationParts[1]);
+    
+    if (totalMinutes >= 5 && totalMinutes <= 20) score += 10;
+    else if (totalMinutes >= 3 && totalMinutes <= 30) score += 5;
+    else if (totalMinutes < 2 || totalMinutes > 60) score -= 5;
+
+    // Recent content bonus
+    const publishDate = new Date(video.publishedAt);
+    const monthsOld = (Date.now() - publishDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+    if (monthsOld < 6) score += 8;
+    else if (monthsOld < 12) score += 5;
+    else if (monthsOld < 24) score += 2;
+
+    // Penalty for obviously irrelevant content
+    const irrelevantKeywords = ['reaction', 'drama', 'gossip', 'haul', 'unboxing', 'shopping', 'try not to', 'challenge', 'prank'];
+    irrelevantKeywords.forEach(keyword => {
+      if (titleLower.includes(keyword)) score -= 15;
+    });
+
+    return Math.max(score, 0); // Ensure non-negative score
+  }
+
+  private generateImprovedSearchQueries(mainTopic: string, subtopic: string): string[] {
+    const topicLower = mainTopic.toLowerCase();
+    const subtopicLower = subtopic.toLowerCase();
+    
+    // Base search queries
+    const baseQueries = [
+      `${mainTopic} ${subtopic} tutorial`,
+      `${subtopic} ${mainTopic} explained`,
+      `learn ${subtopic} ${mainTopic}`,
+      `${mainTopic} ${subtopic} course`,
+      `${subtopic} basics ${mainTopic}`,
+      `how to ${subtopic} ${mainTopic}`,
+      `${subtopic} guide ${mainTopic}`,
+      `${mainTopic} ${subtopic} step by step`
+    ];
+
+    // Topic-specific improvements
+    let topicSpecificQueries: string[] = [];
+    
+    // Beauty and skincare specific searches
+    if (topicLower.includes('beauty') || topicLower.includes('skincare') || topicLower.includes('makeup')) {
+      topicSpecificQueries = [
+        `${subtopic} skincare routine`,
+        `${subtopic} makeup tutorial`,
+        `beauty tips ${subtopic}`,
+        `${subtopic} skincare tips`,
+        `${subtopic} beauty routine`,
+        `professional ${subtopic} technique`,
+        `${subtopic} makeup artist`,
+        `${subtopic} beauty secrets`,
+        `${subtopic} skincare science`,
+        `${subtopic} dermatologist`,
+        `${subtopic} beauty review`,
+        `${subtopic} skin care ingredients`
+      ];
+    }
+    
+    // Programming specific searches
+    else if (topicLower.includes('programming') || topicLower.includes('coding') || topicLower.includes('development')) {
+      topicSpecificQueries = [
+        `${subtopic} programming tutorial`,
+        `${subtopic} coding examples`,
+        `${subtopic} development guide`,
+        `${subtopic} code tutorial`,
+        `learn ${subtopic} programming`,
+        `${subtopic} coding bootcamp`,
+        `${subtopic} developer tutorial`
+      ];
+    }
+    
+    // Science specific searches
+    else if (topicLower.includes('science') || topicLower.includes('physics') || topicLower.includes('chemistry') || topicLower.includes('biology')) {
+      topicSpecificQueries = [
+        `${subtopic} science experiment`,
+        `${subtopic} scientific explanation`,
+        `${subtopic} laboratory`,
+        `${subtopic} research study`,
+        `${subtopic} scientific method`,
+        `${subtopic} science documentary`
+      ];
+    }
+    
+    // Business and marketing specific searches
+    else if (topicLower.includes('business') || topicLower.includes('marketing') || topicLower.includes('finance')) {
+      topicSpecificQueries = [
+        `${subtopic} business strategy`,
+        `${subtopic} marketing tips`,
+        `${subtopic} business case study`,
+        `${subtopic} professional guide`,
+        `${subtopic} business skills`,
+        `${subtopic} industry insights`
+      ];
+    }
+    
+    // Fitness and health specific searches
+    else if (topicLower.includes('fitness') || topicLower.includes('health') || topicLower.includes('exercise')) {
+      topicSpecificQueries = [
+        `${subtopic} workout`,
+        `${subtopic} exercise routine`,
+        `${subtopic} fitness training`,
+        `${subtopic} health tips`,
+        `${subtopic} personal trainer`,
+        `${subtopic} fitness guide`
+      ];
+    }
+    
+    // Art and design specific searches
+    else if (topicLower.includes('art') || topicLower.includes('design') || topicLower.includes('drawing')) {
+      topicSpecificQueries = [
+        `${subtopic} art tutorial`,
+        `${subtopic} design process`,
+        `${subtopic} artistic technique`,
+        `${subtopic} creative process`,
+        `${subtopic} art lesson`,
+        `${subtopic} design principles`
+      ];
+    }
+
+    // Combine base and topic-specific queries
+    const allQueries = [...baseQueries, ...topicSpecificQueries];
+    
+    // Add quality indicators to search terms
+    const qualityIndicators = ['professional', 'expert', 'complete guide', 'masterclass', 'comprehensive'];
+    const enhancedQueries = qualityIndicators.map(indicator => 
+      `${indicator} ${subtopic} ${mainTopic}`
+    );
+    
+    return [...allQueries, ...enhancedQueries].slice(0, 15); // Limit to avoid too many API calls
   }
 
   private formatDuration(duration: string): string {

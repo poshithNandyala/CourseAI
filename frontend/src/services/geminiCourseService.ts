@@ -44,9 +44,10 @@ class GeminiCourseService {
     options: {
       maxVideosPerSubtopic?: number;
       includeQuizzes?: boolean;
+      questionsPerLesson?: number;
     } = {}
   ): Promise<GeminiCourseData> {
-    const { maxVideosPerSubtopic = 3, includeQuizzes = true } = options;
+    const { maxVideosPerSubtopic = 3, includeQuizzes = true, questionsPerLesson = 10 } = options;
 
     console.log(`🧠 Starting Gemini-powered course generation for: "${userPrompt}"`);
     
@@ -75,7 +76,8 @@ class GeminiCourseService {
       const enrichedLessons = await this.enrichLessonsWithRealVideos(
         courseStructure,
         maxVideosPerSubtopic,
-        includeQuizzes
+        includeQuizzes,
+        questionsPerLesson
       );
 
       // Step 4: Create course data
@@ -121,9 +123,11 @@ class GeminiCourseService {
   private async enrichLessonsWithRealVideos(
     courseStructure: GeminiCourseStructure,
     maxVideosPerSubtopic: number,
-    includeQuizzes: boolean
+    includeQuizzes: boolean,
+    questionsPerLesson: number
   ): Promise<GeminiLesson[]> {
     const enrichedLessons: GeminiLesson[] = [];
+    const usedVideoIds = new Set<string>(); // Track used videos across all lessons
 
     for (let i = 0; i < courseStructure.subtopics.length; i++) {
       const subtopic = courseStructure.subtopics[i];
@@ -132,12 +136,16 @@ class GeminiCourseService {
       try {
         // Fetch REAL YouTube videos using the Supabase service
         console.log(`  🎬 Searching for REAL videos...`);
-        const videos = await supabaseYouTubeService.searchAndStoreVideos(
+        const videos = await supabaseYouTubeService.searchAndStoreVideosUnique(
           courseStructure.mainTopic,
           subtopic.title,
-          maxVideosPerSubtopic
+          maxVideosPerSubtopic,
+          usedVideoIds
         );
-        console.log(`  ✅ Found ${videos.length} REAL YouTube videos`);
+        console.log(`  ✅ Found ${videos.length} unique REAL YouTube videos`);
+        
+        // Add video IDs to used set
+        videos.forEach(video => usedVideoIds.add(video.id));
 
         // Generate articles (mock for now, can be enhanced with real article APIs)
         const articles = this.generateArticles(courseStructure.mainTopic, subtopic.title);
@@ -145,7 +153,7 @@ class GeminiCourseService {
         // Generate comprehensive quiz questions using Gemini AI
         let quizQuestions: any[] = [];
         if (includeQuizzes) {
-          console.log(`  ❓ Generating comprehensive AI quiz (30 questions)...`);
+          console.log(`  ❓ Generating comprehensive AI quiz (${questionsPerLesson} questions)...`);
           console.log(`  📝 Topic: ${courseStructure.mainTopic}, Lesson: ${subtopic.title}`);
           try {
             const lessonContent = this.createLessonContentForQuiz(subtopic, courseStructure.mainTopic);
@@ -153,11 +161,12 @@ class GeminiCourseService {
             const generatedQuiz = await geminiAPI.generateComprehensiveQuiz(
               courseStructure.mainTopic,
               subtopic.title,
-              lessonContent
+              lessonContent,
+              questionsPerLesson
             );
             console.log(`  🤖 AI returned ${generatedQuiz.length} questions`);
             
-            quizQuestions = generatedQuiz.map((q, index) => ({
+            quizQuestions = generatedQuiz.slice(0, questionsPerLesson).map((q, index) => ({
               id: `q-${index + 1}`,
               question: q.question,
               type: 'multiple_choice' as const,
@@ -172,8 +181,8 @@ class GeminiCourseService {
             console.log(`  ✅ Generated ${quizQuestions.length} comprehensive AI quiz questions`);
           } catch (error) {
             console.error(`  ❌ AI quiz generation failed, using enhanced fallback:`, error);
-            // Enhanced fallback with 30 questions using multiple quiz generation calls
-            console.log(`  🔄 Attempting enhanced fallback quiz generation (30 questions)...`);
+            // Enhanced fallback with specified number of questions
+            console.log(`  🔄 Attempting enhanced fallback quiz generation (${questionsPerLesson} questions)...`);
             
             try {
               // Generate basic quiz using Gemini without comprehensive mode
@@ -181,11 +190,12 @@ class GeminiCourseService {
               const basicQuiz = await geminiAPI.generateQuizQuestions(
                 courseStructure.mainTopic,
                 subtopic.title,
-                subtopic.keyPoints
+                subtopic.keyPoints,
+                questionsPerLesson
               );
               
               if (basicQuiz.length > 0) {
-                quizQuestions = basicQuiz.map((q, index) => ({
+                quizQuestions = basicQuiz.slice(0, questionsPerLesson).map((q, index) => ({
                   id: `q-${index + 1}`,
                   question: q.question,
                   type: 'multiple_choice' as const,
@@ -200,20 +210,20 @@ class GeminiCourseService {
               }
             } catch (aiError) {
               console.error(`  ❌ Both AI methods failed, using manual fallback:`, aiError);
-              // Final fallback to enhanced manual generation - FORCE 30 questions
-              console.log(`  🔧 Forcing 30 questions with enhanced manual generation...`);
+              // Final fallback to enhanced manual generation - FORCE specified number of questions
+              console.log(`  🔧 Forcing ${questionsPerLesson} questions with enhanced manual generation...`);
               
-              // Generate 30 questions directly using the enhanced method
+              // Generate the specified number of questions directly using the enhanced method
               const enhancedQuestions = [];
               const questionTypes = ['concept', 'practical', 'analysis', 'application', 'scenario'];
               
-              for (let q = 0; q < 30; q++) {
+              for (let q = 0; q < questionsPerLesson; q++) {
                 const type = questionTypes[q % questionTypes.length];
                 const keyPoint = subtopic.keyPoints[q % subtopic.keyPoints.length] || `Understanding ${subtopic.title}`;
                 
                 enhancedQuestions.push({
                   id: `q-${q + 1}`,
-                  question: `[${type.toUpperCase()}] How does ${keyPoint} apply in ${courseStructure.mainTopic}? (Question ${q + 1}/30)`,
+                  question: `[${type.toUpperCase()}] How does ${keyPoint} apply in ${courseStructure.mainTopic}? (Question ${q + 1}/${questionsPerLesson})`,
                   type: 'multiple_choice' as const,
                   options: [
                     `By implementing ${keyPoint} systematically`,
@@ -223,7 +233,7 @@ class GeminiCourseService {
                   ],
                   correct_answer: 0,
                   explanation: `${keyPoint} requires systematic implementation with practical considerations for effective results in ${courseStructure.mainTopic}.`,
-                  difficulty: q < 10 ? 'basic' : q < 25 ? 'intermediate' : 'advanced'
+                  difficulty: q < Math.floor(questionsPerLesson * 0.3) ? 'basic' : q < Math.floor(questionsPerLesson * 0.8) ? 'intermediate' : 'advanced'
                 });
               }
               

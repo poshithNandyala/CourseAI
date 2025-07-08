@@ -39,7 +39,8 @@ export const GeminiCourseBuilder: React.FC = () => {
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
   const [courseSettings, setCourseSettings] = useState({
     maxVideosPerSubtopic: 3,
-    includeQuizzes: true
+    includeQuizzes: true,
+    questionsPerLesson: 10
   });
   const [generationProgress, setGenerationProgress] = useState<string>('');
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -103,7 +104,8 @@ export const GeminiCourseBuilder: React.FC = () => {
       // Generate course with Gemini AI
       const result = await geminiCourseService.generateCourseWithGemini(userPrompt, {
         maxVideosPerSubtopic: courseSettings.maxVideosPerSubtopic,
-        includeQuizzes: courseSettings.includeQuizzes
+        includeQuizzes: courseSettings.includeQuizzes,
+        questionsPerLesson: courseSettings.questionsPerLesson
       });
 
       clearInterval(progressInterval);
@@ -379,7 +381,7 @@ export const GeminiCourseBuilder: React.FC = () => {
               <span>Course Settings</span>
             </h3>
             
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Videos per Lesson
@@ -397,6 +399,26 @@ export const GeminiCourseBuilder: React.FC = () => {
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Number of YouTube videos to find for each lesson
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Questions per Lesson
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="30"
+                  value={courseSettings.questionsPerLesson}
+                  onChange={(e) => setCourseSettings(prev => ({ 
+                    ...prev, 
+                    questionsPerLesson: Math.max(5, Math.min(30, parseInt(e.target.value) || 10))
+                  }))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Number of quiz questions per lesson (5-30)
                 </p>
               </div>
               

@@ -158,7 +158,8 @@ Make it comprehensive and educational.
   async generateComprehensiveQuiz(
     topic: string,
     lessonTitle: string,
-    lessonContent: string
+    lessonContent: string,
+    questionsPerLesson: number = 30
   ): Promise<GeminiQuizQuestion[]> {
     if (!this.apiKey) {
       return this.generateBasicQuizQuestions(topic, lessonTitle, []);
@@ -171,7 +172,8 @@ Make it comprehensive and educational.
         topic,
         lessonTitle,
         lessonContent,
-        contentType
+        contentType,
+        questionsPerLesson
       );
 
       const response = await this.callGeminiAPI(prompt);
@@ -383,17 +385,22 @@ Make it comprehensive and educational.
     topic: string,
     lessonTitle: string,
     lessonContent: string,
-    contentType: string
+    contentType: string,
+    questionsPerLesson: number = 30
   ): string {
+    const basicCount = Math.floor(questionsPerLesson * 0.3);
+    const intermediateCount = Math.floor(questionsPerLesson * 0.5);
+    const advancedCount = questionsPerLesson - basicCount - intermediateCount;
+    
     const basePrompt = `
-You are a world-class educational assessment expert and quiz creator with expertise in cognitive science and learning theory. Create 30 exceptional, high-quality multiple-choice questions about "${lessonTitle}" within the topic of "${topic}".
+You are a world-class educational assessment expert and quiz creator with expertise in cognitive science and learning theory. Create ${questionsPerLesson} exceptional, high-quality multiple-choice questions about "${lessonTitle}" within the topic of "${topic}".
 
 Lesson Content to Cover:
 ${lessonContent}
 
 CRITICAL QUALITY REQUIREMENTS FOR TOP-NOTCH QUESTIONS:
-- Create exactly 30 questions that comprehensively cover ALL aspects of the lesson systematically
-- Questions should range from basic to advanced difficulty (10 basic, 15 intermediate, 5 advanced)
+- Create exactly ${questionsPerLesson} questions that comprehensively cover ALL aspects of the lesson systematically
+- Questions should range from basic to advanced difficulty (${basicCount} basic, ${intermediateCount} intermediate, ${advancedCount} advanced)
 - Include practical application questions that test real-world understanding and critical thinking
 - Each question must have 4 meaningful, well-crafted answer options with only one definitively correct answer
 - Provide detailed explanations that teach additional concepts and reinforce learning
@@ -420,9 +427,10 @@ PREMIUM QUESTION DESIGN PRINCIPLES:
 
     switch (contentType) {
       case "cpp":
+        const cppCodeBasedCount = Math.floor(questionsPerLesson * 0.6);
         specificInstructions = `
 C++ PROGRAMMING-SPECIFIC REQUIREMENTS FOR EXCEPTIONAL QUESTIONS:
-- Include 18-20 code-based questions with REAL, EXECUTABLE C++ code snippets
+- Include ${cppCodeBasedCount} code-based questions with REAL, EXECUTABLE C++ code snippets
 - Focus on C++ specific features: classes, objects, inheritance, polymorphism, templates, STL
 - Add syntax, logic, and output prediction questions with ACTUAL C++ CODE
 - Include debugging scenarios with REAL buggy C++ code examples
@@ -868,27 +876,32 @@ Make each question a valuable learning opportunity that reinforces key concepts,
   async generateQuizQuestions(
     topic: string,
     subtopic: string,
-    keyPoints: string[]
+    keyPoints: string[],
+    questionsPerLesson: number = 30
   ): Promise<GeminiQuizQuestion[]> {
     if (!this.apiKey) {
       return this.generateEnhancedBasicQuizQuestions(
         topic,
         subtopic,
         keyPoints,
-        30
+        questionsPerLesson
       );
     }
 
     try {
+      const basicCount = Math.floor(questionsPerLesson * 0.3);
+      const intermediateCount = Math.floor(questionsPerLesson * 0.5);
+      const advancedCount = questionsPerLesson - basicCount - intermediateCount;
+      
       const prompt = `
-You are an expert quiz creator and educational specialist. Create 30 comprehensive, high-quality multiple-choice questions about "${subtopic}" within the topic of "${topic}".
+You are an expert quiz creator and educational specialist. Create ${questionsPerLesson} comprehensive, high-quality multiple-choice questions about "${subtopic}" within the topic of "${topic}".
 
 Key learning points to cover:
 ${keyPoints.map((point) => `- ${point}`).join("\n")}
 
 CRITICAL QUALITY REQUIREMENTS:
-- Create exactly 30 questions covering ALL aspects of the subtopic systematically
-- Questions should range from basic to advanced difficulty (10 basic, 15 intermediate, 5 advanced)
+- Create exactly ${questionsPerLesson} questions covering ALL aspects of the subtopic systematically
+- Questions should range from basic to advanced difficulty (${basicCount} basic, ${intermediateCount} intermediate, ${advancedCount} advanced)
 - Include practical application questions that test real-world understanding
 - Each question must have 4 meaningful answer options with only one correct
 - Provide detailed explanations for correct answers that teach additional concepts
