@@ -1,6 +1,7 @@
 import { Course, Lesson } from "../types";
 import { useAuthStore } from "../store/authStore";
 import toast from "react-hot-toast";
+import { courseCacheManager } from "../utils/courseCache";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -157,6 +158,14 @@ export const fetchCourseById = async (
   ownerMode: boolean = false
 ): Promise<{ course: Course; lessons: Lesson[] } | null> => {
   try {
+    // Check cache first (skip cache in owner mode since data might be more sensitive)
+    if (!ownerMode) {
+      const cachedData = courseCacheManager.getCachedCourse(courseId);
+      if (cachedData) {
+        return cachedData;
+      }
+    }
+
     console.log(
       `🔍 Fetching course details for ID: ${courseId} (ownerMode: ${ownerMode})`
     );
@@ -196,6 +205,8 @@ export const fetchCourseById = async (
         ratings_count: data.data.course.ratings_count || 0,
         created_at: data.data.course.createdAt || data.data.course.created_at,
         updated_at: data.data.course.updatedAt || data.data.course.updated_at,
+        summary: data.data.course.summary || data.data.course.description,
+        generated_content: data.data.course.generated_content || {}
       };
 
       const lessons: Lesson[] = data.data.lessons.map((lesson: any) => ({
@@ -217,6 +228,12 @@ export const fetchCourseById = async (
           0
         )} videos`
       );
+      
+      // Cache the result (skip caching in owner mode)
+      if (!ownerMode) {
+        courseCacheManager.setCachedCourse(courseId, course, lessons);
+      }
+      
       return { course, lessons };
     }
 

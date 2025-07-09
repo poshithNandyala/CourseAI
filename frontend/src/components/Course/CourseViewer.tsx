@@ -12,11 +12,15 @@ import {
   FileText,
   HelpCircle,
   AlertCircle,
+  TrendingUp,
 } from "lucide-react";
 import { fetchCourseById } from "../../services/courseService";
 import { useAuthStore } from "../../store/authStore";
 import { VideoPlayer } from "./VideoPlayer";
 import { InteractiveQuiz } from "../Quiz/InteractiveQuiz";
+import { CourseRating } from "./CourseRating";
+import { submitCourseRating, getUserCourseRating } from "../../services/ratingService";
+import { getCourseDurationStats, compareDurations } from "../../utils/durationCalculator";
 import toast from "react-hot-toast";
 
 export const CourseViewer: React.FC = () => {
@@ -31,6 +35,8 @@ export const CourseViewer: React.FC = () => {
     "overview"
   );
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
+  const [userRating, setUserRating] = useState<number | undefined>(undefined);
+  const [durationStats, setDurationStats] = useState<any>(null);
 
   useEffect(() => {
     if (!user) {
@@ -48,6 +54,27 @@ export const CourseViewer: React.FC = () => {
     loadCourse();
   }, [id, user]);
 
+  const handleRatingSubmit = async (rating: number) => {
+    if (!id) return;
+    
+    try {
+      const response = await submitCourseRating(id, rating);
+      setUserRating(rating);
+      
+      // Update course rating in local state
+      if (course) {
+        setCourse({
+          ...course,
+          rating: response.data.courseStats.averageRating,
+          ratings_count: response.data.courseStats.totalRatings
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      throw error;
+    }
+  };
+
   const loadCourse = async () => {
     if (!id) return;
 
@@ -60,6 +87,22 @@ export const CourseViewer: React.FC = () => {
         console.log("📖 Using course data from navigation state");
         setCourse(courseData.course);
         setLessons(courseData.lessons);
+        
+        // Calculate exact duration from video data
+        const stats = getCourseDurationStats(courseData.lessons);
+        setDurationStats(stats);
+        
+        // Load user's rating if authenticated
+        if (user) {
+          try {
+            const rating = await getUserCourseRating(id);
+            setUserRating(rating || undefined);
+          } catch (error) {
+            // User hasn't rated this course yet
+            setUserRating(undefined);
+          }
+        }
+        
         setLoading(false);
         return;
       }
@@ -88,6 +131,21 @@ export const CourseViewer: React.FC = () => {
         );
         setCourse(fetchedCourse.course);
         setLessons(fetchedCourse.lessons);
+        
+        // Calculate exact duration from video data
+        const stats = getCourseDurationStats(fetchedCourse.lessons);
+        setDurationStats(stats);
+        
+        // Load user's rating if authenticated
+        if (user) {
+          try {
+            const rating = await getUserCourseRating(id);
+            setUserRating(rating || undefined);
+          } catch (error) {
+            // User hasn't rated this course yet
+            setUserRating(undefined);
+          }
+        }
       } else {
         toast.error("Course not found or you don't have access to it");
         navigate("/dashboard");
@@ -181,27 +239,55 @@ export const CourseViewer: React.FC = () => {
                 {course.description}
               </p>
 
-              <div className="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
-                <span className="flex items-center space-x-1">
-                  <Star className="h-4 w-4 text-yellow-500" />
-                  <span>{course.rating.toFixed(1)}</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                  <Users className="h-4 w-4" />
-                  <span>{course.likes_count} likes</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                  <Clock className="h-4 w-4" />
-                  <span>{course.estimated_duration} minutes</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                  <BookOpen className="h-4 w-4" />
-                  <span>{lessons.length} lessons</span>
-                </span>
-                <span className="flex items-center space-x-1">
-                  <Youtube className="h-4 w-4 text-red-500" />
-                  <span>{totalVideos} videos</span>
-                </span>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
+                  <span className="flex items-center space-x-1">
+                    <Star className="h-4 w-4 text-yellow-500" />
+                    <span>{course.rating.toFixed(1)} ({course.ratings_count} ratings)</span>
+                  </span>
+                  <span className="flex items-center space-x-1">
+                    <Users className="h-4 w-4" />
+                    <span>{course.likes_count} likes</span>
+                  </span>
+                  <span className="flex items-center space-x-1">
+                    <Clock className="h-4 w-4" />
+                    <span>
+                      {durationStats ? (
+                        <>
+                          {durationStats.formattedDuration}
+                          {durationStats.totalMinutes !== course.estimated_duration && (
+                            <span className="text-xs text-gray-400 ml-1">
+                              (est: {course.estimated_duration}m)
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        `${course.estimated_duration} minutes`
+                      )}
+                    </span>
+                  </span>
+                  <span className="flex items-center space-x-1">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{lessons.length} lessons</span>
+                  </span>
+                  <span className="flex items-center space-x-1">
+                    <Youtube className="h-4 w-4 text-red-500" />
+                    <span>{totalVideos} videos</span>
+                  </span>
+                </div>
+
+                {/* Course Rating Component */}
+                {user && (
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <CourseRating
+                      courseId={course.id}
+                      currentRating={course.rating}
+                      ratingsCount={course.ratings_count}
+                      userRating={userRating}
+                      onRatingSubmit={handleRatingSubmit}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -246,6 +332,62 @@ export const CourseViewer: React.FC = () => {
         <div className="p-8">
           {activeTab === "overview" && (
             <div className="space-y-6">
+              {/* Course Summary */}
+              {course?.summary && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Course Overview
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {course.summary}
+                  </p>
+                </div>
+              )}
+
+              {/* Duration Statistics */}
+              {durationStats && (
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      Course Duration Analysis
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Actual Duration</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {durationStats.formattedDuration}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        {durationStats.totalMinutes} minutes
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Total Videos</div>
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {durationStats.totalVideos}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        Avg: {Math.round(durationStats.averageVideoLength / 60)}min each
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Estimated vs Actual</div>
+                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {(() => {
+                          const comparison = compareDurations(course.estimated_duration, durationStats.totalSeconds);
+                          return comparison.difference > 0 ? `+${comparison.difference}m` : `${comparison.difference}m`;
+                        })()}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        {course.estimated_duration}m estimated
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Course Structure
               </h3>

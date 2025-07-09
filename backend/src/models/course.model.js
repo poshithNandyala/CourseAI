@@ -60,6 +60,14 @@ const courseSchema = new Schema(
         views_count: {
             type: Number,
             default: 0
+        },
+        summary: {
+            type: String,
+            default: ""
+        },
+        generated_content: {
+            type: Object,
+            default: {}
         }
     },
     { 

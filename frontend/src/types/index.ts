@@ -27,6 +27,8 @@ export interface Course {
   ratings_count: number;
   created_at: string;
   updated_at: string;
+  summary?: string;
+  generated_content?: any;
 }
 
 export interface Lesson {
@@ -38,6 +40,7 @@ export interface Lesson {
   order: number;
   video_url?: string;
   videos?: any[]; // YouTube video data
+  video_data?: any[]; // YouTube video data (alternative field name)
   quiz_questions?: QuizQuestion[];
   resources?: Resource[];
   created_at?: string;

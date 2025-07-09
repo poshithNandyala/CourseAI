@@ -1,5 +1,6 @@
 // Gemini AI API service for intelligent course generation
 import { userApiKeyService } from "./userApiKeyService";
+import { ImprovedJsonParser } from "./improved_json_parser";
 
 export interface GeminiCourseRequest {
   topic: string;
@@ -181,6 +182,13 @@ Make it comprehensive and educational.
       return this.parseCourseStructure(response, extractedTopic);
     } catch (error) {
       console.error("Gemini API error for course structure:", error);
+      
+      // Re-throw API key errors to be handled by the calling service
+      if (error instanceof Error && 
+          (error.message === "API_KEY_MISSING" || error.message === "API_KEY_INVALID")) {
+        throw error;
+      }
+      
       return this.generateStructuredCourse(extractedTopic);
     }
   }
@@ -1014,46 +1022,74 @@ Make each question a valuable learning opportunity that reinforces key concepts,
 
   private async callGeminiAPI(prompt: string): Promise<string> {
     const apiKey = await this.getApiKey();
-    const response = await fetch(`${this.baseUrl}?key=${apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.8,
-          topK: 50,
-          topP: 0.9,
-          maxOutputTokens: 8192,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `Gemini API error: ${response.status} - ${
-          errorData.error?.message || "Unknown error"
-        }`
-      );
+    
+    if (!apiKey) {
+      throw new Error("API_KEY_MISSING");
     }
 
-    const data = await response.json();
-    const rawResponse = data.candidates[0].content.parts[0].text;
-    console.log(
-      "🔍 Raw Gemini API response:",
-      rawResponse.substring(0, 200) + "..."
-    );
-    return rawResponse;
+    try {
+      const response = await fetch(`${this.baseUrl}?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.8,
+            topK: 50,
+            topP: 0.9,
+            maxOutputTokens: 8192,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
+        
+        if (response.status === 400 && errorData.error?.message?.includes("API_KEY_INVALID")) {
+          throw new Error("API_KEY_INVALID");
+        }
+        
+        if (response.status === 403) {
+          throw new Error("API_KEY_INVALID");
+        }
+        
+        throw new Error(
+          `Gemini API error: ${response.status} - ${
+            errorData.error?.message || "Unknown error"
+          }`
+        );
+      }
+
+      const data = await response.json();
+      
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error("Invalid response format from Gemini API");
+      }
+      
+      const rawResponse = data.candidates[0].content.parts[0].text;
+      console.log(
+        "🔍 Raw Gemini API response:",
+        rawResponse.substring(0, 200) + "..."
+      );
+      return rawResponse;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "API_KEY_MISSING" || error.message === "API_KEY_INVALID") {
+          throw error;
+        }
+      }
+      throw new Error(`Network error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 
   /**
@@ -1289,8 +1325,8 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     try {
       console.log("🔍 Parsing course structure from response");
 
-      // Use centralized JSON parser
-      const parsed = this.extractJsonData(response, "course");
+      // Use improved JSON parser
+      const parsed = ImprovedJsonParser.parseJsonResponse(response);
 
       console.log("✅ Successfully parsed course structure JSON");
       return {

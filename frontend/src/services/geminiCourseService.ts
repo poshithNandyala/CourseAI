@@ -99,14 +99,25 @@ class GeminiCourseService {
 
       // Step 2: Generate detailed course structure using Gemini
       console.log("🏗️ Step 2: Generating detailed course structure...");
-      const courseStructure = await geminiAPI.generateCourseStructure(
-        extractedTopic
-      );
-      console.log(
-        "✅ Course structure generated with",
-        courseStructure.subtopics.length,
-        "lessons"
-      );
+      let courseStructure;
+      try {
+        courseStructure = await geminiAPI.generateCourseStructure(
+          extractedTopic
+        );
+        console.log(
+          "✅ Course structure generated with",
+          courseStructure.subtopics.length,
+          "lessons"
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === "API_KEY_INVALID") {
+          throw new Error("INVALID_API_KEY: Please check your Gemini API key in settings");
+        }
+        if (error instanceof Error && error.message === "API_KEY_MISSING") {
+          throw new Error("MISSING_API_KEY: Please add your Gemini API key in settings");
+        }
+        throw error;
+      }
 
       // Notify about structure generation
       if (onStructureGenerated) {
@@ -605,6 +616,8 @@ class GeminiCourseService {
         ratings_count: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        summary: courseData.course.description || "",
+        generated_content: courseData
       };
 
       toast.success("Course saved successfully! (Demo mode)");
@@ -618,6 +631,8 @@ class GeminiCourseService {
         .insert({
           ...courseData.course,
           creator_id: user.id,
+          summary: courseData.course.description || "",
+          generated_content: courseData
         })
         .select(
           `

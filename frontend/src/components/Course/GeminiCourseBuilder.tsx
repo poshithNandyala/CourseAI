@@ -281,9 +281,20 @@ export const GeminiCourseBuilder: React.FC = () => {
       console.error("Error generating course:", error);
       setGenerationProgress("");
       setCurrentStep(0);
-      toast.error(
-        "Failed to generate course. Please check your API keys and try again."
-      );
+      
+      if (error instanceof Error) {
+        if (error.message.includes("INVALID_API_KEY")) {
+          toast.error("❌ Invalid Gemini API key. Please check your API key in settings.");
+        } else if (error.message.includes("MISSING_API_KEY")) {
+          toast.error("❌ Missing Gemini API key. Please add your API key in settings.");
+        } else if (error.message.includes("API_KEY")) {
+          toast.error("❌ API key error. Please check your Gemini API key in settings.");
+        } else {
+          toast.error("❌ Failed to generate course. Please try again.");
+        }
+      } else {
+        toast.error("❌ Failed to generate course. Please check your API keys and try again.");
+      }
     } finally {
       setIsGenerating(false);
     }
