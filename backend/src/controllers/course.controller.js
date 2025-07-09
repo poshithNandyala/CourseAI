@@ -56,6 +56,7 @@ const createCourse = asyncHandler(async (req, res) => {
         });
 
         console.log('✅ Course created with ID:', course._id);
+        console.log('✅ Course ID type:', typeof course._id);
 
         // Create lessons with video data
         const lessonsToCreate = lessons.map((lesson, index) => {
@@ -214,8 +215,22 @@ const getPublishedCourses = asyncHandler(async (req, res) => {
 // Get single course with lessons and video data (public access, published only)
 const getCourseById = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
+    
+    console.log('🔍 getCourseById called with courseId:', courseId);
+    console.log('🔍 courseId type:', typeof courseId);
+    console.log('🔍 courseId length:', courseId.length);
+    console.log('🔍 isValidObjectId:', mongoose.isValidObjectId(courseId));
+    
+    // Test with a simple ObjectId check
+    try {
+        const testObjectId = new mongoose.Types.ObjectId(courseId);
+        console.log('✅ ObjectId created successfully:', testObjectId);
+    } catch (error) {
+        console.log('❌ Failed to create ObjectId:', error.message);
+    }
 
     if (!mongoose.isValidObjectId(courseId)) {
+        console.log('❌ Invalid ObjectId format:', courseId);
         throw new ApiError(400, "Invalid course ID");
     }
 
