@@ -19,6 +19,7 @@ import ProfessionalSettings from "./components/Settings/ProfessionalSettings";
 import { useTheme } from "./hooks/useTheme";
 import { useAuthStore } from "./store/authStore";
 import { initializeAuth } from "./services/authService";
+import { GlobalGenerationIndicator } from "./components/Course/GlobalGenerationIndicator";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -92,6 +93,7 @@ function App() {
           />
         </Routes>
       </Layout>
+      <GlobalGenerationIndicator />
       <Toaster
         position="top-right"
         toastOptions={{

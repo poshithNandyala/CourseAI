@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, Star, Users, Clock, BookOpen, Play, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Filter, Star, Users, Clock, BookOpen, Play, Heart, X } from 'lucide-react';
 import { fetchPublishedCourses, toggleCourseLike } from '../../services/courseService';
 import { Card } from '../UI/Card';
 import { Button } from '../UI/Button';
@@ -17,10 +17,21 @@ export const ExplorePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [likedCourses, setLikedCourses] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    minRating: 0,
+    minLikes: 0,
+    sortBy: 'newest' as 'newest' | 'oldest' | 'rating' | 'likes' | 'duration'
+  });
 
   useEffect(() => {
     loadPublishedCourses();
   }, [selectedDifficulty]);
+
+  // Auto-apply filters when they change
+  useEffect(() => {
+    // No need to reload from server, just triggers re-filtering via filteredCourses
+  }, [filters, searchTerm]);
 
   const loadPublishedCourses = async () => {
     try {
@@ -91,13 +102,32 @@ export const ExplorePage: React.FC = () => {
     }
   };
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredCourses = courses
+    .filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRating = course.rating >= filters.minRating;
+      const matchesLikes = course.likes_count >= filters.minLikes;
+      
+      return matchesSearch && matchesRating && matchesLikes;
+    })
+    .sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'rating':
+          return b.rating - a.rating;
+        case 'likes':
+          return b.likes_count - a.likes_count;
+        case 'duration':
+          return a.estimated_duration - b.estimated_duration;
+        case 'oldest':
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        case 'newest':
+        default:
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+    });
 
-  const difficulties = ['all', 'beginner', 'intermediate', 'advanced'];
+  const difficulties = ['all', 'beginner', 'intermediate', 'advanced', 'professional'];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -135,11 +165,22 @@ export const ExplorePage: React.FC = () => {
               />
             </div>
             <div className="flex items-center space-x-2">
-              <Filter className="h-5 w-5 text-gray-400" />
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`p-3 border border-gray-300 dark:border-gray-700 rounded-xl transition-colors ${
+                  showFilters 
+                    ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400' 
+                    : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+                title="Filter courses"
+              >
+                <Filter className="h-5 w-5" />
+              </button>
               <select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
                 className="px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                title="Select difficulty level"
               >
                 {difficulties.map(difficulty => (
                   <option key={difficulty} value={difficulty}>
@@ -154,6 +195,118 @@ export const ExplorePage: React.FC = () => {
           </div>
         </Card>
       </motion.div>
+
+      {/* Advanced Filters Panel */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-8"
+          >
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Advanced Filters</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  title="Close filters"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Rating Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Minimum Rating
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="5"
+                      step="0.5"
+                      value={filters.minRating}
+                      onChange={(e) => setFilters(prev => ({ ...prev, minRating: Number(e.target.value) }))}
+                      className="w-full"
+                      aria-label="Minimum rating filter"
+                    />
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <span>Any</span>
+                      <span className="flex items-center space-x-1">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <span>{filters.minRating}</span>
+                      </span>
+                      <span>5 stars</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Likes Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Minimum Likes
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={filters.minLikes}
+                      onChange={(e) => setFilters(prev => ({ ...prev, minLikes: Number(e.target.value) }))}
+                      className="w-full"
+                      aria-label="Minimum likes filter"
+                    />
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <span>Any</span>
+                      <span className="flex items-center space-x-1">
+                        <Heart className="h-4 w-4 text-red-500" />
+                        <span>{filters.minLikes}</span>
+                      </span>
+                      <span>100+</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sort By */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Sort By
+                  </label>
+                  <select
+                    value={filters.sortBy}
+                    onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    aria-label="Sort courses by"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="likes">Most Liked</option>
+                    <option value="duration">Shortest Duration</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Clear Filters */}
+              <div className="flex justify-end mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setFilters({ minRating: 0, minLikes: 0, sortBy: 'newest' })}
+                  className="text-sm"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Course Grid */}
       {loading ? (
@@ -196,6 +349,7 @@ export const ExplorePage: React.FC = () => {
                           ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
                           : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
                       }`}
+                      title={likedCourses.has(course.id) ? 'Unlike course' : 'Like course'}
                     >
                       <Heart className={`h-5 w-5 ${likedCourses.has(course.id) ? 'fill-current' : ''}`} />
                     </button>
@@ -238,7 +392,9 @@ export const ExplorePage: React.FC = () => {
                     <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                       course.difficulty === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                       course.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      course.difficulty === 'advanced' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                      course.difficulty === 'professional' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                      'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
                     }`}>
                       {course.difficulty}
                     </span>

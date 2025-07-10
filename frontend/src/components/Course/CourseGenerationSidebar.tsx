@@ -18,8 +18,9 @@ export interface RealGenerationStep {
   id: string;
   title: string;
   type: "extracting" | "structure" | "lesson" | "videos" | "quiz";
-  status: "pending" | "in-progress" | "completed";
+  status: "pending" | "in-progress" | "completed" | "error";
   subtopicIndex?: number;
+  error?: string;
 }
 
 interface CourseGenerationSidebarProps {

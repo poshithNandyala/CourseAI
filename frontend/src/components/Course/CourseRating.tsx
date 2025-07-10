@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 interface CourseRatingProps {
   courseId: string;
@@ -9,15 +9,18 @@ interface CourseRatingProps {
   ratingsCount: number;
   userRating?: number;
   onRatingSubmit: (rating: number) => Promise<void>;
+  isLoggedIn: boolean;
 }
 
 export const CourseRating: React.FC<CourseRatingProps> = ({
-  courseId,
+  courseId: _courseId,
   currentRating,
   ratingsCount,
   userRating,
   onRatingSubmit,
+  isLoggedIn,
 }) => {
+  const navigate = useNavigate();
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRatingForm, setShowRatingForm] = useState(false);
@@ -28,10 +31,8 @@ export const CourseRating: React.FC<CourseRatingProps> = ({
     try {
       setIsSubmitting(true);
       await onRatingSubmit(rating);
-      toast.success("Rating submitted successfully!");
       setShowRatingForm(false);
     } catch (error) {
-      toast.error("Failed to submit rating. Please try again.");
       console.error("Rating submission error:", error);
     } finally {
       setIsSubmitting(false);
@@ -88,39 +89,52 @@ export const CourseRating: React.FC<CourseRatingProps> = ({
       </div>
 
       {/* User Rating Section */}
-      {userRating ? (
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Your rating:
-              </span>
-              <div className="flex items-center space-x-1">
-                {renderStars(userRating)}
+      {isLoggedIn ? (
+        userRating ? (
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Your rating:
+                </span>
+                <div className="flex items-center space-x-1">
+                  {renderStars(userRating)}
+                </div>
               </div>
+              <button
+                onClick={() => setShowRatingForm(true)}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+              >
+                Change rating
+              </button>
             </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
             <button
               onClick={() => setShowRatingForm(true)}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors font-medium"
             >
-              Change rating
+              Rate this course
             </button>
           </div>
-        </div>
+        )
       ) : (
-        <div className="space-y-2">
-          <button
-            onClick={() => setShowRatingForm(true)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors font-medium"
-          >
-            Rate this course
-          </button>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Please <button 
+              onClick={() => navigate('/signin')}
+              className="text-blue-600 dark:text-blue-400 font-medium hover:text-blue-800 dark:hover:text-blue-300 transition-colors underline"
+            >
+              sign in
+            </button> to rate this course.
+          </p>
         </div>
       )}
 
       {/* Rating Form */}
       <AnimatePresence>
-        {showRatingForm && (
+        {showRatingForm && isLoggedIn && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}

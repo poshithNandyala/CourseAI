@@ -135,6 +135,7 @@ export const EnhancedDashboard: React.FC = () => {
 
   const handleCreateCourse = () => {
     if (!user) {
+      toast.error("Please sign in to create courses");
       navigate("/signin");
     } else {
       navigate("/create");

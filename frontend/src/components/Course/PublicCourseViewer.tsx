@@ -28,6 +28,8 @@ import {
 import { useAuthStore } from "../../store/authStore";
 import { VideoPlayer } from "./VideoPlayer";
 import { InteractiveQuiz } from "../Quiz/InteractiveQuiz";
+import { CourseRating } from "./CourseRating";
+import { submitCourseRating, getUserCourseRating } from "../../services/ratingService";
 import { geminiAPI } from "../../services/geminiApi";
 import toast from "react-hot-toast";
 
@@ -48,6 +50,7 @@ export const PublicCourseViewer: React.FC = () => {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [lessonSummary, setLessonSummary] = useState<string>("");
+  const [userRating, setUserRating] = useState<number | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
 
   useEffect(() => {
@@ -59,7 +62,51 @@ export const PublicCourseViewer: React.FC = () => {
 
     loadPublicCourse();
     loadComments();
+    loadUserRating();
+    loadCourseRatingStats();
   }, [id]);
+
+  const loadUserRating = async () => {
+    if (!id || !user) return;
+    
+    try {
+      const rating = await getUserCourseRating(id);
+      setUserRating(rating);
+    } catch (error) {
+      // User hasn't rated this course yet
+      setUserRating(null);
+    }
+  };
+
+  // Watch for user login/logout to reload rating data
+  useEffect(() => {
+    if (user) {
+      loadUserRating();
+    } else {
+      setUserRating(null);
+    }
+  }, [user, id]);
+
+  const loadCourseRatingStats = async () => {
+    if (!id) return;
+    
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+      const response = await fetch(`${API_BASE_URL}/courses/${id}/ratings/stats`);
+      if (response.ok) {
+        const data = await response.json();
+        if (course && data.success) {
+          setCourse({
+            ...course,
+            rating: data.data.averageRating,
+            ratings_count: data.data.totalRatings
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading rating stats:", error);
+    }
+  };
 
   // Generate summary for initial lesson when lessons are loaded
   useEffect(() => {
@@ -134,6 +181,33 @@ export const PublicCourseViewer: React.FC = () => {
       toast.error("Failed to add comment");
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const handleRatingSubmit = async (rating: number) => {
+    if (!user) {
+      toast.error("Please sign in to rate this course");
+      navigate("/signin");
+      return;
+    }
+
+    try {
+      const response = await submitCourseRating(id!, rating);
+      setUserRating(rating);
+      
+      // Update course rating in local state
+      if (course) {
+        setCourse({
+          ...course,
+          rating: response.data.courseStats.averageRating,
+          ratings_count: response.data.courseStats.totalRatings
+        });
+      }
+      
+      toast.success("Rating submitted successfully!");
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      toast.error("Failed to submit rating");
     }
   };
 
@@ -341,6 +415,18 @@ export const PublicCourseViewer: React.FC = () => {
                     {tag}
                   </span>
                 ))}
+              </div>
+
+              {/* Course Rating Component */}
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <CourseRating
+                  courseId={course.id}
+                  currentRating={course.rating || 0}
+                  ratingsCount={course.ratings_count || 0}
+                  userRating={userRating || undefined}
+                  onRatingSubmit={handleRatingSubmit}
+                  isLoggedIn={!!user}
+                />
               </div>
             </div>
           </div>

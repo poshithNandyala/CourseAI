@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 import {
   Brain,
   Search,
@@ -62,6 +63,7 @@ export const Header: React.FC = () => {
 
   const handleCreateCourse = () => {
     if (!user) {
+      toast.error("Please sign in to create courses");
       navigate("/signin");
     } else {
       navigate("/create");

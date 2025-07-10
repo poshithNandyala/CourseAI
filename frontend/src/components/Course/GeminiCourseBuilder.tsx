@@ -8,13 +8,11 @@ import {
   HelpCircle,
   Play,
   CheckCircle,
-  Clock,
   Settings,
   Users,
   Star,
   Youtube,
   BookOpen,
-  AlertCircle,
   Sparkles,
   Target,
   Save,
@@ -33,40 +31,79 @@ import {
   CourseGenerationSidebar,
   RealGenerationStep,
 } from "./CourseGenerationSidebar";
+import { useGenerationStore } from "../../store/generationStore";
 import toast from "react-hot-toast";
 import ApiKeyWarning from "../Common/ApiKeyWarning";
 
 export const GeminiCourseBuilder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [userPrompt, setUserPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedCourse, setGeneratedCourse] =
-    useState<GeminiCourseData | null>(null);
-  const [savedCourse, setSavedCourse] = useState<any>(null);
+  const { addCourse } = useCourseStore();
+  
+  // Use global generation store
+  const {
+    isGenerating,
+    setIsGenerating,
+    generationProgress,
+    setGenerationProgress,
+    currentStep,
+    setCurrentStep,
+    currentStepId,
+    setCurrentStepId,
+    generationSteps,
+    setGenerationSteps,
+    updateStepStatus,
+    showGenerationSidebar,
+    setShowGenerationSidebar,
+    isGenerationMinimized,
+    setIsGenerationMinimized,
+    isGenerationComplete,
+    setIsGenerationComplete,
+    shouldRedirectToCourseBuilder,
+    setShouldRedirectToCourseBuilder,
+    generatedCourse: globalGeneratedCourse,
+    setGeneratedCourse: setGlobalGeneratedCourse,
+    savedCourse: globalSavedCourse,
+    setSavedCourse: setGlobalSavedCourse,
+    courseSubtopics,
+    setCourseSubtopics,
+    userPrompt,
+    setUserPrompt,
+    courseSettings,
+    setCourseSettings,
+
+  } = useGenerationStore();
+  
+  // Local state (use global store values as default)
+  const [generatedCourse, setGeneratedCourse] = useState<GeminiCourseData | null>(globalGeneratedCourse);
+  const [savedCourse, setSavedCourse] = useState<any>(globalSavedCourse);
   const [activeTab, setActiveTab] = useState<
     "overview" | "lessons" | "quiz" | "settings"
   >("overview");
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
-  const [courseSettings, setCourseSettings] = useState({
-    maxVideosPerSubtopic: 3,
-    includeQuizzes: true,
-    questionsPerLesson: 10,
-  });
-  const [generationProgress, setGenerationProgress] = useState<string>("");
-  const [currentStep, setCurrentStep] = useState<number>(0);
-  const [showGenerationSidebar, setShowGenerationSidebar] =
-    useState<boolean>(false);
-  const [isGenerationMinimized, setIsGenerationMinimized] =
-    useState<boolean>(false);
-  const [realGenerationSteps, setRealGenerationSteps] = useState<
-    RealGenerationStep[]
-  >([]);
   const [hasValidApiKeys, setHasValidApiKeys] = useState(false);
   const [isCheckingApiKeys, setIsCheckingApiKeys] = useState(true);
-  const [courseSubtopics, setCourseSubtopics] = useState<any[]>([]);
-  const [currentStepId, setCurrentStepId] = useState<string>("");
-  const { addCourse } = useCourseStore();
+  
+  // Convert generation steps to RealGenerationStep format for backwards compatibility
+  const realGenerationSteps: RealGenerationStep[] = generationSteps.map(step => ({
+    id: step.id,
+    title: step.title,
+    type: step.type,
+    status: step.status,
+    subtopicIndex: step.subtopicIndex,
+    error: step.error,
+  }));
+  
+  const setRealGenerationSteps = (steps: RealGenerationStep[]) => {
+    setGenerationSteps(steps.map(step => ({
+      id: step.id,
+      title: step.title,
+      type: step.type,
+      status: step.status,
+      subtopicIndex: step.subtopicIndex,
+      error: step.error,
+    })));
+  };
 
   const createRealGenerationSteps = (
     subtopics: any[]
@@ -128,9 +165,7 @@ export const GeminiCourseBuilder: React.FC = () => {
     stepId: string,
     status: "pending" | "in-progress" | "completed"
   ) => {
-    setRealGenerationSteps((prevSteps) =>
-      prevSteps.map((step) => (step.id === stepId ? { ...step, status } : step))
-    );
+    updateStepStatus(stepId, status);
     if (status === "in-progress") {
       setCurrentStepId(stepId);
     }
@@ -144,8 +179,31 @@ export const GeminiCourseBuilder: React.FC = () => {
     }
   }, [user, navigate]);
 
+  // Reset redirect flag when user reaches the course builder page
+  useEffect(() => {
+    if (shouldRedirectToCourseBuilder && window.location.pathname.includes('/create')) {
+      setShouldRedirectToCourseBuilder(false);
+    }
+  }, [shouldRedirectToCourseBuilder, setShouldRedirectToCourseBuilder]);
+
+  // Sync local state with global store
+  useEffect(() => {
+    if (globalGeneratedCourse && !generatedCourse) {
+      setGeneratedCourse(globalGeneratedCourse);
+    } else if (!globalGeneratedCourse && generatedCourse) {
+      // Clear local state when global state is cleared
+      setGeneratedCourse(null);
+    }
+    
+    if (globalSavedCourse && !savedCourse) {
+      setSavedCourse(globalSavedCourse);
+    } else if (!globalSavedCourse && savedCourse) {
+      // Clear local state when global state is cleared
+      setSavedCourse(null);
+    }
+  }, [globalGeneratedCourse, globalSavedCourse, generatedCourse, savedCourse]);
+
   const progressSteps = [
-    "Checking YouTube API connection...",
     "Analyzing your course request with Gemini AI...",
     "Extracting main topic and subtopics...",
     "Generating detailed course structure...",
@@ -156,6 +214,67 @@ export const GeminiCourseBuilder: React.FC = () => {
     "Finalizing course content and structure...",
     "Preparing to save course to database...",
   ];
+
+  const autoSaveAndRedirect = async (courseResult: any) => {
+    if (!user) {
+      toast.error("Please sign in to save courses");
+      navigate("/signin");
+      return;
+    }
+
+    try {
+      // Format course data for backend
+      const courseData = {
+        title: courseResult.course.title || "",
+        description: courseResult.course.description || "",
+        difficulty: courseResult.course.difficulty || "beginner",
+        estimated_duration: courseResult.metadata.totalDuration,
+        tags: courseResult.course.tags || [],
+        is_published: false, // Save as draft initially
+        lessons: courseResult.lessons.map((lesson: any) => ({
+          title: lesson.title,
+          content: lesson.content,
+          type: lesson.type,
+          order: lesson.order,
+          video_url: lesson.video_url,
+          video_data: lesson.videos, // Store complete video information
+          quiz_questions: lesson.quiz_questions,
+          resources: lesson.resources,
+          estimated_duration: lesson.estimatedDuration,
+        })),
+      };
+
+      console.log("💾 Auto-saving generated course as draft:", {
+        title: courseData.title,
+        lessonsCount: courseData.lessons.length,
+        totalVideos: courseResult.metadata.videoCount,
+        isPublished: courseData.is_published,
+      });
+
+      // Save course to database
+      const savedCourseData = await createCourse(courseData);
+      setSavedCourse(savedCourseData);
+      setGlobalSavedCourse(savedCourseData);
+      addCourse(savedCourseData);
+
+      setGenerationProgress("");
+
+      toast.success(
+        `🎉 Course saved as draft! Found ${courseResult.metadata.videoCount} real YouTube videos across ${courseResult.metadata.subtopicsCount} topics. Review and publish when ready!`
+      );
+
+      // Don't redirect - stay on the same page to show Publish button
+    } catch (error) {
+      console.error("Error auto-saving course:", error);
+      setGenerationProgress("");
+      
+      // Show the generated course for manual save if auto-save fails
+      toast.error("Auto-save failed, but course was generated. Please save manually.");
+      toast.success(
+        `🎉 Course generated! Found ${courseResult.metadata.videoCount} real YouTube videos across ${courseResult.metadata.subtopicsCount} topics.`
+      );
+    }
+  };
 
   const handleGenerate = async () => {
     if (!userPrompt.trim()) {
@@ -200,12 +319,11 @@ export const GeminiCourseBuilder: React.FC = () => {
 
     try {
       // Progress simulation
+      let currentStepIndex = 0;
       const progressInterval = setInterval(() => {
-        setCurrentStep((prev) => {
-          const next = Math.min(prev + 1, progressSteps.length - 1);
-          setGenerationProgress(progressSteps[next]);
-          return next;
-        });
+        currentStepIndex = Math.min(currentStepIndex + 1, progressSteps.length - 1);
+        setCurrentStep(currentStepIndex);
+        setGenerationProgress(progressSteps[currentStepIndex]);
       }, 3000);
 
       // Generate course with Gemini AI
@@ -223,7 +341,7 @@ export const GeminiCourseBuilder: React.FC = () => {
             const steps = createRealGenerationSteps(structure.subtopics);
             setRealGenerationSteps(steps);
           },
-          onLessonStart: (lessonIndex, lessonTitle) => {
+          onLessonStart: (lessonIndex, _lessonTitle) => {
             updateRealStepStatus(
               `lesson-${lessonIndex + 1}-content`,
               "in-progress"
@@ -270,13 +388,17 @@ export const GeminiCourseBuilder: React.FC = () => {
 
       clearInterval(progressInterval);
       setGeneratedCourse(result);
-      setGenerationProgress("");
+      setGlobalGeneratedCourse(result);
+      setGenerationProgress("Saving course to database...");
       setCurrentStep(0);
       setIsGenerationMinimized(true); // Minimize instead of hiding completely
 
-      toast.success(
-        `🎉 Course generated! Found ${result.metadata.videoCount} real YouTube videos across ${result.metadata.subtopicsCount} topics.`
-      );
+      // Automatically save the course and redirect
+      await autoSaveAndRedirect(result);
+      
+      // Mark generation as complete after successful save
+      setIsGenerationComplete(true);
+      setShouldRedirectToCourseBuilder(true);
     } catch (error) {
       console.error("Error generating course:", error);
       setGenerationProgress("");
@@ -300,62 +422,7 @@ export const GeminiCourseBuilder: React.FC = () => {
     }
   };
 
-  const handleSaveCourse = async () => {
-    if (!generatedCourse) {
-      toast.error("No course to save");
-      return;
-    }
 
-    if (!user) {
-      toast.error("Please sign in to save courses");
-      navigate("/signin");
-      return;
-    }
-
-    try {
-      setGenerationProgress("Saving course to database...");
-
-      // Format course data for backend
-      const courseData = {
-        title: generatedCourse.course.title || "",
-        description: generatedCourse.course.description || "",
-        difficulty: generatedCourse.course.difficulty || "beginner",
-        estimated_duration: generatedCourse.metadata.totalDuration,
-        tags: generatedCourse.course.tags || [],
-        is_published: false,
-        lessons: generatedCourse.lessons.map((lesson) => ({
-          title: lesson.title,
-          content: lesson.content,
-          type: lesson.type,
-          order: lesson.order,
-          video_url: lesson.video_url,
-          video_data: lesson.videos, // Store complete video information
-          quiz_questions: lesson.quiz_questions,
-          resources: lesson.resources,
-          estimated_duration: lesson.estimatedDuration,
-        })),
-      };
-
-      console.log("💾 Saving course with data:", {
-        title: courseData.title,
-        lessonsCount: courseData.lessons.length,
-        totalVideos: generatedCourse.metadata.videoCount,
-      });
-
-      // Save course to database
-      const savedCourseData = await createCourse(courseData);
-      setSavedCourse(savedCourseData);
-      addCourse(savedCourseData);
-
-      setGenerationProgress("");
-      toast.success("Course saved successfully!");
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Error saving course:", error);
-      setGenerationProgress("");
-      toast.error("Failed to save course");
-    }
-  };
 
   const handlePublishCourse = async () => {
     if (!generatedCourse) {
@@ -403,13 +470,14 @@ export const GeminiCourseBuilder: React.FC = () => {
       // Save and publish course
       const savedCourseData = await createCourse(courseData);
       setSavedCourse(savedCourseData);
+      setGlobalSavedCourse(savedCourseData);
       addCourse(savedCourseData);
 
       setGenerationProgress("");
       toast.success(
         "Course published successfully! Others can now discover it."
       );
-      navigate("/dashboard");
+      navigate(`/my-course/${savedCourseData.id}`);
     } catch (error) {
       console.error("Error publishing course:", error);
       setGenerationProgress("");
@@ -419,6 +487,21 @@ export const GeminiCourseBuilder: React.FC = () => {
 
   const handleGoToExplore = () => {
     navigate("/explore");
+  };
+
+  const handleCreateNewCourse = () => {
+    console.log("🔄 Creating new course - resetting course builder state");
+    console.log("Before reset - generatedCourse:", !!generatedCourse);
+    setGeneratedCourse(null);
+    setGlobalGeneratedCourse(null);
+    setSavedCourse(null);
+    setGlobalSavedCourse(null);
+    setIsGenerationComplete(false);
+    setUserPrompt('');
+    setIsGenerationMinimized(false);
+    setShowGenerationSidebar(false);
+    console.log("After reset - should see prompt interface");
+    toast.success("✨ Ready to create your next course!");
   };
 
   const examplePrompts = [
@@ -478,6 +561,25 @@ export const GeminiCourseBuilder: React.FC = () => {
       />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Create New Course Button - Prominent at top when course is generated */}
+        {generatedCourse && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-center mb-8"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleCreateNewCourse}
+              className="bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl text-lg flex items-center space-x-2"
+            >
+              <Sparkles className="h-6 w-6" />
+              <span>✨ Create New Course</span>
+            </motion.button>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -591,12 +693,14 @@ export const GeminiCourseBuilder: React.FC = () => {
                     max="5"
                     value={courseSettings.maxVideosPerSubtopic}
                     onChange={(e) =>
-                      setCourseSettings((prev) => ({
-                        ...prev,
-                        maxVideosPerSubtopic: parseInt(e.target.value) || 3,
-                      }))
+                    setCourseSettings({
+                    ...courseSettings,
+                    maxVideosPerSubtopic: parseInt(e.target.value) || 3,
+                    })
                     }
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    aria-label="Number of videos per lesson"
+                    title="Set the number of YouTube videos to find for each lesson"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Number of YouTube videos to find for each lesson
@@ -613,15 +717,17 @@ export const GeminiCourseBuilder: React.FC = () => {
                     max="30"
                     value={courseSettings.questionsPerLesson}
                     onChange={(e) =>
-                      setCourseSettings((prev) => ({
-                        ...prev,
-                        questionsPerLesson: Math.max(
-                          5,
-                          Math.min(30, parseInt(e.target.value) || 10)
-                        ),
-                      }))
+                    setCourseSettings({
+                    ...courseSettings,
+                    questionsPerLesson: Math.max(
+                    5,
+                    Math.min(30, parseInt(e.target.value) || 10)
+                    ),
+                    })
                     }
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    aria-label="Number of questions per lesson"
+                    title="Set the number of quiz questions to generate for each lesson"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Number of quiz questions per lesson (5-30)
@@ -634,18 +740,19 @@ export const GeminiCourseBuilder: React.FC = () => {
                   </label>
                   <div className="flex items-center space-x-3 pt-3">
                     <button
-                      onClick={() =>
-                        setCourseSettings((prev) => ({
-                          ...prev,
-                          includeQuizzes: !prev.includeQuizzes,
-                        }))
-                      }
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        courseSettings.includeQuizzes
-                          ? "bg-brand-500"
-                          : "bg-gray-300 dark:bg-gray-600"
-                      }`}
-                    >
+                    onClick={() =>
+                      setCourseSettings({
+                        ...courseSettings,
+                        includeQuizzes: !courseSettings.includeQuizzes,
+                      })
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    courseSettings.includeQuizzes
+                    ? "bg-brand-500"
+                    : "bg-gray-300 dark:bg-gray-600"
+                    }`}
+                      title={`${courseSettings.includeQuizzes ? 'Disable' : 'Enable'} interactive quizzes`}
+                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                           courseSettings.includeQuizzes
@@ -724,7 +831,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                 {/* Progress Steps */}
                 <div className="max-w-2xl mx-auto mb-6">
                   <div className="flex items-center justify-between">
-                    {progressSteps.map((step, index) => (
+                    {progressSteps.map((_step, index) => (
                       <div
                         key={index}
                         className={`w-3 h-3 rounded-full transition-all duration-300 ${
@@ -753,6 +860,8 @@ export const GeminiCourseBuilder: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-8"
           >
+
+
             {/* Course Header */}
             <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft-lg border border-gray-200 dark:border-gray-800">
               <div className="flex items-start justify-between mb-6">
@@ -762,9 +871,9 @@ export const GeminiCourseBuilder: React.FC = () => {
                       {generatedCourse.course.title}
                     </h2>
                     {savedCourse && (
-                      <div className="flex items-center space-x-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-3 py-1 rounded-full">
+                      <div className="flex items-center space-x-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-full">
                         <Save className="h-4 w-4" />
-                        <span className="text-sm font-medium">Auto-Saved</span>
+                        <span className="text-sm font-medium">Saved as Draft</span>
                       </div>
                     )}
                   </div>
@@ -907,7 +1016,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                   <div className="space-y-8">
                     {/* Lesson Selector */}
                     <div className="flex flex-wrap gap-2 mb-6">
-                      {generatedCourse.lessons.map((lesson, index) => (
+                      {generatedCourse.lessons.map((_lesson, index) => (
                         <button
                           key={index}
                           onClick={() => setSelectedLessonIndex(index)}
@@ -999,11 +1108,11 @@ export const GeminiCourseBuilder: React.FC = () => {
                       .length > 0 ? (
                       <InteractiveQuiz
                         questions={
-                          generatedCourse.lessons[selectedLessonIndex]
-                            .quiz_questions
+                          (generatedCourse.lessons[selectedLessonIndex]
+                            .quiz_questions || []) as any
                         }
                         title={`${generatedCourse.lessons[selectedLessonIndex].title} - Quiz`}
-                        lessons={generatedCourse.lessons}
+                        lessons={generatedCourse.lessons as any}
                         selectedLessonIndex={selectedLessonIndex}
                         onLessonChange={setSelectedLessonIndex}
                         onComplete={(score, total) => {
@@ -1137,16 +1246,6 @@ export const GeminiCourseBuilder: React.FC = () => {
               >
                 <BookOpen className="h-5 w-5" />
                 <span>Explore Courses</span>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSaveCourse}
-                className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl text-lg flex items-center justify-center space-x-2"
-              >
-                <Save className="h-5 w-5" />
-                <span>Save as Draft</span>
               </motion.button>
 
               <motion.button

@@ -69,8 +69,11 @@ export const CourseViewer: React.FC = () => {
           ratings_count: response.data.courseStats.totalRatings
         });
       }
+      
+      toast.success("Rating submitted successfully!");
     } catch (error) {
       console.error("Error submitting rating:", error);
+      toast.error("Failed to submit rating");
       throw error;
     }
   };
@@ -277,17 +280,16 @@ export const CourseViewer: React.FC = () => {
                 </div>
 
                 {/* Course Rating Component */}
-                {user && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <CourseRating
-                      courseId={course.id}
-                      currentRating={course.rating}
-                      ratingsCount={course.ratings_count}
-                      userRating={userRating}
-                      onRatingSubmit={handleRatingSubmit}
-                    />
-                  </div>
-                )}
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <CourseRating
+                    courseId={course.id}
+                    currentRating={course.rating}
+                    ratingsCount={course.ratings_count}
+                    userRating={user ? userRating : undefined}
+                    onRatingSubmit={handleRatingSubmit}
+                    isLoggedIn={!!user}
+                  />
+                </div>
               </div>
             </div>
 
