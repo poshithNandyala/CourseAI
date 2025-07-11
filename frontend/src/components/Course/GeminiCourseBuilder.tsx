@@ -21,7 +21,7 @@ import {
   geminiCourseService,
   GeminiCourseData,
 } from "../../services/geminiCourseService";
-import { createCourse } from "../../services/courseService";
+import { createCourse, publishCourse } from "../../services/courseService";
 import { useCourseStore } from "../../store/courseStore";
 import { useNavigate } from "react-router-dom";
 import { InteractiveQuiz } from "../Quiz/InteractiveQuiz";
@@ -38,7 +38,7 @@ import ApiKeyWarning from "../Common/ApiKeyWarning";
 export const GeminiCourseBuilder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { addCourse } = useCourseStore();
+  const { addCourse, updateCourse } = useCourseStore();
   
   // Use global generation store
   const {
@@ -436,48 +436,36 @@ export const GeminiCourseBuilder: React.FC = () => {
       return;
     }
 
+    // Check if course is already saved as draft
+    if (!savedCourse || !savedCourse.id) {
+      toast.error("Course must be saved as draft first");
+      return;
+    }
+
     try {
-      setGenerationProgress("Saving and publishing course...");
+      setGenerationProgress("Publishing course...");
 
-      // Format course data for backend
-      const courseData = {
-        title: generatedCourse.course.title || "",
-        description: generatedCourse.course.description || "",
-        difficulty: generatedCourse.course.difficulty || "beginner",
-        estimated_duration: generatedCourse.metadata.totalDuration,
-        tags: generatedCourse.course.tags || [],
-        is_published: true, // Set to published
-        lessons: generatedCourse.lessons.map((lesson) => ({
-          title: lesson.title,
-          content: lesson.content,
-          type: lesson.type,
-          order: lesson.order,
-          video_url: lesson.video_url,
-          video_data: lesson.videos, // Store complete video information
-          quiz_questions: lesson.quiz_questions,
-          resources: lesson.resources,
-          estimated_duration: lesson.estimatedDuration,
-        })),
-      };
-
-      console.log("🚀 Publishing course with data:", {
-        title: courseData.title,
-        lessonsCount: courseData.lessons.length,
-        totalVideos: generatedCourse.metadata.videoCount,
-        isPublished: courseData.is_published,
+      console.log("🚀 Publishing existing course:", {
+        courseId: savedCourse.id,
+        title: savedCourse.title,
       });
 
-      // Save and publish course
-      const savedCourseData = await createCourse(courseData);
-      setSavedCourse(savedCourseData);
-      setGlobalSavedCourse(savedCourseData);
-      addCourse(savedCourseData);
+      // Publish the existing course
+      await publishCourse(savedCourse.id);
+
+      // Update local state to reflect published status
+      const updatedCourse = { ...savedCourse, is_published: true };
+      setSavedCourse(updatedCourse);
+      setGlobalSavedCourse(updatedCourse);
+      
+      // Update course in store
+      updateCourse(savedCourse.id, { is_published: true });
 
       setGenerationProgress("");
       toast.success(
         "Course published successfully! Others can now discover it."
       );
-      navigate(`/my-course/${savedCourseData.id}`);
+      navigate(`/my-course/${savedCourse.id}`);
     } catch (error) {
       console.error("Error publishing course:", error);
       setGenerationProgress("");
@@ -871,9 +859,15 @@ export const GeminiCourseBuilder: React.FC = () => {
                       {generatedCourse.course.title}
                     </h2>
                     {savedCourse && (
-                      <div className="flex items-center space-x-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-full">
+                      <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
+                        savedCourse.is_published 
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                      }`}>
                         <Save className="h-4 w-4" />
-                        <span className="text-sm font-medium">Saved as Draft</span>
+                        <span className="text-sm font-medium">
+                          {savedCourse.is_published ? 'Published' : 'Saved as Draft'}
+                        </span>
                       </div>
                     )}
                   </div>
