@@ -1,5 +1,6 @@
 import { Course, Lesson } from "../types";
 import { useAuthStore } from "../store/authStore";
+import { useCourseStore } from "../store/courseStore";
 import toast from "react-hot-toast";
 import { courseCacheManager } from "../utils/courseCache";
 
@@ -545,6 +546,12 @@ export const publishCourse = async (courseId: string): Promise<void> => {
     if (data.success) {
       console.log("✅ Course published successfully");
       toast.success("Course published successfully!");
+      
+      // Trigger store update to refresh explore page
+      const { triggerPublishUpdate, updateCourse } = useCourseStore.getState();
+      updateCourse(courseId, { is_published: true });
+      triggerPublishUpdate();
+      
       return;
     }
 
@@ -585,6 +592,12 @@ export const unpublishCourse = async (courseId: string): Promise<void> => {
     if (data.success) {
       console.log("✅ Course unpublished successfully");
       toast.success("Course unpublished successfully!");
+      
+      // Trigger store update to refresh explore page
+      const { triggerPublishUpdate, updateCourse } = useCourseStore.getState();
+      updateCourse(courseId, { is_published: false });
+      triggerPublishUpdate();
+      
       return;
     }
 
@@ -651,5 +664,135 @@ export const fetchMyPublishedCoursesLikes = async (): Promise<number> => {
   } catch (error) {
     console.error("Error fetching published courses likes:", error);
     return 0;
+  }
+};
+
+// Update course comment
+export const updateCourseComment = async (
+  courseId: string,
+  commentId: string,
+  content: string
+): Promise<any> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error("User must be authenticated to update comments");
+  }
+
+  try {
+    console.log(`✏️ Updating comment ${commentId} in course ${courseId}`);
+
+    const response = await fetch(
+      `${API_BASE_URL}/courses/${courseId}/comments/${commentId}`,
+      {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ content }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ Failed to update comment:", data.message);
+      throw new Error(data.message || "Failed to update comment");
+    }
+
+    if (data.success) {
+      console.log("✅ Comment updated successfully");
+      toast.success("Comment updated successfully!");
+      return data.data;
+    }
+
+    throw new Error("Invalid response format");
+  } catch (error: any) {
+    console.error("Error updating comment:", error);
+    toast.error(error.message || "Failed to update comment");
+    throw error;
+  }
+};
+
+// Delete course comment
+export const deleteCourseComment = async (
+  courseId: string,
+  commentId: string
+): Promise<void> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error("User must be authenticated to delete comments");
+  }
+
+  try {
+    console.log(`🗑️ Deleting comment ${commentId} from course ${courseId}`);
+
+    const response = await fetch(
+      `${API_BASE_URL}/courses/${courseId}/comments/${commentId}`,
+      {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ Failed to delete comment:", data.message);
+      throw new Error(data.message || "Failed to delete comment");
+    }
+
+    if (data.success) {
+      console.log("✅ Comment deleted successfully");
+      toast.success("Comment deleted successfully!");
+      return;
+    }
+
+    throw new Error("Invalid response format");
+  } catch (error: any) {
+    console.error("Error deleting comment:", error);
+    toast.error(error.message || "Failed to delete comment");
+    throw error;
+  }
+};
+
+// Toggle comment like
+export const toggleCommentLike = async (
+  courseId: string,
+  commentId: string
+): Promise<{ isLiked: boolean }> => {
+  const user = useAuthStore.getState().user;
+  if (!user) {
+    throw new Error("User must be authenticated to like comments");
+  }
+
+  try {
+    console.log(`❤️ Toggling like for comment ${commentId} in course ${courseId}`);
+
+    const response = await fetch(
+      `${API_BASE_URL}/courses/${courseId}/comments/${commentId}/like`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        credentials: "include",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ Failed to toggle comment like:", data.message);
+      throw new Error(data.message || "Failed to toggle comment like");
+    }
+
+    if (data.success) {
+      console.log(`✅ Comment ${data.data.isLiked ? 'liked' : 'unliked'} successfully`);
+      return { isLiked: data.data.isLiked };
+    }
+
+    throw new Error("Invalid response format");
+  } catch (error: any) {
+    console.error("Error toggling comment like:", error);
+    toast.error(error.message || "Failed to toggle comment like");
+    throw error;
   }
 };

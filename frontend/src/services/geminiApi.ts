@@ -51,6 +51,8 @@ class GeminiAPIService {
   // private apiKey: string;
   private baseUrl =
     "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
+  private lastApiCallTime: number = 0;
+  private minDelayBetweenCalls: number = 1000; // 1 second minimum delay between API calls
 
   constructor() {
     // Old approach - using developer's API key (commented out)
@@ -1020,12 +1022,25 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     }
   }
 
-  private async callGeminiAPI(prompt: string): Promise<string> {
+  private async callGeminiAPI(prompt: string, retryCount: number = 0): Promise<string> {
     const apiKey = await this.getApiKey();
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
     
     if (!apiKey) {
       throw new Error("API_KEY_MISSING");
     }
+
+    // Rate limiting: ensure minimum delay between API calls
+    const now = Date.now();
+    const timeSinceLastCall = now - this.lastApiCallTime;
+    if (timeSinceLastCall < this.minDelayBetweenCalls) {
+      const delayNeeded = this.minDelayBetweenCalls - timeSinceLastCall;
+      console.log(`⏳ Rate limiting: waiting ${delayNeeded}ms before API call`);
+      await new Promise(resolve => setTimeout(resolve, delayNeeded));
+    }
+
+    this.lastApiCallTime = Date.now();
 
     try {
       const response = await fetch(`${this.baseUrl}?key=${apiKey}`, {
@@ -1063,6 +1078,17 @@ Make each question a valuable learning opportunity that reinforces key concepts,
           throw new Error("API_KEY_INVALID");
         }
         
+        if (response.status === 429) {
+          // Rate limiting - implement exponential backoff
+          if (retryCount < maxRetries) {
+            const delay = baseDelay * Math.pow(2, retryCount);
+            console.log(`⏳ Rate limited. Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return this.callGeminiAPI(prompt, retryCount + 1);
+          }
+          throw new Error("RATE_LIMIT_EXCEEDED: Too many requests. Please wait a moment and try again.");
+        }
+        
         throw new Error(
           `Gemini API error: ${response.status} - ${
             errorData.error?.message || "Unknown error"
@@ -1085,6 +1111,9 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "API_KEY_MISSING" || error.message === "API_KEY_INVALID") {
+          throw error;
+        }
+        if (error.message.includes("RATE_LIMIT_EXCEEDED")) {
           throw error;
         }
       }

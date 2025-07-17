@@ -409,6 +409,8 @@ export const GeminiCourseBuilder: React.FC = () => {
           toast.error("❌ Invalid Gemini API key. Please check your API key in settings.");
         } else if (error.message.includes("MISSING_API_KEY")) {
           toast.error("❌ Missing Gemini API key. Please add your API key in settings.");
+        } else if (error.message.includes("RATE_LIMIT_EXCEEDED")) {
+          toast.error("⏳ Rate limit exceeded. Please wait a moment and try again. Consider upgrading your Gemini API plan for higher limits.");
         } else if (error.message.includes("API_KEY")) {
           toast.error("❌ API key error. Please check your Gemini API key in settings.");
         } else {
@@ -465,7 +467,7 @@ export const GeminiCourseBuilder: React.FC = () => {
       toast.success(
         "Course published successfully! Others can now discover it."
       );
-      navigate(`/my-course/${savedCourse.id}`);
+      navigate(`/create`);
     } catch (error) {
       console.error("Error publishing course:", error);
       setGenerationProgress("");

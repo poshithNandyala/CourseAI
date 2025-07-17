@@ -6,13 +6,14 @@ import { Card } from '../UI/Card';
 import { Button } from '../UI/Button';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { useCourseStore } from '../../store/courseStore';
 import { Course } from '../../types';
 import toast from 'react-hot-toast';
 
 export const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [courses, setCourses] = useState<Course[]>([]);
+  const { publishedCourses, setPublishedCourses, lastPublishUpdate } = useCourseStore();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
@@ -28,6 +29,14 @@ export const ExplorePage: React.FC = () => {
     loadPublishedCourses();
   }, [selectedDifficulty]);
 
+  // Listen for publish/unpublish updates
+  useEffect(() => {
+    if (lastPublishUpdate > 0) {
+      console.log('🔄 Detected course publish/unpublish update, refreshing...');
+      loadPublishedCourses();
+    }
+  }, [lastPublishUpdate]);
+
   // Auto-apply filters when they change
   useEffect(() => {
     // No need to reload from server, just triggers re-filtering via filteredCourses
@@ -36,15 +45,18 @@ export const ExplorePage: React.FC = () => {
   const loadPublishedCourses = async () => {
     try {
       setLoading(true);
-      console.log('🌍 Loading ALL published courses for public access...');
+      console.log('🌍 Loading ALL published courses...');
+      
       const result = await fetchPublishedCourses({
         search: searchTerm,
         difficulty: selectedDifficulty,
         page: 1,
-        limit: 20
+        limit: 10000
       });
+      
       console.log('✅ Loaded', result.courses.length, 'published courses');
-      setCourses(result.courses);
+      setPublishedCourses(result.courses);
+      
     } catch (error) {
       console.error('❌ Error loading published courses:', error);
       toast.error('Failed to load courses');
@@ -87,7 +99,7 @@ export const ExplorePage: React.FC = () => {
       }
 
       // Update the course in the list
-      setCourses(prev => prev.map(course => 
+      setPublishedCourses(prev => prev.map(course => 
         course.id === courseId 
           ? { 
               ...course, 
@@ -102,7 +114,7 @@ export const ExplorePage: React.FC = () => {
     }
   };
 
-  const filteredCourses = courses
+  const filteredCourses = publishedCourses
     .filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            course.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -328,105 +340,109 @@ export const ExplorePage: React.FC = () => {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course, index) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card hover className="h-full cursor-pointer" onClick={() => handleViewCourse(course.id)}>
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 flex-1">
-                      {course.title}
-                    </h3>
-                    <button
-                      onClick={(e) => handleLikeCourse(course.id, e)}
-                      className={`ml-2 p-2 rounded-full transition-all duration-200 ${
-                        likedCourses.has(course.id)
-                          ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
-                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                      }`}
-                      title={likedCourses.has(course.id) ? 'Unlike course' : 'Like course'}
-                    >
-                      <Heart className={`h-5 w-5 ${likedCourses.has(course.id) ? 'fill-current' : ''}`} />
-                    </button>
-                  </div>
-                  
-                  <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
-                    {course.description}
-                  </p>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.map((course, index) => (
+              <motion.div
+                key={course.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card hover className="h-full cursor-pointer" onClick={() => handleViewCourse(course.id)}>
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 flex-1">
+                        {course.title}
+                      </h3>
+                      <button
+                        onClick={(e) => handleLikeCourse(course.id, e)}
+                        className={`ml-2 p-2 rounded-full transition-all duration-200 ${
+                          likedCourses.has(course.id)
+                            ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+                            : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                        }`}
+                        title={likedCourses.has(course.id) ? 'Unlike course' : 'Like course'}
+                      >
+                        <Heart className={`h-5 w-5 ${likedCourses.has(course.id) ? 'fill-current' : ''}`} />
+                      </button>
+                    </div>
+                    
+                    <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
+                      {course.description}
+                    </p>
 
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="flex items-center space-x-1">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span>{course.rating.toFixed(1)} ({course.ratings_count})</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <Heart className="h-4 w-4" />
-                      <span>{course.likes_count}</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{course.estimated_duration}m</span>
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      {course.creator?.avatar_url ? (
-                        <img
-                          src={course.creator.avatar_url}
-                          alt={course.creator.name}
-                          className="h-6 w-6 rounded-full"
-                        />
-                      ) : (
-                        <div className="h-6 w-6 bg-gradient-to-r from-brand-500 to-accent-500 rounded-full"></div>
-                      )}
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {course.creator?.name || 'Anonymous'}
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center space-x-1">
+                        <Star className="h-4 w-4 text-yellow-500" />
+                        <span>{course.rating.toFixed(1)} ({course.ratings_count})</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Heart className="h-4 w-4" />
+                        <span>{course.likes_count}</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Clock className="h-4 w-4" />
+                        <span>{course.estimated_duration}m</span>
                       </span>
                     </div>
-                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                      course.difficulty === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                      course.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                      course.difficulty === 'advanced' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                      course.difficulty === 'professional' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                      'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-                    }`}>
-                      {course.difficulty}
-                    </span>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {course.tags.slice(0, 3).map((tag, tagIndex) => (
-                      <span
-                        key={tagIndex}
-                        className="px-2 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg text-xs"
-                      >
-                        {tag}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {course.creator?.avatar_url ? (
+                          <img
+                            src={course.creator.avatar_url}
+                            alt={course.creator.name}
+                            className="h-6 w-6 rounded-full"
+                          />
+                        ) : (
+                          <div className="h-6 w-6 bg-gradient-to-r from-brand-500 to-accent-500 rounded-full"></div>
+                        )}
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {course.creator?.name || 'Anonymous'}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                        course.difficulty === 'beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                        course.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        course.difficulty === 'advanced' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                        course.difficulty === 'professional' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                        'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                      }`}>
+                        {course.difficulty}
                       </span>
-                    ))}
-                  </div>
+                    </div>
 
-                  <Button 
-                    variant="primary" 
-                    className="w-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewCourse(course.id);
-                    }}
-                    icon={<Play className="h-4 w-4" />}
-                  >
-                    View Course
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                    <div className="flex flex-wrap gap-2">
+                      {course.tags.slice(0, 3).map((tag, tagIndex) => (
+                        <span
+                          key={tagIndex}
+                          className="px-2 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg text-xs"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    <Button 
+                      variant="primary" 
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewCourse(course.id);
+                      }}
+                      icon={<Play className="h-4 w-4" />}
+                    >
+                      View Course
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+
+        </>
       )}
     </div>
   );

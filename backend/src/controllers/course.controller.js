@@ -6,6 +6,7 @@ import { Course } from "../models/course.model.js";
 import { Lesson } from "../models/lesson.model.js";
 import { CourseLike } from "../models/course_like.model.js";
 import { CourseComment } from "../models/course_comment.model.js";
+import { CourseCommentLike } from "../models/course_comment_like.model.js";
 import { CourseRating } from "../models/course_rating.model.js";
 
 // Create a new course with lessons and video data
@@ -512,6 +513,146 @@ const rateCourse = asyncHandler(async (req, res) => {
     }
 });
 
+// Get user's rating for a course
+const getUserCourseRating = asyncHandler(async (req, res) => {
+    const { courseId } = req.params;
+
+    if (!mongoose.isValidObjectId(courseId)) {
+        throw new ApiError(400, "Invalid course ID");
+    }
+
+    try {
+        const rating = await CourseRating.findOne({
+            course_id: courseId,
+            user_id: req.user._id
+        });
+
+        if (!rating) {
+            return res.status(404).json(
+                new ApiResponse(404, null, "User rating not found")
+            );
+        }
+
+        return res.status(200).json(
+            new ApiResponse(200, { rating: rating.rating }, "User rating retrieved successfully")
+        );
+
+    } catch (error) {
+        console.error("Error getting user rating:", error);
+        throw new ApiError(500, "Failed to get user rating");
+    }
+});
+
+// Get all ratings for a course
+const getCourseRatings = asyncHandler(async (req, res) => {
+    const { courseId } = req.params;
+
+    if (!mongoose.isValidObjectId(courseId)) {
+        throw new ApiError(400, "Invalid course ID");
+    }
+
+    try {
+        const ratings = await CourseRating.find({ course_id: courseId })
+            .populate('user_id', 'username fullname avatar_url')
+            .sort({ createdAt: -1 });
+
+        // Calculate statistics
+        const stats = await CourseRating.aggregate([
+            { $match: { course_id: new mongoose.Types.ObjectId(courseId) } },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: "$rating" },
+                    totalRatings: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Calculate rating distribution
+        const distribution = await CourseRating.aggregate([
+            { $match: { course_id: new mongoose.Types.ObjectId(courseId) } },
+            {
+                $group: {
+                    _id: "$rating",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const ratingDistribution = {};
+        for (let i = 1; i <= 5; i++) {
+            ratingDistribution[i] = 0;
+        }
+        distribution.forEach(item => {
+            ratingDistribution[item._id] = item.count;
+        });
+
+        const { averageRating, totalRatings } = stats[0] || { averageRating: 0, totalRatings: 0 };
+
+        return res.status(200).json(
+            new ApiResponse(200, {
+                ratings,
+                stats: {
+                    averageRating: Math.round(averageRating * 10) / 10,
+                    totalRatings,
+                    distribution: ratingDistribution
+                }
+            }, "Course ratings retrieved successfully")
+        );
+
+    } catch (error) {
+        console.error("Error getting course ratings:", error);
+        throw new ApiError(500, "Failed to get course ratings");
+    }
+});
+
+// Delete user's rating for a course
+const deleteCourseRating = asyncHandler(async (req, res) => {
+    const { courseId } = req.params;
+
+    if (!mongoose.isValidObjectId(courseId)) {
+        throw new ApiError(400, "Invalid course ID");
+    }
+
+    try {
+        const rating = await CourseRating.findOneAndDelete({
+            course_id: courseId,
+            user_id: req.user._id
+        });
+
+        if (!rating) {
+            throw new ApiError(404, "Rating not found");
+        }
+
+        // Recalculate course rating
+        const ratings = await CourseRating.aggregate([
+            { $match: { course_id: new mongoose.Types.ObjectId(courseId) } },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: "$rating" },
+                    totalRatings: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const { averageRating, totalRatings } = ratings[0] || { averageRating: 0, totalRatings: 0 };
+
+        await Course.findByIdAndUpdate(courseId, {
+            rating: Math.round(averageRating * 10) / 10,
+            ratings_count: totalRatings
+        });
+
+        return res.status(200).json(
+            new ApiResponse(200, {}, "Rating deleted successfully")
+        );
+
+    } catch (error) {
+        console.error("Error deleting rating:", error);
+        throw new ApiError(500, "Failed to delete rating");
+    }
+});
+
 // Add comment to course
 const addCourseComment = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
@@ -554,6 +695,140 @@ const addCourseComment = asyncHandler(async (req, res) => {
     }
 });
 
+// Update course comment (owner only)
+const updateCourseComment = asyncHandler(async (req, res) => {
+    const { courseId, commentId } = req.params;
+    const { content } = req.body;
+
+    if (!mongoose.isValidObjectId(courseId) || !mongoose.isValidObjectId(commentId)) {
+        throw new ApiError(400, "Invalid course or comment ID");
+    }
+
+    if (!content || content.trim().length === 0) {
+        throw new ApiError(400, "Comment content is required");
+    }
+
+    try {
+        // Check if comment exists and user is the owner
+        const comment = await CourseComment.findOne({
+            _id: commentId,
+            course_id: courseId,
+            user_id: req.user._id,
+            is_deleted: false
+        });
+
+        if (!comment) {
+            throw new ApiError(404, "Comment not found or you don't have permission to update it");
+        }
+
+        // Update the comment
+        const updatedComment = await CourseComment.findByIdAndUpdate(
+            commentId,
+            { content: content.trim() },
+            { new: true }
+        ).populate('user_id', 'username fullname avatar_url').lean();
+
+        return res.status(200).json(
+            new ApiResponse(200, updatedComment, "Comment updated successfully")
+        );
+
+    } catch (error) {
+        console.error("Error updating comment:", error);
+        throw new ApiError(500, "Failed to update comment");
+    }
+});
+
+// Delete course comment (owner only)
+const deleteCourseComment = asyncHandler(async (req, res) => {
+    const { courseId, commentId } = req.params;
+
+    if (!mongoose.isValidObjectId(courseId) || !mongoose.isValidObjectId(commentId)) {
+        throw new ApiError(400, "Invalid course or comment ID");
+    }
+
+    try {
+        // Check if comment exists and user is the owner
+        const comment = await CourseComment.findOne({
+            _id: commentId,
+            course_id: courseId,
+            user_id: req.user._id,
+            is_deleted: false
+        });
+
+        if (!comment) {
+            throw new ApiError(404, "Comment not found or you don't have permission to delete it");
+        }
+
+        // Mark comment as deleted (soft delete)
+        await CourseComment.findByIdAndUpdate(commentId, { is_deleted: true });
+
+        return res.status(200).json(
+            new ApiResponse(200, {}, "Comment deleted successfully")
+        );
+
+    } catch (error) {
+        console.error("Error deleting comment:", error);
+        throw new ApiError(500, "Failed to delete comment");
+    }
+});
+
+// Like/Unlike comment
+const toggleCommentLike = asyncHandler(async (req, res) => {
+    const { courseId, commentId } = req.params;
+
+    if (!mongoose.isValidObjectId(courseId) || !mongoose.isValidObjectId(commentId)) {
+        throw new ApiError(400, "Invalid course or comment ID");
+    }
+
+    try {
+        // Check if comment exists and is not deleted
+        const comment = await CourseComment.findOne({
+            _id: commentId,
+            course_id: courseId,
+            is_deleted: false
+        });
+
+        if (!comment) {
+            throw new ApiError(404, "Comment not found");
+        }
+
+        // Check if user already liked the comment
+        const existingLike = await CourseCommentLike.findOne({
+            comment_id: commentId,
+            user_id: req.user._id
+        });
+
+        if (existingLike) {
+            // Unlike the comment
+            await CourseCommentLike.deleteOne({ _id: existingLike._id });
+            await CourseComment.findByIdAndUpdate(commentId, {
+                $inc: { likes_count: -1 }
+            });
+
+            return res.status(200).json(
+                new ApiResponse(200, { isLiked: false }, "Comment unliked successfully")
+            );
+        } else {
+            // Like the comment
+            await CourseCommentLike.create({
+                comment_id: commentId,
+                user_id: req.user._id
+            });
+            await CourseComment.findByIdAndUpdate(commentId, {
+                $inc: { likes_count: 1 }
+            });
+
+            return res.status(200).json(
+                new ApiResponse(200, { isLiked: true }, "Comment liked successfully")
+            );
+        }
+
+    } catch (error) {
+        console.error("Error toggling comment like:", error);
+        throw new ApiError(500, "Failed to toggle comment like");
+    }
+});
+
 // Get course comments
 const getCourseComments = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
@@ -578,16 +853,33 @@ const getCourseComments = asyncHandler(async (req, res) => {
             .limit(limitNum)
             .lean();
 
+        // Get user's likes for these comments (if user is authenticated)
+        let userLikes = {};
+        if (req.user) {
+            const commentIds = comments.map(comment => comment._id);
+            const userCommentLikes = await CourseCommentLike.find({
+                comment_id: { $in: commentIds },
+                user_id: req.user._id
+            }).lean();
+            
+            userLikes = userCommentLikes.reduce((acc, like) => {
+                acc[like.comment_id.toString()] = true;
+                return acc;
+            }, {});
+        }
+
         // Format comments
         const formattedComments = comments.map(comment => ({
             id: comment._id,
             content: comment.content,
             likes_count: comment.likes_count,
             created_at: comment.createdAt,
+            user_id: comment.user_id._id || comment.user_id,
             user: {
                 name: comment.user_id?.fullname || 'Anonymous',
                 avatar_url: comment.user_id?.avatar_url
-            }
+            },
+            is_liked: userLikes[comment._id.toString()] || false
         }));
 
         return res.status(200).json(
@@ -688,7 +980,13 @@ export {
     toggleCoursePublication,
     toggleCourseLike,
     rateCourse,
+    getUserCourseRating,
+    getCourseRatings,
+    deleteCourseRating,
     addCourseComment,
+    updateCourseComment,
+    deleteCourseComment,
+    toggleCommentLike,
     getCourseComments,
     deleteCourse,
     getUserCourseInteraction

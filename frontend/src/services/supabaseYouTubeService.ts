@@ -118,8 +118,24 @@ class SupabaseYouTubeService {
         ? uniqueVideos.filter((video) => !usedVideoIds.has(video.id))
         : uniqueVideos;
 
+      // Additional filtering for quality and English content
+      const qualityVideos = filteredVideos.filter(video => {
+        // Filter out videos with very low relevance scores
+        if (video.relevanceScore < 20) return false;
+        
+        // Double-check English content
+        if (!this.isLikelyEnglish(video.title, video.description, video.channelTitle)) {
+          return false;
+        }
+        
+        // Filter out videos with very low view counts for quality
+        if (video.viewCount < 500) return false;
+        
+        return true;
+      });
+
       // Sort by relevance and return top results
-      const bestVideos = filteredVideos
+      const bestVideos = qualityVideos
         .sort((a, b) => b.relevanceScore - a.relevanceScore)
         .slice(0, maxResults);
 
@@ -133,29 +149,69 @@ class SupabaseYouTubeService {
     }
   }
 
+  private isLikelyEnglish(title: string, description: string, channelTitle: string): boolean {
+    // Common English words that indicate English content
+    const englishIndicators = [
+      'the', 'and', 'for', 'how', 'to', 'tutorial', 'guide', 'learn', 'course',
+      'explained', 'complete', 'beginner', 'advanced', 'training', 'education',
+      'step', 'by', 'with', 'about', 'what', 'why', 'when', 'where', 'best',
+      'top', 'ultimate', 'comprehensive', 'master', 'professional', 'expert'
+    ];
+
+    // Non-English characters that indicate non-English content
+    const nonEnglishPatterns = [
+      /[\u4e00-\u9fff]/g, // Chinese characters
+      /[\u3040-\u309f]/g, // Hiragana
+      /[\u30a0-\u30ff]/g, // Katakana
+      /[\u0400-\u04ff]/g, // Cyrillic
+      /[\u0590-\u05ff]/g, // Hebrew
+      /[\u0600-\u06ff]/g, // Arabic
+      /[\u0900-\u097f]/g, // Devanagari (Hindi)
+      /[\u1100-\u11ff]/g, // Hangul (Korean)
+    ];
+
+    const combinedText = `${title} ${description} ${channelTitle}`.toLowerCase();
+    
+    // Check for non-English characters (strong indicator)
+    for (const pattern of nonEnglishPatterns) {
+      if (pattern.test(combinedText)) {
+        return false;
+      }
+    }
+
+    // Check for English words
+    const englishWordCount = englishIndicators.filter(word => 
+      combinedText.includes(word)
+    ).length;
+
+    // Must have at least 3 English indicator words
+    return englishWordCount >= 3;
+  }
+
   private async performYouTubeSearch(
     query: string,
     apiKey: string
   ): Promise<YouTubeVideo[]> {
     // Step 1: Search for videos
-    // Add "tutorial OR educational OR guide" to improve relevance
-    const enhancedQuery = `${query} (tutorial OR educational OR guide OR lesson OR how to)`;
+    // Enhanced query with better educational keywords and English preference
+    const enhancedQuery = `${query} (tutorial OR educational OR guide OR lesson OR "how to" OR course OR explained OR training OR masterclass)`;
 
     const searchParams = new URLSearchParams({
       part: "snippet",
       q: enhancedQuery,
       type: "video",
-      maxResults: "20", // Increased for better filtering
+      maxResults: "25", // Increased for better filtering
       order: "relevance",
       videoDuration: "medium", // Exclude shorts (medium = 4-20 minutes)
       videoDefinition: "any",
       videoEmbeddable: "true",
       videoSyndicated: "true",
       safeSearch: "strict",
-      relevanceLanguage: "en",
-      regionCode: "US",
+      relevanceLanguage: "en", // Prioritize English content
+      regionCode: "US", // US region for English content
+      hl: "en", // Interface language
       publishedAfter: new Date(
-        Date.now() - 3 * 365 * 24 * 60 * 60 * 1000
+        Date.now() - 4 * 365 * 24 * 60 * 60 * 1000 // Expanded to 4 years for more content
       ).toISOString(),
       key: apiKey,
     });
@@ -197,23 +253,33 @@ class SupabaseYouTubeService {
 
     const detailsData = await detailsResponse.json();
 
-    return detailsData.items.map((item: any) => ({
-      id: item.id,
-      title: item.snippet.title,
-      description: item.snippet.description || "",
-      duration: this.formatDuration(item.contentDetails.duration),
-      thumbnailUrl:
-        item.snippet.thumbnails.high?.url ||
-        item.snippet.thumbnails.medium?.url ||
-        item.snippet.thumbnails.default.url,
-      channelTitle: item.snippet.channelTitle,
-      publishedAt: item.snippet.publishedAt,
-      viewCount: parseInt(item.statistics.viewCount || "0"),
-      likeCount: parseInt(item.statistics.likeCount || "0"),
-      embedUrl: `https://www.youtube.com/embed/${item.id}?rel=0&modestbranding=1&showinfo=0&controls=1`,
-      watchUrl: `https://www.youtube.com/watch?v=${item.id}`,
-      relevanceScore: 0,
-    }));
+    return detailsData.items
+      .filter((item: any) => {
+        // Filter for English content
+        const title = item.snippet.title || "";
+        const description = item.snippet.description || "";
+        const channelTitle = item.snippet.channelTitle || "";
+        
+        // Check if content is likely English
+        return this.isLikelyEnglish(title, description, channelTitle);
+      })
+      .map((item: any) => ({
+        id: item.id,
+        title: item.snippet.title,
+        description: item.snippet.description || "",
+        duration: this.formatDuration(item.contentDetails.duration),
+        thumbnailUrl:
+          item.snippet.thumbnails.high?.url ||
+          item.snippet.thumbnails.medium?.url ||
+          item.snippet.thumbnails.default.url,
+        channelTitle: item.snippet.channelTitle,
+        publishedAt: item.snippet.publishedAt,
+        viewCount: parseInt(item.statistics.viewCount || "0"),
+        likeCount: parseInt(item.statistics.likeCount || "0"),
+        embedUrl: `https://www.youtube.com/embed/${item.id}?rel=0&modestbranding=1&showinfo=0&controls=1`,
+        watchUrl: `https://www.youtube.com/watch?v=${item.id}`,
+        relevanceScore: 0,
+      }));
   }
 
   private removeDuplicatesAndScore(
@@ -257,7 +323,7 @@ class SupabaseYouTubeService {
     )
       score += 20;
 
-    // Educational keywords
+    // Educational keywords (enhanced with more weight)
     const educationalKeywords = [
       "tutorial",
       "course",
@@ -270,9 +336,18 @@ class SupabaseYouTubeService {
       "comprehensive",
       "masterclass",
       "professional",
+      "training",
+      "lesson",
+      "learn",
+      "education",
+      "teach",
+      "basics",
+      "fundamentals",
+      "advanced",
+      "intermediate",
     ];
     educationalKeywords.forEach((keyword) => {
-      if (titleLower.includes(keyword)) score += 12;
+      if (titleLower.includes(keyword)) score += 15; // Increased weight
     });
 
     // Description relevance
@@ -317,7 +392,7 @@ class SupabaseYouTubeService {
       });
     }
 
-    // General educational channels
+    // General educational channels (expanded with more popular English channels)
     const educationalChannels = [
       "khan academy",
       "coursera",
@@ -328,9 +403,39 @@ class SupabaseYouTubeService {
       "crash course",
       "ted-ed",
       "freeCodeCamp",
+      "codecademy",
+      "udemy",
+      "pluralsight",
+      "microsoft",
+      "google",
+      "facebook",
+      "youtube creators",
+      "programming with mosh",
+      "the net ninja",
+      "traversy media",
+      "academind",
+      "coding train",
+      "sentdex",
+      "corey schafer",
+      "derek banas",
+      "newboston",
+      "codeacademy",
+      "edureka",
+      "simplilearn",
+      "intellipaat",
+      "great learning",
     ];
     if (educationalChannels.some((channel) => channelLower.includes(channel))) {
-      score += 25;
+      score += 30; // Increased weight for trusted educational channels
+    }
+
+    // Bonus for English-speaking regions in channel names
+    const englishRegionIndicators = [
+      "usa", "uk", "canada", "australia", "america", "british", "english",
+      "academy", "university", "college", "school", "institute", "education"
+    ];
+    if (englishRegionIndicators.some((indicator) => channelLower.includes(indicator))) {
+      score += 10;
     }
 
     // Professional/Expert indicators
@@ -353,6 +458,11 @@ class SupabaseYouTubeService {
     }
 
     // View count and engagement (improved scoring)
+    // Minimum view count requirement for quality content
+    if (video.viewCount < 1000) score -= 20; // Penalize very low view count
+    else if (video.viewCount < 5000) score -= 10; // Slightly penalize low view count
+    else if (video.viewCount >= 50000) score += 10; // Bonus for popular content
+    
     const viewScore = Math.min(Math.log10(video.viewCount + 1) * 2, 15); // Logarithmic scaling
     const likeScore =
       video.viewCount > 0
@@ -360,21 +470,27 @@ class SupabaseYouTubeService {
         : 0; // Like ratio
     score += viewScore + likeScore;
 
-    // Video duration preference (prefer 5-20 minute videos, exclude shorts)
+    // Video duration preference (prefer educational length videos)
     const durationParts = video.duration.split(":");
     const totalMinutes =
       durationParts.length === 2
         ? parseInt(durationParts[0])
         : parseInt(durationParts[0]) * 60 + parseInt(durationParts[1]);
 
-    // Heavily penalize shorts (under 1 minute)
-    if (totalMinutes < 1) score -= 50;
-    // Penalize very short videos (1-3 minutes, likely shorts)
-    else if (totalMinutes >= 1 && totalMinutes < 3) score -= 20;
-    // Prefer medium length educational videos
-    else if (totalMinutes >= 5 && totalMinutes <= 20) score += 15;
-    else if (totalMinutes >= 3 && totalMinutes <= 30) score += 10;
-    else if (totalMinutes > 60) score -= 10;
+    // Heavily penalize shorts (under 1 minute) - not educational
+    if (totalMinutes < 1) score -= 60;
+    // Penalize very short videos (1-3 minutes, likely shorts or clips)
+    else if (totalMinutes >= 1 && totalMinutes < 3) score -= 30;
+    // Slightly penalize short videos (3-5 minutes, might be incomplete)
+    else if (totalMinutes >= 3 && totalMinutes < 5) score -= 10;
+    // Optimal length for educational content
+    else if (totalMinutes >= 5 && totalMinutes <= 25) score += 20;
+    // Good length for comprehensive content
+    else if (totalMinutes >= 25 && totalMinutes <= 45) score += 15;
+    // Acceptable for detailed tutorials
+    else if (totalMinutes >= 45 && totalMinutes <= 90) score += 5;
+    // Penalize very long videos (might be unfocused)
+    else if (totalMinutes > 90) score -= 15;
 
     // Recent content bonus
     const publishDate = new Date(video.publishedAt);
@@ -384,7 +500,7 @@ class SupabaseYouTubeService {
     else if (monthsOld < 12) score += 5;
     else if (monthsOld < 24) score += 2;
 
-    // Penalty for obviously irrelevant content
+    // Penalty for obviously irrelevant content (expanded)
     const irrelevantKeywords = [
       "reaction",
       "drama",
@@ -402,9 +518,53 @@ class SupabaseYouTubeService {
       "shorts",
       "vs",
       "tier list",
+      "vlog",
+      "storytime",
+      "rant",
+      "roast",
+      "cringe",
+      "clickbait",
+      "exposed",
+      "leaked",
+      "secret",
+      "hack",
+      "trick",
+      "amazing",
+      "incredible",
+      "insane",
+      "crazy",
+      "shocking",
+      "unbelievable",
+      "you won't believe",
+      "must watch",
+      "gone wrong",
+      "fail",
+      "wtf",
+      "omg",
+      "lol",
+      "lmao",
+      "subscribe",
+      "like and subscribe",
+      "smash that like",
     ];
     irrelevantKeywords.forEach((keyword) => {
-      if (titleLower.includes(keyword)) score -= 25;
+      if (titleLower.includes(keyword)) score -= 30; // Increased penalty
+    });
+
+    // Heavy penalty for non-English indicators
+    const nonEnglishIndicators = [
+      "hindi", "español", "français", "deutsch", "中文", "日本語", "한국어",
+      "português", "русский", "türkçe", "italiano", "nederlands", "svenska",
+      "polski", "čeština", "magyar", "română", "українська", "العربية",
+      "हिन्दी", "বাংলা", "தமிழ்", "తెలుగు", "ગુજરાતી", "मराठी", "ಕನ್ನಡ",
+      "മലയാളം", "ଓଡ଼ିଆ", "ਪੰਜਾਬੀ", "اردو", "فارسی", "עברית", "ไทย", "Tiếng Việt",
+      "bahasa", "tagalog", "urdu", "farsi", "persian", "arabic", "chinese",
+      "japanese", "korean", "vietnamese", "thai", "indonesian", "malay"
+    ];
+    nonEnglishIndicators.forEach((indicator) => {
+      if (titleLower.includes(indicator) || descriptionLower.includes(indicator)) {
+        score -= 50; // Heavy penalty for non-English content
+      }
     });
 
     // Extra penalty for off-topic content
@@ -425,16 +585,20 @@ class SupabaseYouTubeService {
     const topicLower = mainTopic.toLowerCase();
     const subtopicLower = subtopic.toLowerCase();
 
-    // Base search queries - keep topic focused
+    // Base search queries - enhanced with English educational focus
     const baseQueries = [
-      `"${mainTopic}" "${subtopic}" tutorial`,
-      `"${subtopic}" "${mainTopic}" explained`,
-      `"${mainTopic}" "${subtopic}" guide`,
-      `"${subtopic}" in "${mainTopic}"`,
-      `how to "${subtopic}" "${mainTopic}"`,
-      `"${mainTopic}" "${subtopic}" educational`,
-      `"${subtopic}" "${mainTopic}" lesson`,
-      `"${mainTopic}" "${subtopic}" comprehensive`,
+      `"${mainTopic}" "${subtopic}" tutorial english`,
+      `"${subtopic}" "${mainTopic}" explained english`,
+      `"${mainTopic}" "${subtopic}" guide tutorial`,
+      `"${subtopic}" in "${mainTopic}" course`,
+      `how to "${subtopic}" "${mainTopic}" step by step`,
+      `"${mainTopic}" "${subtopic}" educational training`,
+      `"${subtopic}" "${mainTopic}" lesson complete`,
+      `"${mainTopic}" "${subtopic}" comprehensive guide`,
+      `learn "${subtopic}" "${mainTopic}" tutorial`,
+      `"${subtopic}" "${mainTopic}" beginner guide`,
+      `"${mainTopic}" "${subtopic}" professional training`,
+      `"${subtopic}" "${mainTopic}" masterclass`,
     ];
 
     // Topic-specific improvements

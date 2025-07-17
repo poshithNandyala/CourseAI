@@ -13,8 +13,10 @@ import {
   HelpCircle,
   AlertCircle,
   TrendingUp,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { fetchCourseById } from "../../services/courseService";
+import { fetchCourseById, publishCourse, unpublishCourse } from "../../services/courseService";
 import { useAuthStore } from "../../store/authStore";
 import { VideoPlayer } from "./VideoPlayer";
 import { InteractiveQuiz } from "../Quiz/InteractiveQuiz";
@@ -36,6 +38,7 @@ export const CourseViewer: React.FC = () => {
   );
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
   const [userRating, setUserRating] = useState<number | undefined>(undefined);
+  const [isOwner, setIsOwner] = useState(false);
   const [durationStats, setDurationStats] = useState<any>(null);
 
   useEffect(() => {
@@ -75,6 +78,25 @@ export const CourseViewer: React.FC = () => {
       console.error("Error submitting rating:", error);
       toast.error("Failed to submit rating");
       throw error;
+    }
+  };
+
+  const handlePublishToggle = async () => {
+    if (!id || !course) return;
+    
+    try {
+      if (course.is_published) {
+        await unpublishCourse(id);
+        setCourse({ ...course, is_published: false });
+        toast.success("Course unpublished successfully!");
+      } else {
+        await publishCourse(id);
+        setCourse({ ...course, is_published: true });
+        toast.success("Course published successfully! It is now visible to others.");
+      }
+    } catch (error) {
+      console.error("Error toggling publish status:", error);
+      toast.error("Failed to update course status");
     }
   };
 
@@ -118,6 +140,7 @@ export const CourseViewer: React.FC = () => {
         ownerMode,
         ")"
       );
+      setIsOwner(ownerMode);
       const fetchedCourse = await fetchCourseById(id, ownerMode);
       if (fetchedCourse) {
         console.log(
@@ -293,7 +316,7 @@ export const CourseViewer: React.FC = () => {
               </div>
             </div>
 
-            <div className="ml-6">
+            <div className="ml-6 flex items-center space-x-3">
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
                   course.is_published
@@ -303,6 +326,27 @@ export const CourseViewer: React.FC = () => {
               >
                 {course.is_published ? "Published" : "Draft"}
               </span>
+
+              {/* Publish/Unpublish Button for Course Owners */}
+              {isOwner && (
+                <button
+                  onClick={handlePublishToggle}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    course.is_published
+                      ? "bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-300 hover:bg-warning-200 dark:hover:bg-warning-800/50"
+                      : "bg-success-100 dark:bg-success-900/30 text-success-700 dark:text-success-300 hover:bg-success-200 dark:hover:bg-success-800/50"
+                  }`}
+                >
+                  {course.is_published ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                  <span>
+                    {course.is_published ? "Unpublish" : "Publish"}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -347,48 +391,7 @@ export const CourseViewer: React.FC = () => {
               )}
 
               {/* Duration Statistics */}
-              {durationStats && (
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Course Duration Analysis
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Actual Duration</div>
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {durationStats.formattedDuration}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        {durationStats.totalMinutes} minutes
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Total Videos</div>
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                        {durationStats.totalVideos}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        Avg: {Math.round(durationStats.averageVideoLength / 60)}min each
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Estimated vs Actual</div>
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {(() => {
-                          const comparison = compareDurations(course.estimated_duration, durationStats.totalSeconds);
-                          return comparison.difference > 0 ? `+${comparison.difference}m` : `${comparison.difference}m`;
-                        })()}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        {course.estimated_duration}m estimated
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Course Structure

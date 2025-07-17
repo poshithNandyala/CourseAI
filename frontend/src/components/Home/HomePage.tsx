@@ -50,7 +50,7 @@ export const HomePage: React.FC = () => {
                 Create Courses
               </span>
               <br />
-              <span className="text-gray-900 dark:text-white">with AI Magic</span>
+              <span className="text-gray-900 dark:text-white">with CourseAI</span>
             </h1>
             
             <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">

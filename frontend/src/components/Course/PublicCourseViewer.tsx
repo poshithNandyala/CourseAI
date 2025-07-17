@@ -18,18 +18,26 @@ import {
   User,
   ThumbsUp,
   Unlock,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import {
   fetchCourseById,
   fetchCourseComments,
   addCourseComment,
+  updateCourseComment,
+  deleteCourseComment,
+  toggleCommentLike,
   toggleCourseLike,
 } from "../../services/courseService";
 import { useAuthStore } from "../../store/authStore";
 import { VideoPlayer } from "./VideoPlayer";
 import { InteractiveQuiz } from "../Quiz/InteractiveQuiz";
 import { CourseRating } from "./CourseRating";
-import { submitCourseRating, getUserCourseRating } from "../../services/ratingService";
+import {
+  submitCourseRating,
+  getUserCourseRating,
+} from "../../services/ratingService";
 import { geminiAPI } from "../../services/geminiApi";
 import toast from "react-hot-toast";
 
@@ -48,6 +56,11 @@ export const PublicCourseViewer: React.FC = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [commentLikes, setCommentLikes] = useState<{ [key: string]: boolean }>(
+    {}
+  );
   const [isLiked, setIsLiked] = useState(false);
   const [lessonSummary, setLessonSummary] = useState<string>("");
   const [userRating, setUserRating] = useState<number | null>(null);
@@ -68,7 +81,7 @@ export const PublicCourseViewer: React.FC = () => {
 
   const loadUserRating = async () => {
     if (!id || !user) return;
-    
+
     try {
       const rating = await getUserCourseRating(id);
       setUserRating(rating);
@@ -89,17 +102,20 @@ export const PublicCourseViewer: React.FC = () => {
 
   const loadCourseRatingStats = async () => {
     if (!id) return;
-    
+
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
-      const response = await fetch(`${API_BASE_URL}/courses/${id}/ratings/stats`);
+      const API_BASE_URL =
+        import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+      const response = await fetch(
+        `${API_BASE_URL}/courses/${id}/ratings/stats`
+      );
       if (response.ok) {
         const data = await response.json();
         if (course && data.success) {
           setCourse({
             ...course,
             rating: data.data.averageRating,
-            ratings_count: data.data.totalRatings
+            ratings_count: data.data.totalRatings,
           });
         }
       }
@@ -153,6 +169,16 @@ export const PublicCourseViewer: React.FC = () => {
       console.log("💬 Loading comments for ALL users (no auth required)");
       const courseComments = await fetchCourseComments(id);
       setComments(courseComments);
+
+      // Initialize comment likes state
+      const initialLikes = courseComments.reduce(
+        (acc: { [key: string]: boolean }, comment: any) => {
+          acc[comment.id] = comment.is_liked || false;
+          return acc;
+        },
+        {}
+      );
+      setCommentLikes(initialLikes);
     } catch (error) {
       console.error("Error loading comments:", error);
     }
@@ -184,6 +210,75 @@ export const PublicCourseViewer: React.FC = () => {
     }
   };
 
+  const handleUpdateComment = async (commentId: string, content: string) => {
+    try {
+      await updateCourseComment(id!, commentId, content);
+      setEditingCommentId(null);
+      setEditingCommentContent("");
+      await loadComments();
+      toast.success("Comment updated successfully!");
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      toast.error("Failed to update comment");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+
+    try {
+      await deleteCourseComment(id!, commentId);
+      await loadComments();
+      toast.success("Comment deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("Failed to delete comment");
+    }
+  };
+
+  const handleToggleCommentLike = async (commentId: string) => {
+    if (!user) {
+      toast.error("Please sign in to like comments");
+      navigate("/signin");
+      return;
+    }
+
+    try {
+      const result = await toggleCommentLike(id!, commentId);
+      setCommentLikes((prev) => ({
+        ...prev,
+        [commentId]: result.isLiked,
+      }));
+
+      // Update the comment's like count in the local state
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                likes_count: result.isLiked
+                  ? comment.likes_count + 1
+                  : comment.likes_count - 1,
+              }
+            : comment
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling comment like:", error);
+      toast.error("Failed to toggle like");
+    }
+  };
+
+  const startEditComment = (commentId: string, content: string) => {
+    setEditingCommentId(commentId);
+    setEditingCommentContent(content);
+  };
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent("");
+  };
+
   const handleRatingSubmit = async (rating: number) => {
     if (!user) {
       toast.error("Please sign in to rate this course");
@@ -194,16 +289,16 @@ export const PublicCourseViewer: React.FC = () => {
     try {
       const response = await submitCourseRating(id!, rating);
       setUserRating(rating);
-      
+
       // Update course rating in local state
       if (course) {
         setCourse({
           ...course,
           rating: response.data.courseStats.averageRating,
-          ratings_count: response.data.courseStats.totalRatings
+          ratings_count: response.data.courseStats.totalRatings,
         });
       }
-      
+
       toast.success("Rating submitted successfully!");
     } catch (error) {
       console.error("Error submitting rating:", error);
@@ -761,22 +856,101 @@ export const PublicCourseViewer: React.FC = () => {
                           </div>
                         )}
                         <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <span className="font-medium text-gray-900 dark:text-white">
-                              {comment.user?.name || "Anonymous"}
-                            </span>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {new Date(
-                                comment.created_at
-                              ).toLocaleDateString()}
-                            </span>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {comment.user?.name || "Anonymous"}
+                              </span>
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {new Date(
+                                  comment.created_at
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {/* Edit/Delete buttons for comment owner */}
+                            {user && comment.user_id === user.id && (
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() =>
+                                    startEditComment(
+                                      comment.id,
+                                      comment.content
+                                    )
+                                  }
+                                  className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+                                  title="Edit comment"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteComment(comment.id)
+                                  }
+                                  className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
+                                  title="Delete comment"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
-                          <p className="text-gray-700 dark:text-gray-300 mb-3">
-                            {comment.content}
-                          </p>
+
+                          {/* Comment content or edit form */}
+                          {editingCommentId === comment.id ? (
+                            <div className="mb-3">
+                              <textarea
+                                value={editingCommentContent}
+                                onChange={(e) =>
+                                  setEditingCommentContent(e.target.value)
+                                }
+                                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
+                                rows={3}
+                                placeholder="Edit your comment..."
+                              />
+                              <div className="flex justify-end space-x-2 mt-2">
+                                <button
+                                  onClick={cancelEditComment}
+                                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors duration-200"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateComment(
+                                      comment.id,
+                                      editingCommentContent
+                                    )
+                                  }
+                                  disabled={!editingCommentContent.trim()}
+                                  className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                                >
+                                  Update
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-700 dark:text-gray-300 mb-3">
+                              {comment.content}
+                            </p>
+                          )}
+
                           <div className="flex items-center space-x-4">
-                            <button className="flex items-center space-x-1 text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors duration-200">
-                              <ThumbsUp className="h-4 w-4" />
+                            <button
+                              onClick={() =>
+                                handleToggleCommentLike(comment.id)
+                              }
+                              className={`flex items-center space-x-1 transition-colors duration-200 ${
+                                commentLikes[comment.id]
+                                  ? "text-brand-600 dark:text-brand-400"
+                                  : "text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-400"
+                              }`}
+                            >
+                              <ThumbsUp
+                                className={`h-4 w-4 ${
+                                  commentLikes[comment.id] ? "fill-current" : ""
+                                }`}
+                              />
                               <span>{comment.likes_count || 0}</span>
                             </button>
                           </div>
