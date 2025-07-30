@@ -12,7 +12,6 @@ import {
   FileText,
   HelpCircle,
   AlertCircle,
-  TrendingUp,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -22,7 +21,7 @@ import { VideoPlayer } from "./VideoPlayer";
 import { InteractiveQuiz } from "../Quiz/InteractiveQuiz";
 import { CourseRating } from "./CourseRating";
 import { submitCourseRating, getUserCourseRating } from "../../services/ratingService";
-import { getCourseDurationStats, compareDurations } from "../../utils/durationCalculator";
+import { getCourseDurationStats } from "../../utils/durationCalculator";
 import toast from "react-hot-toast";
 
 export const CourseViewer: React.FC = () => {
@@ -511,7 +510,7 @@ export const CourseViewer: React.FC = () => {
                   {/* Lesson Content */}
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
                     <div className="prose dark:prose-invert max-w-none">
-                      {selectedLesson.content.split("\n").map((line, index) => {
+                      {selectedLesson.content.split("\n").map((line: string, index: number) => {
                         if (line.startsWith("# ")) {
                           return (
                             <h1 key={index} className="text-2xl font-bold mb-4">
@@ -538,9 +537,11 @@ export const CourseViewer: React.FC = () => {
                           );
                         } else if (line.startsWith("- ")) {
                           return (
-                            <li key={index} className="ml-4">
-                              {line.substring(2)}
-                            </li>
+                            <ul key={index}>
+                              <li className="ml-4">
+                                {line.substring(2)}
+                              </li>
+                            </ul>
                           );
                         } else if (line.trim()) {
                           return (
@@ -565,7 +566,7 @@ export const CourseViewer: React.FC = () => {
                         </span>
                       </h4>
                       <div className="grid gap-6">
-                        {selectedLesson.video_data.map((video, videoIndex) => (
+                        {selectedLesson.video_data.map((video: any, videoIndex: number) => (
                           <VideoPlayer
                             key={`${selectedLesson.id}-video-${videoIndex}`}
                             video={video}

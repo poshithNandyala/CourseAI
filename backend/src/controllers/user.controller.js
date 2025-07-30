@@ -203,16 +203,23 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 });
 
 const getLikedCourses = asyncHandler(async (req, res) => {
+    const userId = String(req.user._id);
+
     const likedCourses = await CourseLike.aggregate([
         {
             $match: {
-                user_id: new mongoose.Types.ObjectId(req.user._id),
+                user_id: userId,
             },
+        },
+        {
+            $addFields: {
+                course_id_obj: { $toObjectId: "$course_id" }
+            }
         },
         {
             $lookup: {
                 from: "courses",
-                localField: "course_id",
+                localField: "course_id_obj",
                 foreignField: "_id",
                 as: "likedCourse",
                 pipeline: [
@@ -236,13 +243,30 @@ const getLikedCourses = asyncHandler(async (req, res) => {
         {
             $project: {
                 _id: 0,
-                course: "$likedCourse"
+                id: { $toString: "$likedCourse._id" },
+                title: "$likedCourse.title",
+                description: "$likedCourse.description",
+                difficulty: "$likedCourse.difficulty",
+                estimated_duration: "$likedCourse.estimated_duration",
+                tags: "$likedCourse.tags",
+                likes_count: "$likedCourse.likes_count",
+                rating: "$likedCourse.rating",
+                ratings_count: "$likedCourse.ratings_count",
+                is_published: "$likedCourse.is_published",
+                created_at: "$likedCourse.createdAt",
+                updated_at: "$likedCourse.updatedAt",
+                creator: {
+                    name: "$likedCourse.ownerDetails.name",
+                    avatar_url: "$likedCourse.ownerDetails.avatar_url"
+                }
             }
         }
     ]);
 
-    return res.status(200).json(new ApiResponse(200, likedCourses, "Liked courses fetched successfully"));
+    return res.status(200).json(new ApiResponse(200, { courses: likedCourses }, "Liked courses fetched successfully"));
 });
+
+
 
 const getMyPublishedCoursesLikes = asyncHandler(async (req, res) => {
     // Find all published courses owned by the user

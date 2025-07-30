@@ -1,27 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Mail, 
-  ArrowLeft, 
-  Brain, 
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  Mail,
+  ArrowLeft,
+  Brain,
   RefreshCw,
   Check,
-  AlertCircle
-} from 'lucide-react';
-import { verifySignupCode, resendVerificationCode } from '../../services/verificationService';
-import { useAuthStore } from '../../store/authStore';
+  AlertCircle,
+} from "lucide-react";
+import {
+  verifySignupCode,
+  resendVerificationCode,
+} from "../../services/verificationService";
+import { useAuthStore } from "../../store/authStore";
 
 export const VerificationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
-  
+
   // Get email from location state or redirect to signin
   const email = location.state?.email;
-  const verificationType = location.state?.type || 'signup';
-  
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const verificationType = location.state?.type || "signup";
+
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
@@ -30,12 +33,12 @@ export const VerificationPage: React.FC = () => {
   // Redirect if already signed in or no email
   useEffect(() => {
     if (user) {
-      navigate('/dashboard', { replace: true });
+      navigate("/dashboard", { replace: true });
       return;
     }
-    
+
     if (!email) {
-      navigate('/signin', { replace: true });
+      navigate("/signin", { replace: true });
       return;
     }
   }, [user, email, navigate]);
@@ -52,7 +55,7 @@ export const VerificationPage: React.FC = () => {
 
   const handleCodeChange = (value: string, index: number) => {
     if (value.length > 1) return; // Only allow single digits
-    
+
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
@@ -64,38 +67,38 @@ export const VerificationPage: React.FC = () => {
     }
 
     // Auto-submit when all fields are filled
-    if (newCode.every(digit => digit) && newCode.join('').length === 6) {
-      handleVerify(newCode.join(''));
+    if (newCode.every((digit) => digit) && newCode.join("").length === 6) {
+      handleVerify(newCode.join(""));
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
       const prevInput = document.getElementById(`code-input-${index - 1}`);
       prevInput?.focus();
     }
   };
 
   const handleVerify = async (verificationCode?: string) => {
-    const codeToVerify = verificationCode || code.join('');
-    
+    const codeToVerify = verificationCode || code.join("");
+
     if (codeToVerify.length !== 6) {
       return;
     }
 
     setLoading(true);
-    
+
     try {
-      if (verificationType === 'signup') {
+      if (verificationType === "signup") {
         await verifySignupCode(email, codeToVerify);
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
       // Add other verification types here if needed
     } catch (error) {
-      console.error('Verification failed:', error);
+      console.error("Verification failed:", error);
       // Reset code inputs on error
-      setCode(['', '', '', '', '', '']);
-      const firstInput = document.getElementById('code-input-0');
+      setCode(["", "", "", "", "", ""]);
+      const firstInput = document.getElementById("code-input-0");
       firstInput?.focus();
     } finally {
       setLoading(false);
@@ -104,13 +107,13 @@ export const VerificationPage: React.FC = () => {
 
   const handleResend = async () => {
     setResendLoading(true);
-    
+
     try {
       await resendVerificationCode(email, verificationType);
       setTimeLeft(600); // Reset timer to 10 minutes
       setCanResend(false);
     } catch (error) {
-      console.error('Resend failed:', error);
+      console.error("Resend failed:", error);
     } finally {
       setResendLoading(false);
     }
@@ -119,7 +122,7 @@ export const VerificationPage: React.FC = () => {
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
   if (!email) {
@@ -131,11 +134,8 @@ export const VerificationPage: React.FC = () => {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-10 p-6">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <Link 
-            to="/" 
-            className="flex items-center space-x-3 group"
-          >
-            <motion.div 
+          <Link to="/" className="flex items-center space-x-3 group">
+            <motion.div
               whileHover={{ scale: 1.05 }}
               className="bg-gradient-to-r from-brand-500 to-accent-500 p-2.5 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-200"
             >
@@ -145,7 +145,7 @@ export const VerificationPage: React.FC = () => {
               CourseAI
             </span>
           </Link>
-          
+
           <Link
             to="/signin"
             className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-200"
@@ -193,6 +193,7 @@ export const VerificationPage: React.FC = () => {
                     type="text"
                     maxLength={1}
                     value={digit}
+                    aria-label={`Verification digit ${index + 1}`}
                     onChange={(e) => handleCodeChange(e.target.value, index)}
                     onKeyDown={(e) => handleKeyDown(e, index)}
                     disabled={loading}
@@ -222,7 +223,7 @@ export const VerificationPage: React.FC = () => {
               whileHover={{ scale: loading ? 1 : 1.02 }}
               whileTap={{ scale: loading ? 1 : 0.98 }}
               onClick={() => handleVerify()}
-              disabled={loading || code.some(digit => !digit)}
+              disabled={loading || code.some((digit) => !digit)}
               className="w-full bg-gradient-to-r from-brand-500 to-accent-500 text-white py-3.5 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl mb-4"
             >
               {loading ? (
@@ -240,8 +241,8 @@ export const VerificationPage: React.FC = () => {
 
             {/* Resend Button */}
             <motion.button
-              whileHover={{ scale: (!canResend || resendLoading) ? 1 : 1.02 }}
-              whileTap={{ scale: (!canResend || resendLoading) ? 1 : 0.98 }}
+              whileHover={{ scale: !canResend || resendLoading ? 1 : 1.02 }}
+              whileTap={{ scale: !canResend || resendLoading ? 1 : 0.98 }}
               onClick={handleResend}
               disabled={!canResend || resendLoading}
               className="w-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-3.5 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -261,10 +262,16 @@ export const VerificationPage: React.FC = () => {
 
             {/* Help Text */}
             <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              <p>Didn't receive the code? Check your spam folder or try resending.</p>
+              <p>
+                Didn't receive the code? Check your spam folder or try
+                resending.
+              </p>
               <p className="mt-2">
-                Having trouble?{' '}
-                <Link to="/support" className="text-brand-600 dark:text-brand-400 hover:underline">
+                Having trouble?{" "}
+                <Link
+                  to="/support"
+                  className="text-brand-600 dark:text-brand-400 hover:underline"
+                >
                   Contact Support
                 </Link>
               </p>

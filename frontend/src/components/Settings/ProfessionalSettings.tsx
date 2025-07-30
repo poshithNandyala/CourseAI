@@ -18,11 +18,10 @@ import {
   Lock,
   ExternalLink,
   Github,
-  Chrome,
-  Upload
+  Chrome
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
@@ -55,8 +54,7 @@ interface PasswordData {
 
 const ProfessionalSettings: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user: authUser, logout } = useAuthStore();
+  const { logout } = useAuthStore();
   
   const [activeTab, setActiveTab] = useState<'profile' | 'api-keys' | 'security' | 'danger'>('profile');
   const [user, setUser] = useState<User | null>(null);
@@ -513,13 +511,15 @@ const ProfessionalSettings: React.FC = () => {
                             className="w-24 h-24 rounded-2xl object-cover ring-4 ring-brand-100 dark:ring-brand-900/30"
                           />
                           {isEditing && (
-                            <label className="absolute -bottom-2 -right-2 bg-brand-500 text-white p-2 rounded-xl cursor-pointer hover:bg-brand-600 transition-colors shadow-lg">
+                            <label className="absolute -bottom-2 -right-2 bg-brand-500 text-white p-2 rounded-xl cursor-pointer hover:bg-brand-600 transition-colors shadow-lg" title="Change profile picture">
                               <Camera className="h-4 w-4" />
                               <input
                                 type="file"
                                 accept="image/*"
                                 onChange={handleAvatarChange}
                                 className="hidden"
+                                title="Upload new profile picture"
+                                aria-label="Upload new profile picture"
                               />
                             </label>
                           )}
@@ -549,6 +549,9 @@ const ProfessionalSettings: React.FC = () => {
                             value={profileData.fullname}
                             onChange={(e) => setProfileData(prev => ({ ...prev, fullname: e.target.value }))}
                             disabled={!isEditing}
+                            placeholder="Enter your full name"
+                            title="Your full name"
+                            aria-label="Full name"
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </div>
@@ -561,6 +564,9 @@ const ProfessionalSettings: React.FC = () => {
                             type="email"
                             value={profileData.email}
                             disabled={true}
+                            placeholder="Email address (read-only)"
+                            title="Email address cannot be changed"
+                            aria-label="Email address (read-only)"
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                           />
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -701,6 +707,8 @@ const ProfessionalSettings: React.FC = () => {
                               <button
                                 onClick={() => setEditingKeys(prev => ({ ...prev, gemini: true }))}
                                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                title="Edit Gemini API key"
+                                aria-label="Edit Gemini API key"
                               >
                                 <Edit3 className="h-4 w-4" />
                               </button>
@@ -716,12 +724,16 @@ const ProfessionalSettings: React.FC = () => {
                                 value={apiKeys.geminiApiKey}
                                 onChange={(e) => setApiKeys(prev => ({ ...prev, geminiApiKey: e.target.value }))}
                                 placeholder="Enter your Gemini API key"
+                                title="Gemini API key"
+                                aria-label="Gemini API key"
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-600 dark:text-white pr-12"
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowKeys(prev => ({ ...prev, gemini: !prev.gemini }))}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                title={showKeys.gemini ? 'Hide Gemini API key' : 'Show Gemini API key'}
+                                aria-label={showKeys.gemini ? 'Hide Gemini API key' : 'Show Gemini API key'}
                               >
                                 {showKeys.gemini ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                               </button>
@@ -776,6 +788,8 @@ const ProfessionalSettings: React.FC = () => {
                               <button
                                 onClick={() => setEditingKeys(prev => ({ ...prev, youtube: true }))}
                                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                title="Edit YouTube API key"
+                                aria-label="Edit YouTube API key"
                               >
                                 <Edit3 className="h-4 w-4" />
                               </button>
@@ -791,12 +805,16 @@ const ProfessionalSettings: React.FC = () => {
                                 value={apiKeys.youtubeApiKey}
                                 onChange={(e) => setApiKeys(prev => ({ ...prev, youtubeApiKey: e.target.value }))}
                                 placeholder="Enter your YouTube API key"
+                                title="YouTube API key"
+                                aria-label="YouTube API key"
                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-600 dark:text-white pr-12"
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowKeys(prev => ({ ...prev, youtube: !prev.youtube }))}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                title={showKeys.youtube ? 'Hide YouTube API key' : 'Show YouTube API key'}
+                                aria-label={showKeys.youtube ? 'Hide YouTube API key' : 'Show YouTube API key'}
                               >
                                 {showKeys.youtube ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                               </button>
@@ -885,12 +903,17 @@ const ProfessionalSettings: React.FC = () => {
                                   type={showPasswords.current ? 'text' : 'password'}
                                   value={passwordData.currentPassword}
                                   onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                                  placeholder="Enter current password"
+                                  title="Current password"
+                                  aria-label="Current password"
                                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-600 dark:text-white pr-12"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
                                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  title={showPasswords.current ? 'Hide current password' : 'Show current password'}
+                                  aria-label={showPasswords.current ? 'Hide current password' : 'Show current password'}
                                 >
                                   {showPasswords.current ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
@@ -906,12 +929,17 @@ const ProfessionalSettings: React.FC = () => {
                                   type={showPasswords.new ? 'text' : 'password'}
                                   value={passwordData.newPassword}
                                   onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                                  placeholder="Enter new password"
+                                  title="New password"
+                                  aria-label="New password"
                                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-600 dark:text-white pr-12"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
                                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  title={showPasswords.new ? 'Hide new password' : 'Show new password'}
+                                  aria-label={showPasswords.new ? 'Hide new password' : 'Show new password'}
                                 >
                                   {showPasswords.new ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
@@ -927,12 +955,17 @@ const ProfessionalSettings: React.FC = () => {
                                   type={showPasswords.confirm ? 'text' : 'password'}
                                   value={passwordData.confirmPassword}
                                   onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                                  placeholder="Confirm new password"
+                                  title="Confirm new password"
+                                  aria-label="Confirm new password"
                                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-600 dark:text-white pr-12"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
                                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  title={showPasswords.confirm ? 'Hide confirm password' : 'Show confirm password'}
+                                  aria-label={showPasswords.confirm ? 'Hide confirm password' : 'Show confirm password'}
                                 >
                                   {showPasswords.confirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>

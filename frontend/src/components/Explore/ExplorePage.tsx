@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Star, Users, Clock, BookOpen, Play, Heart, X } from 'lucide-react';
-import { fetchPublishedCourses, toggleCourseLike } from '../../services/courseService';
+import { Search, Filter, Star, Clock, BookOpen, Play, Heart, X } from 'lucide-react';
+import { fetchPublishedCourses, toggleCourseLike, fetchUserLikedCourses } from '../../services/courseService';
 import { Card } from '../UI/Card';
 import { Button } from '../UI/Button';
 import { useNavigate } from 'react-router-dom';
@@ -25,22 +25,18 @@ export const ExplorePage: React.FC = () => {
     sortBy: 'newest' as 'newest' | 'oldest' | 'rating' | 'likes' | 'duration'
   });
 
-  useEffect(() => {
-    loadPublishedCourses();
-  }, [selectedDifficulty]);
-
-  // Listen for publish/unpublish updates
-  useEffect(() => {
-    if (lastPublishUpdate > 0) {
-      console.log('🔄 Detected course publish/unpublish update, refreshing...');
-      loadPublishedCourses();
+  const loadUserLikedCourses = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('❤️ Loading user liked courses...');
+      const likedCourseIds = await fetchUserLikedCourses();
+      setLikedCourses(new Set(likedCourseIds));
+      console.log('✅ Loaded user liked courses:', likedCourseIds.length);
+    } catch (error) {
+      console.error('❌ Error loading user liked courses:', error);
     }
-  }, [lastPublishUpdate]);
-
-  // Auto-apply filters when they change
-  useEffect(() => {
-    // No need to reload from server, just triggers re-filtering via filteredCourses
-  }, [filters, searchTerm]);
+  };
 
   const loadPublishedCourses = async () => {
     try {
@@ -64,6 +60,26 @@ export const ExplorePage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadPublishedCourses();
+    if (user) {
+      loadUserLikedCourses();
+    }
+  }, [selectedDifficulty, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for publish/unpublish updates
+  useEffect(() => {
+    if (lastPublishUpdate > 0) {
+      console.log('🔄 Detected course publish/unpublish update, refreshing...');
+      loadPublishedCourses();
+    }
+  }, [lastPublishUpdate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-apply filters when they change
+  useEffect(() => {
+    // No need to reload from server, just triggers re-filtering via filteredCourses
+  }, [filters, searchTerm]);
 
   const handleSearch = () => {
     loadPublishedCourses();
@@ -99,7 +115,7 @@ export const ExplorePage: React.FC = () => {
       }
 
       // Update the course in the list
-      setPublishedCourses(prev => prev.map(course => 
+      const updatedCourses = publishedCourses.map((course: Course) => 
         course.id === courseId 
           ? { 
               ...course, 
@@ -108,7 +124,8 @@ export const ExplorePage: React.FC = () => {
                 : course.likes_count - 1 
             }
           : course
-      ));
+      );
+      setPublishedCourses(updatedCourses);
     } catch (error) {
       console.error('Error toggling like:', error);
     }
@@ -348,8 +365,10 @@ export const ExplorePage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
+                onClick={() => handleViewCourse(course.id)}
+                className="cursor-pointer"
               >
-                <Card hover className="h-full cursor-pointer" onClick={() => handleViewCourse(course.id)}>
+                <Card hover className="h-full">
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
                       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 flex-1">
@@ -440,8 +459,6 @@ export const ExplorePage: React.FC = () => {
               </motion.div>
             ))}
           </div>
-
-
         </>
       )}
     </div>

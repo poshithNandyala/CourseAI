@@ -6,7 +6,6 @@ import {
   BookOpen,
   Clock,
   Star,
-  Users,
   ArrowLeft,
   Youtube,
   FileText,
@@ -318,7 +317,7 @@ export const PublicCourseViewer: React.FC = () => {
       setIsLiked(result.isLiked);
 
       // Update course likes count
-      setCourse((prev) => ({
+      setCourse((prev: any) => ({
         ...prev,
         likes_count: result.isLiked
           ? prev.likes_count + 1

@@ -667,6 +667,38 @@ export const fetchMyPublishedCoursesLikes = async (): Promise<number> => {
   }
 };
 
+export const fetchUserLikedCourses = async (): Promise<string[]> => {
+  const user = useAuthStore.getState().user;
+  if (!user) return [];
+  
+  try {
+    console.log("❤️ Fetching user's liked courses...");
+    
+    const response = await fetch(`${API_BASE_URL}/users/liked-courses`, {
+      headers: getAuthHeaders(),
+      credentials: "include",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ Failed to fetch liked courses:", data.message);
+      throw new Error(data.message || "Failed to fetch liked courses");
+    }
+
+    if (data.success && data.data && data.data.courses) {
+      const likedCourseIds = data.data.courses.map((course: any) => course.id);
+      console.log(`✅ Fetched ${likedCourseIds.length} liked courses`);
+      return likedCourseIds;
+    }
+
+    return [];
+  } catch (error: any) {
+    console.error("Error fetching user liked courses:", error);
+    return [];
+  }
+};
+
 // Update course comment
 export const updateCourseComment = async (
   courseId: string,

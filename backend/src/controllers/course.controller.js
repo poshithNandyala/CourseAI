@@ -423,7 +423,7 @@ const toggleCourseLike = asyncHandler(async (req, res) => {
         // Check if user already liked the course
         const existingLike = await CourseLike.findOne({
             course_id: courseId,
-            user_id: req.user._id
+            user_id: String(req.user._id)
         });
 
         if (existingLike) {
@@ -440,7 +440,7 @@ const toggleCourseLike = asyncHandler(async (req, res) => {
             // Like the course
             await CourseLike.create({
                 course_id: courseId,
-                user_id: req.user._id
+                user_id: String(req.user._id)
             });
             await Course.findByIdAndUpdate(courseId, {
                 $inc: { likes_count: 1 }
