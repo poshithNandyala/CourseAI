@@ -37,55 +37,66 @@ export interface QuizQuestion {
 }
 
 class RealContentAPI {
-  private openaiApiKey: string;
+  private backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-  constructor() {
-    this.openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
-  }
+  private getAuthHeaders = () => {
+    const token = localStorage.getItem("accessToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  };
 
-  async generateCourseStructure(topic: string, difficulty: 'beginner' | 'intermediate' | 'advanced' = 'beginner'): Promise<RealCourseContent> {
-    if (!this.openaiApiKey) {
+  async generateCourseStructure(topic: string, difficulty: 'beginner' | 'intermediate' | 'advanced' = 'beginner', apiKey?: string): Promise<RealCourseContent> {
+    if (!apiKey) {
       return this.generateStructuredCourse(topic, difficulty);
     }
 
     try {
-      const prompt = this.buildCourseStructurePrompt(topic, difficulty);
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch(`${this.backendUrl}/api/v1/ai/generate-course`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert educational content creator. Create comprehensive, well-structured courses with clear learning progressions.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 3000,
-          temperature: 0.7,
+          topic,
+          difficulty,
+          duration: 8, // default 8 hours
+          includeProjects: true,
+          apiKey
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
       }
 
       const data = await response.json();
-      const content = data.choices[0].message.content;
-      
-      return this.parseCourseStructure(content, topic, difficulty);
+      return this.convertToRealCourseContent(data.data, topic, difficulty);
     } catch (error) {
       console.error('OpenAI API error, falling back to structured generation:', error);
       return this.generateStructuredCourse(topic, difficulty);
     }
+  }
+
+  private convertToRealCourseContent(courseData: any, topic: string, difficulty: string): RealCourseContent {
+    return {
+      title: courseData.title || `Complete ${topic} Course`,
+      description: courseData.description || `Learn ${topic} from ${difficulty} to advanced level`,
+      subtopics: courseData.courseOutline?.map((module: any, index: number) => ({
+        title: module.title,
+        description: module.description,
+        order: index + 1,
+        videos: [],
+        articles: [],
+        keyPoints: module.keyPoints || [],
+        estimatedDuration: module.duration || 45,
+        quiz: []
+      })) || [],
+      totalDuration: courseData.courseOutline?.reduce((total: number, module: any) => total + (module.duration || 45), 0) || 0,
+      difficulty: difficulty as any,
+      prerequisites: courseData.prerequisites || [],
+      learningObjectives: courseData.learningObjectives || []
+    };
   }
 
   private buildCourseStructurePrompt(topic: string, difficulty: string): string {

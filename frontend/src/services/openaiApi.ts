@@ -51,53 +51,42 @@ export interface Project {
 }
 
 class OpenAIService {
-  private apiKey: string;
-  private baseUrl = 'https://api.openai.com/v1';
+  private backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-  constructor() {
-    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
-  }
+  private getAuthHeaders = () => {
+    const token = localStorage.getItem("accessToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  };
 
-  async generateCourse(request: CourseGenerationRequest): Promise<GeneratedCourseContent> {
-    if (!this.apiKey) {
-      console.warn('OpenAI API key not configured, using structured mock data');
+  async generateCourse(request: CourseGenerationRequest & { apiKey: string }): Promise<GeneratedCourseContent> {
+    if (!request.apiKey) {
+      console.warn('OpenAI API key not provided, using structured mock data');
       return this.generateMockCourse(request);
     }
 
     try {
-      const prompt = this.buildCoursePrompt(request);
-      
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const response = await fetch(`${this.backendUrl}/api/v1/ai/generate-course`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert course designer and educator. Create comprehensive, well-structured courses that are engaging and practical.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 4000,
-          temperature: 0.7,
+          topic: request.topic,
+          difficulty: request.difficulty,
+          duration: request.duration,
+          includeProjects: request.includeProjects,
+          apiKey: request.apiKey
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
       }
 
       const data = await response.json();
-      const content = data.choices[0].message.content;
-      
-      return this.parseCourseContent(content, request);
+      return data.data;
     } catch (error) {
       console.error('OpenAI API error:', error);
       return this.generateMockCourse(request);

@@ -31,5 +31,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     console.log("🚪 Logging out user");
     set({ user: null, loading: false });
+    
+    // Clear generation state when user logs out
+    try {
+      // Access generation store dynamically to avoid circular imports
+      const generationStore = require("./generationStore").useGenerationStore;
+      if (generationStore) {
+        const { clearAllState } = generationStore.getState();
+        clearAllState();
+      }
+    } catch (error) {
+      console.warn("Could not clear generation state on logout:", error);
+    }
   },
 }));

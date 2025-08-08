@@ -20,15 +20,15 @@ export interface YouTubeVideo {
 }
 
 class SupabaseYouTubeService {
-  // Comment out old API key approach - now using user's keys
-  // private apiKey: string;
-  private baseUrl = "https://www.googleapis.com/youtube/v3";
+  private backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-  constructor() {
-    // Old approach - using developer's API key (commented out)
-    // this.apiKey = import.meta.env.VITE_YOUTUBE_API_KEY || '';
-    // console.log('🔑 YouTube API Key status:', this.apiKey ? 'CONFIGURED' : 'MISSING');
-  }
+  private getAuthHeaders = () => {
+    const token = localStorage.getItem("accessToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  };
 
   // Get user's API key dynamically
   private async getApiKey(): Promise<string> {
@@ -79,27 +79,30 @@ class SupabaseYouTubeService {
       );
     }
 
-    console.log(`🔍 Searching YouTube for: "${mainTopic} - ${subtopic}"`);
+    console.log(`🎯 SUBTOPIC-FOCUSED YouTube search: "${subtopic}" within "${mainTopic}"`);
 
     try {
       let allVideos: YouTubeVideo[] = [];
 
-      // Multiple search strategies for better results with topic-specific improvements
+      // Generate subtopic-focused search queries for better relevance
       const searchQueries = this.generateImprovedSearchQueries(
         mainTopic,
         subtopic
       );
 
+      console.log(`🔍 Generated ${searchQueries.length} subtopic-focused search strategies`);
+
       for (const query of searchQueries) {
         if (allVideos.length >= maxResults * 2) break;
 
         try {
-          console.log(`  🔍 Searching: "${query}"`);
+          console.log(`  🎯 Advanced search: "${query}"`);
           const videos = await this.performYouTubeSearch(query, apiKey);
+          console.log(`  ✨ Found ${videos.length} extraordinary videos with avg quality score: ${videos.reduce((sum, v) => sum + (v.relevanceScore || 0), 0) / videos.length || 0}`);
           allVideos = [...allVideos, ...videos];
 
           // Add delay to avoid rate limiting
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (error) {
           console.warn(`Failed search for "${query}":`, error);
           continue;
@@ -192,94 +195,49 @@ class SupabaseYouTubeService {
     query: string,
     apiKey: string
   ): Promise<YouTubeVideo[]> {
-    // Step 1: Search for videos
-    // Enhanced query with better educational keywords and English preference
-    const enhancedQuery = `${query} (tutorial OR educational OR guide OR lesson OR "how to" OR course OR explained OR training OR masterclass)`;
+    try {
+      console.log(`🎯 Using advanced YouTube search for: "${query}"`);
+      
+      // Use the new backend service for extraordinary video selection
+      const response = await fetch(`${this.backendUrl}/api/v1/youtube/search`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          query: query,
+          maxResults: 15, // Get more for better selection
+          order: "relevance",
+          duration: "medium",
+          apiKey: apiKey
+        }),
+      });
 
-    const searchParams = new URLSearchParams({
-      part: "snippet",
-      q: enhancedQuery,
-      type: "video",
-      maxResults: "25", // Increased for better filtering
-      order: "relevance",
-      videoDuration: "medium", // Exclude shorts (medium = 4-20 minutes)
-      videoDefinition: "any",
-      videoEmbeddable: "true",
-      videoSyndicated: "true",
-      safeSearch: "strict",
-      relevanceLanguage: "en", // Prioritize English content
-      regionCode: "US", // US region for English content
-      hl: "en", // Interface language
-      publishedAfter: new Date(
-        Date.now() - 4 * 365 * 24 * 60 * 60 * 1000 // Expanded to 4 years for more content
-      ).toISOString(),
-      key: apiKey,
-    });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
+      }
 
-    const searchResponse = await fetch(
-      `${this.baseUrl}/search?${searchParams}`
-    );
+      const data = await response.json();
+      const videos = data.data || [];
 
-    if (!searchResponse.ok) {
-      const errorData = await searchResponse.json();
-      console.error("YouTube Search API error:", errorData);
-      throw new Error(`YouTube Search API error: ${searchResponse.status}`);
-    }
-
-    const searchData = await searchResponse.json();
-
-    if (!searchData.items || searchData.items.length === 0) {
-      return [];
-    }
-
-    // Step 2: Get detailed video information
-    const videoIds = searchData.items
-      .map((item: any) => item.id.videoId)
-      .join(",");
-
-    const detailsParams = new URLSearchParams({
-      part: "snippet,contentDetails,statistics",
-      id: videoIds,
-      key: apiKey,
-    });
-
-    const detailsResponse = await fetch(
-      `${this.baseUrl}/videos?${detailsParams}`
-    );
-
-    if (!detailsResponse.ok) {
-      throw new Error(`YouTube Videos API error: ${detailsResponse.status}`);
-    }
-
-    const detailsData = await detailsResponse.json();
-
-    return detailsData.items
-      .filter((item: any) => {
-        // Filter for English content
-        const title = item.snippet.title || "";
-        const description = item.snippet.description || "";
-        const channelTitle = item.snippet.channelTitle || "";
-        
-        // Check if content is likely English
-        return this.isLikelyEnglish(title, description, channelTitle);
-      })
-      .map((item: any) => ({
-        id: item.id,
-        title: item.snippet.title,
-        description: item.snippet.description || "",
-        duration: this.formatDuration(item.contentDetails.duration),
-        thumbnailUrl:
-          item.snippet.thumbnails.high?.url ||
-          item.snippet.thumbnails.medium?.url ||
-          item.snippet.thumbnails.default.url,
-        channelTitle: item.snippet.channelTitle,
-        publishedAt: item.snippet.publishedAt,
-        viewCount: parseInt(item.statistics.viewCount || "0"),
-        likeCount: parseInt(item.statistics.likeCount || "0"),
-        embedUrl: `https://www.youtube.com/embed/${item.id}?rel=0&modestbranding=1&showinfo=0&controls=1`,
-        watchUrl: `https://www.youtube.com/watch?v=${item.id}`,
-        relevanceScore: 0,
+      // Map to our interface format
+      return videos.map((video: any) => ({
+        id: video.id,
+        title: video.title,
+        description: video.description,
+        duration: video.duration,
+        thumbnailUrl: video.thumbnailUrl,
+        channelTitle: video.channelTitle,
+        publishedAt: video.publishedAt,
+        viewCount: video.viewCount,
+        likeCount: video.likeCount || 0,
+        embedUrl: video.embedUrl,
+        watchUrl: video.watchUrl,
+        relevanceScore: video.qualityScore || 0
       }));
+    } catch (error) {
+      console.error('❌ Advanced YouTube search failed:', error);
+      throw error;
+    }
   }
 
   private removeDuplicatesAndScore(
@@ -585,20 +543,18 @@ class SupabaseYouTubeService {
     const topicLower = mainTopic.toLowerCase();
     const subtopicLower = subtopic.toLowerCase();
 
-    // Base search queries - enhanced with English educational focus
+    // Premium search queries for extraordinary video selection
     const baseQueries = [
-      `"${mainTopic}" "${subtopic}" tutorial english`,
-      `"${subtopic}" "${mainTopic}" explained english`,
-      `"${mainTopic}" "${subtopic}" guide tutorial`,
-      `"${subtopic}" in "${mainTopic}" course`,
-      `how to "${subtopic}" "${mainTopic}" step by step`,
-      `"${mainTopic}" "${subtopic}" educational training`,
-      `"${subtopic}" "${mainTopic}" lesson complete`,
-      `"${mainTopic}" "${subtopic}" comprehensive guide`,
-      `learn "${subtopic}" "${mainTopic}" tutorial`,
-      `"${subtopic}" "${mainTopic}" beginner guide`,
-      `"${mainTopic}" "${subtopic}" professional training`,
-      `"${subtopic}" "${mainTopic}" masterclass`,
+      `${subtopic} ${mainTopic} complete tutorial course`,
+      `${subtopic} ${mainTopic} explained step by step`,
+      `learn ${subtopic} ${mainTopic} comprehensive guide`,
+      `${subtopic} ${mainTopic} masterclass full course`,
+      `${subtopic} ${mainTopic} professional training`,
+      `${subtopic} ${mainTopic} beginner to advanced`,
+      `${subtopic} ${mainTopic} ultimate guide`,
+      `${subtopic} ${mainTopic} deep dive tutorial`,
+      `${subtopic} ${mainTopic} complete walkthrough`,
+      `${subtopic} ${mainTopic} fundamentals explained`,
     ];
 
     // Topic-specific improvements
@@ -628,16 +584,21 @@ class SupabaseYouTubeService {
     else if (
       topicLower.includes("programming") ||
       topicLower.includes("coding") ||
-      topicLower.includes("development")
+      topicLower.includes("development") ||
+      topicLower.includes("javascript") ||
+      topicLower.includes("python") ||
+      topicLower.includes("react") ||
+      topicLower.includes("node")
     ) {
       topicSpecificQueries = [
-        `${subtopic} programming tutorial`,
-        `${subtopic} coding examples`,
-        `${subtopic} development guide`,
-        `${subtopic} code tutorial`,
-        `learn ${subtopic} programming`,
-        `${subtopic} coding bootcamp`,
-        `${subtopic} developer tutorial`,
+        `${subtopic} ${mainTopic} complete course project`,
+        `${subtopic} ${mainTopic} real world examples`,
+        `${subtopic} ${mainTopic} from scratch tutorial`,
+        `${subtopic} ${mainTopic} best practices guide`,
+        `${subtopic} ${mainTopic} interview preparation`,
+        `${subtopic} ${mainTopic} advanced concepts`,
+        `${subtopic} ${mainTopic} practical coding`,
+        `${subtopic} ${mainTopic} bootcamp style`,
       ];
     }
 

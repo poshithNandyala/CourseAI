@@ -59,53 +59,51 @@ class GeminiAPIService {
     // this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
   }
 
-  // Get user's API key dynamically
-  private async getApiKey(): Promise<string> {
-    return await userApiKeyService.getGeminiApiKey();
-  }
+  // Backend URL for API calls
+  private backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-  async extractTopicAndStructure(userPrompt: string): Promise<ExtractedTopic> {
-    try {
-      await this.getApiKey(); // Check if API key exists
-    } catch (error) {
-      console.warn(
-        "User's Gemini API key not configured, using intelligent parsing. Error:",
-        error
-      );
-      return this.intelligentTopicExtraction(userPrompt);
+  private getAuthHeaders = () => {
+    const token = localStorage.getItem("accessToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  };
+
+  async extractTopicAndStructure(userPrompt: string, apiKey?: string, abortSignal?: AbortSignal): Promise<ExtractedTopic> {
+    let geminiApiKey = apiKey;
+    
+    // Try to get user's API key if not provided
+    if (!geminiApiKey) {
+      try {
+        geminiApiKey = await userApiKeyService.getGeminiApiKey();
+      } catch (error) {
+        console.warn(
+          "User's Gemini API key not configured, using intelligent parsing. Error:",
+          error
+        );
+        return this.intelligentTopicExtraction(userPrompt);
+      }
     }
 
     try {
-      const prompt = `
-CRITICAL: You must stay EXACTLY on the topic requested. Do not deviate or generalize.
+      const response = await fetch(`${this.backendUrl}/api/v1/ai/extract-topic`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        signal: abortSignal,
+        body: JSON.stringify({
+          userPrompt,
+          apiKey: geminiApiKey
+        }),
+      });
 
-User Request: "${userPrompt}"
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
+      }
 
-Analyze this EXACT request and create subtopics that are DIRECTLY related to this specific topic only.
-
-STRICT RULES:
-- Keep the EXACT main topic from the user's request - do not change or generalize it
-- Create subtopics that are SPECIFICALLY about this topic, not general related concepts
-- Do NOT suggest alternative or broader topics
-- Stay focused on the user's EXACT request
-
-Please respond with a JSON object in this exact format:
-{
-  "mainTopic": "Use the EXACT topic from user request",
-  "subtopics": ["Specific subtopic 1", "Specific subtopic 2", "Specific subtopic 3", ...],
-  "difficulty": "beginner|intermediate|advanced",
-  "estimatedDuration": 6,
-  "prerequisites": ["Prerequisite 1", "Prerequisite 2"],
-  "learningObjectives": ["Objective 1", "Objective 2", "Objective 3"]
-}
-
-EXAMPLE: If user asks "sex positions", main topic should be "sex positions" and subtopics should be specific types/categories of sex positions, NOT general relationship advice.
-
-Create 6-12 logical subtopics that build upon each other within this EXACT topic.
-`;
-
-      const response = await this.callGeminiAPI(prompt);
-      return this.parseTopicExtraction(response, userPrompt);
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error("Gemini API error for topic extraction:", error);
       return this.intelligentTopicExtraction(userPrompt);
@@ -113,75 +111,40 @@ Create 6-12 logical subtopics that build upon each other within this EXACT topic
   }
 
   async generateCourseStructure(
-    extractedTopic: ExtractedTopic
+    extractedTopic: ExtractedTopic,
+    apiKey?: string,
+    abortSignal?: AbortSignal
   ): Promise<GeminiCourseStructure> {
-    try {
-      await this.getApiKey(); // Check if API key exists
-    } catch (error) {
-      console.warn("User's Gemini API key not configured, using fallback. Error:", error);
-      return this.generateStructuredCourse(extractedTopic);
+    let geminiApiKey = apiKey;
+    
+    // Try to get user's API key if not provided
+    if (!geminiApiKey) {
+      try {
+        geminiApiKey = await userApiKeyService.getGeminiApiKey();
+      } catch (error) {
+        console.warn("User's Gemini API key not configured, using fallback. Error:", error);
+        return this.generateStructuredCourse(extractedTopic);
+      }
     }
 
     try {
-      const prompt = `
-CRITICAL: Stay EXACTLY focused on "${
-        extractedTopic.mainTopic
-      }". Do not deviate from this topic.
+      const response = await fetch(`${this.backendUrl}/api/v1/ai/generate-structure`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        signal: abortSignal,
+        body: JSON.stringify({
+          extractedTopic,
+          apiKey: geminiApiKey
+        }),
+      });
 
-Create a comprehensive course structure for: "${extractedTopic.mainTopic}"
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
+      }
 
-MANDATORY: All content must be directly about "${
-        extractedTopic.mainTopic
-      }" - do not generalize or suggest related topics.
-
-Subtopics to cover: ${extractedTopic.subtopics.join(", ")}
-Difficulty: ${extractedTopic.difficulty}
-Duration: ${extractedTopic.estimatedDuration} hours
-
-For each subtopic, provide:
-1. Detailed description specifically about "${extractedTopic.mainTopic}"
-2. 4-6 key learning points directly related to this subtopic
-3. Estimated duration (30-60 minutes)
-4. 3-5 YouTube search terms that will find videos specifically about this subtopic
-5. Comprehensive quiz questions specifically about this subtopic
-
-IMPORTANT: Do not suggest alternative topics or broader concepts. Stay focused on the exact requested topic.
-
-Respond with JSON in this format:
-{
-  "title": "Complete Course Title",
-  "description": "Course description (2-3 sentences)",
-  "mainTopic": "${extractedTopic.mainTopic}",
-  "subtopics": [
-    {
-      "title": "Subtopic Title",
-      "description": "What this subtopic covers in detail",
-      "order": 1,
-      "keyPoints": ["Point 1", "Point 2", "Point 3", "Point 4"],
-      "estimatedDuration": 45,
-      "searchTerms": ["search term 1", "search term 2", "search term 3"],
-      "quizQuestions": [
-        {
-          "question": "Question text?",
-          "options": ["Option A", "Option B", "Option C", "Option D"],
-          "correctAnswer": 0,
-          "explanation": "Why this answer is correct"
-        }
-        // ... repeat for 30 total questions covering all aspects of the subtopic
-      ]
-    }
-  ],
-  "totalDuration": ${extractedTopic.estimatedDuration * 60},
-  "difficulty": "${extractedTopic.difficulty}",
-  "prerequisites": ${JSON.stringify(extractedTopic.prerequisites)},
-  "learningObjectives": ${JSON.stringify(extractedTopic.learningObjectives)}
-}
-
-Make it comprehensive and educational.
-`;
-
-      const response = await this.callGeminiAPI(prompt);
-      return this.parseCourseStructure(response, extractedTopic);
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error("Gemini API error for course structure:", error);
       
@@ -199,33 +162,67 @@ Make it comprehensive and educational.
     topic: string,
     lessonTitle: string,
     lessonContent: string,
-    questionsPerLesson: number = 30
+    questionsPerLesson: number = 30,
+    apiKey?: string,
+    abortSignal?: AbortSignal
   ): Promise<GeminiQuizQuestion[]> {
-    try {
-      await this.getApiKey(); // Check if API key exists
-    } catch (error) {
-      console.warn("User's Gemini API key not configured, using basic quiz. Error:", error);
-      return this.generateBasicQuizQuestions(topic, lessonTitle, []);
+    let geminiApiKey = apiKey;
+    
+    // Try to get user's API key if not provided
+    if (!geminiApiKey) {
+      try {
+        geminiApiKey = await userApiKeyService.getGeminiApiKey();
+      } catch (error) {
+        console.warn("User's Gemini API key not configured, using basic quiz. Error:", error);
+        return this.generateBasicQuizQuestions(topic, lessonTitle, []);
+      }
     }
 
     try {
-      // Detect content type for specialized questions
-      const contentType = this.detectContentType(topic, lessonContent);
-      const prompt = this.buildComprehensiveQuizPrompt(
+      console.log(`🧪 Frontend: Calling backend for quiz generation`);
+      console.log(`📋 Quiz request params:`, {
         topic,
         lessonTitle,
-        lessonContent,
-        contentType,
-        questionsPerLesson
-      );
+        lessonContent: lessonContent ? `${lessonContent.length} chars` : 'NOT PROVIDED',
+        questionsPerLesson,
+        apiKey: geminiApiKey ? `${geminiApiKey.substring(0, 10)}...` : 'NOT PROVIDED'
+      });
 
-      const response = await this.callGeminiAPI(prompt);
-      return this.parseQuizQuestions(response, topic, lessonTitle);
+      const response = await fetch(`${this.backendUrl}/api/v1/ai/generate-quiz`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        signal: abortSignal,
+        body: JSON.stringify({
+          topic,
+          lessonTitle,
+          lessonContent,
+          questionsPerLesson,
+          apiKey: geminiApiKey
+        }),
+      });
+
+      console.log(`📥 Backend response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`❌ Backend error:`, errorData);
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Backend response:`, {
+        success: data.success,
+        dataLength: data.data?.length || 0,
+        message: data.message
+      });
+      
+      return data.data;
     } catch (error) {
       console.error(
-        "Gemini API error for comprehensive quiz generation:",
+        "❌ Gemini API error for comprehensive quiz generation:",
         error
       );
+      console.log(`🔄 Falling back to basic quiz questions for: ${lessonTitle}`);
       return this.generateBasicQuizQuestions(topic, lessonTitle, []);
     }
   }
@@ -920,97 +917,48 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     topic: string,
     subtopic: string,
     keyPoints: string[],
-    questionsPerLesson: number = 30
+    questionsPerLesson: number = 30,
+    apiKey?: string
   ): Promise<GeminiQuizQuestion[]> {
-    try {
-      await this.getApiKey(); // Check if API key exists
-    } catch (error) {
-      console.warn("User's Gemini API key not configured, using enhanced quiz. Error:", error);
-      return this.generateEnhancedBasicQuizQuestions(
-        topic,
-        subtopic,
-        keyPoints,
-        questionsPerLesson
-      );
+    let geminiApiKey = apiKey;
+    
+    // Try to get user's API key if not provided
+    if (!geminiApiKey) {
+      try {
+        geminiApiKey = await userApiKeyService.getGeminiApiKey();
+      } catch (error) {
+        console.warn("User's Gemini API key not configured, using enhanced quiz. Error:", error);
+        return this.generateEnhancedBasicQuizQuestions(
+          topic,
+          subtopic,
+          keyPoints,
+          questionsPerLesson
+        );
+      }
     }
 
     try {
-      const basicCount = Math.floor(questionsPerLesson * 0.3);
-      const intermediateCount = Math.floor(questionsPerLesson * 0.5);
-      const advancedCount = questionsPerLesson - basicCount - intermediateCount;
+      const lessonContent = `${subtopic}: Key learning points include ${keyPoints.join(", ")}`;
+      
+      const response = await fetch(`${this.backendUrl}/api/v1/ai/generate-quiz`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          topic,
+          lessonTitle: subtopic,
+          lessonContent,
+          questionsPerLesson,
+          apiKey: geminiApiKey
+        }),
+      });
 
-      const prompt = `
-You are an expert quiz creator and educational specialist. Create ${questionsPerLesson} comprehensive, high-quality multiple-choice questions about "${subtopic}" within the topic of "${topic}".
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
+      }
 
-Key learning points to cover:
-${keyPoints.map((point) => `- ${point}`).join("\n")}
-
-CRITICAL QUALITY REQUIREMENTS:
-- Create exactly ${questionsPerLesson} questions covering ALL aspects of the subtopic systematically
-- Questions should range from basic to advanced difficulty (${basicCount} basic, ${intermediateCount} intermediate, ${advancedCount} advanced)
-- Include practical application questions that test real-world understanding
-- Each question must have 4 meaningful answer options with only one correct
-- Provide detailed explanations for correct answers that teach additional concepts
-- Questions should test understanding, application, analysis, and synthesis
-- Avoid vague or trick questions - focus on genuine learning assessment
-- Include scenario-based questions that simulate real situations
-- Questions should be clear, precise, and unambiguous
-- Ensure comprehensive coverage of all key learning points
-
-PRACTICAL FOCUS:
-- If topic involves programming: Include code snippets, output prediction, debugging scenarios
-- If topic involves math/science: Include calculations, formulas, real-world problems
-- If topic involves arts/dance: Include technique, rhythm, step sequences, music selection
-- If topic involves business: Include case studies, metrics, strategy scenarios
-
-Respond with JSON array in this exact format:
-[
-  {
-    "question": "Detailed question text with context?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctAnswer": 0,
-    "explanation": "Detailed explanation of why this answer is correct and why others are wrong"
-  }
-]
-
-ADDITIONAL QUALITY GUIDELINES FOR EXCEPTIONAL QUESTIONS:
-- Each question should be unique and avoid repetition while building on previous concepts
-- Use clear, professional language appropriate for the subject matter and expertise level
-- Include specific examples, numbers, or scenarios when possible to increase realism
-- Make distractors (wrong answers) plausible but clearly incorrect to domain experts
-- Ensure questions test deep understanding, critical thinking, and practical application
-- Include "what-if" scenarios that test application of concepts to novel situations
-- Use varied question stems and formats to maintain engagement and test different cognitive skills
-- Make sure explanations provide value beyond just stating the correct answer - teach related concepts
-- Include questions that test integration of multiple concepts and cross-disciplinary thinking
-- Create questions that assess professional competence and real-world problem-solving abilities
-- Test understanding of cause-and-effect relationships and system thinking
-- Include questions about common mistakes, misconceptions, and how to avoid them
-
-CRITICAL QUALITY STANDARDS:
-- Questions should be answerable by experts but challenging for learners
-- Each question should assess a specific, important learning objective
-- Explanations should provide additional insight and learning value
-- Questions should be relevant to current industry practices and standards
-- Include questions that test both theoretical knowledge and practical skills
-- Create questions that help learners develop professional judgment and decision-making abilities
-- Test understanding of ethical, legal, and professional considerations when relevant
-- Include questions that assess ability to evaluate and critique information
-
-ABSOLUTELY AVOID:
-- Questions that can be answered without understanding the concept
-- Ambiguous wording that leads to multiple interpretations
-- "All of the above" or "None of the above" options (create specific, meaningful choices)
-- Questions that test trivial facts rather than important concepts
-- Leading questions that make the answer obvious
-- Questions with cultural, gender, or other biases
-- Questions that test memorization of definitions without understanding
-- Questions that are too easy or too obscure for the intended audience
-
-Make each question a valuable learning opportunity that reinforces key concepts, develops critical thinking, and prepares learners for real-world application.`;
-
-      const response = await this.callGeminiAPI(prompt);
-      return this.parseQuizQuestions(response, topic, subtopic);
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error("Gemini API error for basic quiz generation:", error);
       return this.generateEnhancedBasicQuizQuestions(
@@ -2223,43 +2171,39 @@ Make each question a valuable learning opportunity that reinforces key concepts,
 
   async generateLessonSummary(
     lessonTitle: string,
-    lessonContent: string
+    lessonContent: string,
+    apiKey?: string
   ): Promise<string> {
-    try {
-      await this.getApiKey(); // Check if API key exists
-    } catch (error) {
-      console.warn("User's Gemini API key not configured, using basic summary. Error:", error);
-      return this.generateBasicSummary(lessonTitle, lessonContent);
+    let geminiApiKey = apiKey;
+    
+    // Try to get user's API key if not provided
+    if (!geminiApiKey) {
+      try {
+        geminiApiKey = await userApiKeyService.getGeminiApiKey();
+      } catch (error) {
+        console.warn("User's Gemini API key not configured, using basic summary. Error:", error);
+        return this.generateBasicSummary(lessonTitle, lessonContent);
+      }
     }
 
     try {
-      const prompt = `
-You are an expert educational content summarizer. Analyze the following lesson content and create a high-quality, engaging summary.
+      const response = await fetch(`${this.backendUrl}/api/v1/ai/generate-summary`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          lessonTitle,
+          lessonContent,
+          apiKey: geminiApiKey
+        }),
+      });
 
-Lesson Title: "${lessonTitle}"
-Lesson Content: "${lessonContent}"
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
+      }
 
-Create a comprehensive summary that:
-1. Starts with "In this lesson on ${lessonTitle}, you will learn"
-2. Clearly explains 3-5 specific learning outcomes
-3. Uses engaging, educational language that motivates learners
-4. Focuses on practical skills and knowledge they'll gain
-5. Mentions real-world applications when possible
-6. Ends with what they'll be able to do after completing the lesson
-
-Requirements:
-- Write in a natural, flowing paragraph style
-- Be specific about what knowledge/skills they'll acquire
-- Make it sound exciting and valuable
-- Include the lesson title naturally in the opening
-- Keep it 3-4 sentences, comprehensive but concise
-
-Example format:
-"In this lesson on ${lessonTitle}, you will learn [specific skill/concept], including [detailed learning point 1], [detailed learning point 2], and [detailed learning point 3]. You'll discover how to [practical application], understand [important principle], and master [specific technique] that you can apply immediately. By the end of this lesson, you'll have gained [specific competency] and be ready to [next actionable step]."
-`;
-
-      const response = await this.callGeminiAPI(prompt);
-      return this.parseSummaryResponse(response, lessonTitle, lessonContent);
+      const data = await response.json();
+      return data.data.summary;
     } catch (error) {
       console.error("Gemini API error for lesson summary:", error);
       return this.generateBasicSummary(lessonTitle, lessonContent);

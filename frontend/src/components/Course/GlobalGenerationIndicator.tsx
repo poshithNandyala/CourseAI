@@ -1,11 +1,21 @@
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Minimize2, Maximize2, Loader, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  X,
+  Minimize2,
+  Maximize2,
+  Loader,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { useGenerationStore } from "../../store/generationStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
 
 export const GlobalGenerationIndicator: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuthStore();
   const {
     isGenerating,
     generationProgress,
@@ -19,40 +29,88 @@ export const GlobalGenerationIndicator: React.FC = () => {
     shouldRedirectToCourseBuilder,
     setShouldRedirectToCourseBuilder,
     resetGenerationState,
+    stopGeneration,
   } = useGenerationStore();
+
+  // Clear generation state if user is not logged in
+  useEffect(() => {
+    if (!user && (isGenerating || isGenerationComplete)) {
+      console.log(
+        "🚪 User not logged in - clearing generation state from global indicator"
+      );
+      resetGenerationState();
+    }
+  }, [user, isGenerating, isGenerationComplete, resetGenerationState]);
 
   // Auto-redirect to course builder when generation is complete
   useEffect(() => {
-    if (isGenerationComplete && shouldRedirectToCourseBuilder && !window.location.pathname.includes('/create')) {
-      console.log("🚀 Course generation complete - redirecting to course builder");
+    if (
+      isGenerationComplete &&
+      shouldRedirectToCourseBuilder &&
+      !location.pathname.includes("/create")
+    ) {
+      console.log(
+        "🚀 Course generation complete - redirecting to course builder"
+      );
       setShouldRedirectToCourseBuilder(false);
-      navigate('/create');
+      navigate("/create");
     }
-  }, [isGenerationComplete, shouldRedirectToCourseBuilder, navigate, setShouldRedirectToCourseBuilder]);
+  }, [
+    isGenerationComplete,
+    shouldRedirectToCourseBuilder,
+    navigate,
+    setShouldRedirectToCourseBuilder,
+    location.pathname,
+  ]);
 
-  // Only show if we're generating and not already on the course builder page, OR if generation is complete but we need to redirect
-  const shouldShow = (isGenerating || (isGenerationComplete && shouldRedirectToCourseBuilder)) && !window.location.pathname.includes('/create');
+  // Only show if user is logged in, we have generation activity, and not on course builder page
+  const shouldShow =
+    user &&
+    (isGenerating || (isGenerationComplete && shouldRedirectToCourseBuilder)) &&
+    !location.pathname.includes("/create");
+
+  // Debug log for visibility logic
+  React.useEffect(() => {
+    if (isGenerating || isGenerationComplete) {
+      console.log("🔍 Global indicator visibility:", {
+        shouldShow,
+        user: !!user,
+        isGenerating,
+        isGenerationComplete,
+        shouldRedirectToCourseBuilder,
+        currentPath: location.pathname,
+        onCreatePage: location.pathname.includes("/create"),
+      });
+    }
+  }, [
+    shouldShow,
+    user,
+    isGenerating,
+    isGenerationComplete,
+    shouldRedirectToCourseBuilder,
+    location.pathname,
+  ]);
 
   const handleViewDetails = () => {
-    navigate('/create');
+    navigate("/create");
   };
 
   const handleClose = () => {
-    // Only allow closing if generation is complete
-    const hasCompletedSteps = generationSteps.some(step => step.status === 'completed');
-    const hasErrors = generationSteps.some(step => step.status === 'error');
-    
-    if (hasCompletedSteps || hasErrors) {
-      resetGenerationState();
-    }
+    // Stop any ongoing generation and clear all state
+    console.log("🗑️ Manually closing global generation indicator");
+    stopGeneration();
+    resetGenerationState();
   };
 
-  const completedSteps = generationSteps.filter(step => step.status === 'completed').length;
+  const completedSteps = generationSteps.filter(
+    (step) => step.status === "completed"
+  ).length;
   const totalSteps = generationSteps.length;
-  const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+  const progressPercentage =
+    totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
 
-  const currentStep = generationSteps.find(step => step.id === currentStepId);
-  const hasErrors = generationSteps.some(step => step.status === 'error');
+  const currentStep = generationSteps.find((step) => step.id === currentStepId);
+  const hasErrors = generationSteps.some((step) => step.status === "error");
 
   if (!shouldShow) return null;
 
@@ -75,7 +133,11 @@ export const GlobalGenerationIndicator: React.FC = () => {
               <Loader className="h-5 w-5 text-blue-500 animate-spin" />
             )}
             <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-              {hasErrors ? "Generation Error" : isGenerationComplete ? "Course Complete!" : "Generating Course..."}
+              {hasErrors
+                ? "Generation Error"
+                : isGenerationComplete
+                ? "Course Complete!"
+                : "Generating Course..."}
             </h3>
           </div>
           <div className="flex items-center space-x-2">
@@ -89,8 +151,7 @@ export const GlobalGenerationIndicator: React.FC = () => {
             <button
               onClick={handleClose}
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-              title="Close"
-              disabled={isGenerating && !hasErrors}
+              title="Stop & Close"
             >
               <X className="h-4 w-4 text-gray-500" />
             </button>
@@ -103,7 +164,9 @@ export const GlobalGenerationIndicator: React.FC = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
               <span>Progress</span>
-              <span>{completedSteps}/{totalSteps} steps</span>
+              <span>
+                {completedSteps}/{totalSteps} steps
+              </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <motion.div
@@ -137,12 +200,12 @@ export const GlobalGenerationIndicator: React.FC = () => {
             <button
               onClick={handleViewDetails}
               className={`flex-1 px-3 py-2 text-sm text-white rounded-md transition-colors ${
-                isGenerationComplete 
-                  ? 'bg-green-500 hover:bg-green-600' 
-                  : 'bg-blue-500 hover:bg-blue-600'
+                isGenerationComplete
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-blue-500 hover:bg-blue-600"
               }`}
             >
-              {isGenerationComplete ? 'View Course' : 'View Details'}
+              {isGenerationComplete ? "View Course" : "View Details"}
             </button>
             {hasErrors && (
               <button

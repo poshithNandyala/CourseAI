@@ -12,6 +12,7 @@ import {
   Youtube,
   Wand2,
   X,
+  Square,
 } from "lucide-react";
 
 export interface RealGenerationStep {
@@ -37,6 +38,8 @@ interface CourseGenerationSidebarProps {
   currentStep?: string;
   onClose: () => void;
   onToggle?: () => void;
+  onStop?: () => void;
+  isGenerating?: boolean;
 }
 
 export const CourseGenerationSidebar: React.FC<
@@ -51,6 +54,8 @@ export const CourseGenerationSidebar: React.FC<
   currentStep,
   onClose,
   onToggle,
+  onStop,
+  isGenerating = false,
 }) => {
   const getStepIcon = (step: RealGenerationStep) => {
     if (step.status === "completed") {
@@ -127,13 +132,24 @@ export const CourseGenerationSidebar: React.FC<
                   <Wand2 className="h-5 w-5" />
                   <h3 className="font-semibold text-sm">Course Generation</h3>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-                  title="Minimize"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex items-center space-x-1">
+                  {isGenerating && onStop && (
+                    <button
+                      onClick={onStop}
+                      className="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors group"
+                      title="Stop Generation"
+                    >
+                      <Square className="h-3.5 w-3.5 fill-current" />
+                    </button>
+                  )}
+                  <button
+                    onClick={onClose}
+                    className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                    title="Minimize"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Progress Bar */}

@@ -21,145 +21,65 @@ export interface YouTubeSearchParams {
   order?: "relevance" | "date" | "rating" | "viewCount";
   duration?: "short" | "medium" | "long";
   publishedAfter?: string;
+  apiKey?: string;
 }
 
 class RealYouTubeAPI {
-  // Comment out old API key approach - now using user's keys
-  // private apiKey: string;
-  private baseUrl = "https://www.googleapis.com/youtube/v3";
+  private backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-  constructor() {
-    // Old approach - using developer's API key (commented out)
-    // this.apiKey = import.meta.env.VITE_YOUTUBE_API_KEY || '';
-  }
-
-  // Get user's API key dynamically
-  private async getApiKey(): Promise<string> {
-    return await userApiKeyService.getYouTubeApiKey();
-  }
+  private getAuthHeaders = () => {
+    const token = localStorage.getItem("accessToken");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  };
 
   async searchVideos(params: YouTubeSearchParams): Promise<YouTubeVideo[]> {
-    let apiKey: string;
-    try {
-      apiKey = await this.getApiKey();
-    } catch (error) {
-      console.error("❌ User's YouTube API key is missing!");
-      throw new Error(
-        "YouTube API key is required. Please configure your API keys in Settings."
-      );
+    let youtubeApiKey = params.apiKey;
+    
+    // Try to get user's API key if not provided
+    if (!youtubeApiKey) {
+      try {
+        youtubeApiKey = await userApiKeyService.getYouTubeApiKey();
+      } catch (error) {
+        console.error("❌ User's YouTube API key is missing!");
+        throw new Error(
+          "YouTube API key is required. Please configure your API keys in Settings."
+        );
+      }
     }
 
     try {
-      console.log(`🔍 Searching YouTube for: "${params.query}"`);
+      console.log(`🔍 Direct YouTube API search for: "${params.query}"`);
+      console.log(`📊 Search parameters:`, {
+        query: params.query,
+        maxResults: params.maxResults,
+        order: params.order,
+        duration: params.duration
+      });
 
-      // Step 1: Search for videos with multiple strategies
-      const searchStrategies = [
-        `${params.query} tutorial`,
-        `${params.query} explained`,
-        `${params.query} course`,
-        `learn ${params.query}`,
-        `${params.query} basics`,
-      ];
+      const response = await fetch(`${this.backendUrl}/api/v1/youtube/search`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          query: params.query,
+          maxResults: params.maxResults || 10,
+          order: params.order || "relevance",
+          duration: params.duration || "medium",
+          publishedAfter: params.publishedAfter,
+          apiKey: youtubeApiKey
+        }),
+      });
 
-      let allVideos: YouTubeVideo[] = [];
-
-      for (const searchQuery of searchStrategies) {
-        if (allVideos.length >= (params.maxResults || 10)) break;
-
-        try {
-          const searchParams = new URLSearchParams({
-            part: "snippet",
-            q: searchQuery,
-            type: "video",
-            maxResults: "10",
-            order: params.order || "relevance",
-            videoDuration: params.duration || "medium",
-            videoDefinition: "high",
-            videoEmbeddable: "true",
-            videoSyndicated: "true",
-            safeSearch: "strict",
-            relevanceLanguage: "en",
-            regionCode: "US",
-            key: apiKey,
-          });
-
-          if (params.publishedAfter) {
-            searchParams.append("publishedAfter", params.publishedAfter);
-          }
-
-          const searchResponse = await fetch(
-            `${this.baseUrl}/search?${searchParams}`
-          );
-
-          if (!searchResponse.ok) {
-            const errorData = await searchResponse.json();
-            console.error("YouTube Search API error:", errorData);
-            continue; // Try next strategy
-          }
-
-          const searchData = await searchResponse.json();
-
-          if (searchData.items && searchData.items.length > 0) {
-            const videoIds = searchData.items
-              .map((item: any) => item.id.videoId)
-              .join(",");
-
-            // Get detailed video information
-            const detailsParams = new URLSearchParams({
-              part: "snippet,contentDetails,statistics",
-              id: videoIds,
-              key: apiKey,
-            });
-
-            const detailsResponse = await fetch(
-              `${this.baseUrl}/videos?${detailsParams}`
-            );
-
-            if (detailsResponse.ok) {
-              const detailsData = await detailsResponse.json();
-
-              const videos = detailsData.items.map((item: any) => ({
-                id: item.id,
-                title: item.snippet.title,
-                description: item.snippet.description || "",
-                duration: this.formatDuration(item.contentDetails.duration),
-                thumbnailUrl:
-                  item.snippet.thumbnails.high?.url ||
-                  item.snippet.thumbnails.medium?.url ||
-                  item.snippet.thumbnails.default.url,
-                channelTitle: item.snippet.channelTitle,
-                publishedAt: item.snippet.publishedAt,
-                viewCount: parseInt(item.statistics.viewCount || "0"),
-                likeCount: parseInt(item.statistics.likeCount || "0"),
-                embedUrl: `https://www.youtube.com/embed/${item.id}?rel=0&modestbranding=1`,
-                watchUrl: `https://www.youtube.com/watch?v=${item.id}`,
-              }));
-
-              allVideos = [...allVideos, ...videos];
-            }
-          }
-
-          // Add delay to avoid rate limiting
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        } catch (error) {
-          console.warn(`Failed search strategy: ${searchQuery}`, error);
-          continue;
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
       }
 
-      // Remove duplicates and return best results
-      const uniqueVideos = allVideos.filter(
-        (video, index, self) =>
-          index === self.findIndex((v) => v.id === video.id)
-      );
-
-      // Sort by view count and relevance
-      const sortedVideos = uniqueVideos
-        .sort((a, b) => b.viewCount - a.viewCount)
-        .slice(0, params.maxResults || 10);
-
-      console.log(`✅ Found ${sortedVideos.length} real YouTube videos`);
-      return sortedVideos;
+      const data = await response.json();
+      console.log(`✅ Found ${data.data.length} real YouTube videos`);
+      return data.data;
     } catch (error) {
       console.error("❌ YouTube API error:", error);
       throw error;
@@ -169,35 +89,48 @@ class RealYouTubeAPI {
   async searchEducationalVideos(
     topic: string,
     subtopic: string,
-    maxResults = 3
+    maxResults = 3,
+    apiKey?: string
   ): Promise<YouTubeVideo[]> {
-    const searchQuery = `${topic} ${subtopic} tutorial beginner explained`;
-
-    return this.searchVideos({
-      query: searchQuery,
-      maxResults,
-      order: "relevance",
-      duration: "medium",
-      publishedAfter: new Date(
-        Date.now() - 365 * 24 * 60 * 60 * 1000
-      ).toISOString(), // Last year
-    });
-  }
-
-  private formatDuration(duration: string): string {
-    const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-    if (!match) return "0:00";
-
-    const hours = parseInt(match[1]?.replace("H", "") || "0");
-    const minutes = parseInt(match[2]?.replace("M", "") || "0");
-    const seconds = parseInt(match[3]?.replace("S", "") || "0");
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
-        .toString()
-        .padStart(2, "0")}`;
+    let youtubeApiKey = apiKey;
+    
+    // Try to get user's API key if not provided
+    if (!youtubeApiKey) {
+      try {
+        youtubeApiKey = await userApiKeyService.getYouTubeApiKey();
+      } catch (error) {
+        console.error("❌ User's YouTube API key is missing!");
+        throw new Error(
+          "YouTube API key is required. Please configure your API keys in Settings."
+        );
+      }
     }
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+    try {
+      console.log(`🎓 Educational video search for subtopic: "${subtopic}" in topic: "${topic}"`);
+      
+      const response = await fetch(`${this.backendUrl}/api/v1/youtube/search-educational`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          topic,
+          subtopic,
+          maxResults: maxResults || 5,
+          apiKey: youtubeApiKey
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Backend API error: ${response.status} - ${errorData.message}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error("❌ YouTube educational API error:", error);
+      throw error;
+    }
   }
 }
 

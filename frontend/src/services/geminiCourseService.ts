@@ -44,9 +44,9 @@ class GeminiCourseService {
   async generateCourseWithGemini(
     userPrompt: string,
     options: {
-      maxVideosPerSubtopic?: number;
       includeQuizzes?: boolean;
       questionsPerLesson?: number;
+      abortSignal?: AbortSignal;
       onStructureGenerated?: (structure: any) => void;
       onLessonStart?: (lessonIndex: number, lessonTitle: string) => void;
       onLessonVideosStart?: (lessonIndex: number) => void;
@@ -57,9 +57,9 @@ class GeminiCourseService {
     } = {}
   ): Promise<GeminiCourseData> {
     const {
-      maxVideosPerSubtopic = 3,
       includeQuizzes = true,
       questionsPerLesson = 10,
+      abortSignal,
       onStructureGenerated,
       onLessonStart,
       onLessonVideosStart,
@@ -68,6 +68,9 @@ class GeminiCourseService {
       onLessonQuizComplete,
       onLessonComplete,
     } = options;
+
+    // Dynamic video count based on topic complexity (backend will decide)
+    const maxVideosPerSubtopic = 5; // Allow up to 5 videos, backend will determine actual count
 
     console.log(
       `🧠 Starting Gemini-powered course generation for: "${userPrompt}"`
@@ -87,22 +90,50 @@ class GeminiCourseService {
     }
 
     try {
+      // Check if aborted before starting
+      if (abortSignal?.aborted) {
+        const error = new Error("Generation was aborted by user");
+        error.name = "AbortError";
+        throw error;
+      }
+
+      // Get API key first
+      const geminiApiKey = await userApiKeyService.getGeminiApiKey();
+
       // Step 1: Extract topic and structure using Gemini
       console.log(
         "🔍 Step 1: Extracting topic and subtopics with Gemini AI..."
       );
+
+      if (abortSignal?.aborted) {
+        const error = new Error("Generation was aborted by user");
+        error.name = "AbortError";
+        throw error;
+      }
+
       const extractedTopic = await geminiAPI.extractTopicAndStructure(
-        userPrompt
+        userPrompt,
+        geminiApiKey,
+        abortSignal
       );
       console.log("✅ Topic extracted:", extractedTopic.mainTopic);
       console.log("📋 Subtopics:", extractedTopic.subtopics);
 
       // Step 2: Generate detailed course structure using Gemini
       console.log("🏗️ Step 2: Generating detailed course structure...");
+
+      if (abortSignal?.aborted) {
+        const error = new Error("Generation was aborted by user");
+        error.name = "AbortError";
+        throw error;
+      }
+
       let courseStructure;
       try {
         courseStructure = await geminiAPI.generateCourseStructure(
-          extractedTopic
+          extractedTopic,
+          geminiApiKey,
+          abortSignal
         );
         console.log(
           "✅ Course structure generated with",
@@ -111,10 +142,14 @@ class GeminiCourseService {
         );
       } catch (error) {
         if (error instanceof Error && error.message === "API_KEY_INVALID") {
-          throw new Error("INVALID_API_KEY: Please check your Gemini API key in settings");
+          throw new Error(
+            "INVALID_API_KEY: Please check your Gemini API key in settings"
+          );
         }
         if (error instanceof Error && error.message === "API_KEY_MISSING") {
-          throw new Error("MISSING_API_KEY: Please add your Gemini API key in settings");
+          throw new Error(
+            "MISSING_API_KEY: Please add your Gemini API key in settings"
+          );
         }
         throw error;
       }
@@ -128,11 +163,20 @@ class GeminiCourseService {
       console.log(
         "🎥 Step 3: Fetching REAL YouTube videos for each subtopic..."
       );
+
+      if (abortSignal?.aborted) {
+        const error = new Error("Generation was aborted by user");
+        error.name = "AbortError";
+        throw error;
+      }
+
       const enrichedLessons = await this.enrichLessonsWithRealVideos(
         courseStructure,
         maxVideosPerSubtopic,
         includeQuizzes,
         questionsPerLesson,
+        geminiApiKey,
+        abortSignal,
         {
           onLessonStart,
           onLessonVideosStart,
@@ -189,6 +233,12 @@ class GeminiCourseService {
         },
       };
     } catch (error) {
+      // If it's an abort error, don't show error message, just re-throw
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("🛑 Course generation was aborted by user");
+        throw error;
+      }
+
       console.error("❌ Gemini course generation failed:", error);
       toast.error(
         "Failed to generate course. Please check your API keys and try again."
@@ -202,6 +252,8 @@ class GeminiCourseService {
     maxVideosPerSubtopic: number,
     includeQuizzes: boolean,
     questionsPerLesson: number,
+    geminiApiKey: string,
+    abortSignal?: AbortSignal,
     callbacks?: {
       onLessonStart?: (lessonIndex: number, lessonTitle: string) => void;
       onLessonVideosStart?: (lessonIndex: number) => void;
@@ -215,6 +267,13 @@ class GeminiCourseService {
     const usedVideoIds = new Set<string>(); // Track used videos across all lessons
 
     for (let i = 0; i < courseStructure.subtopics.length; i++) {
+      // Check if aborted before processing each lesson
+      if (abortSignal?.aborted) {
+        const error = new Error("Generation was aborted by user");
+        error.name = "AbortError";
+        throw error;
+      }
+
       const subtopic = courseStructure.subtopics[i];
       console.log(
         `🔄 Processing lesson ${i + 1}/${courseStructure.subtopics.length}: "${
@@ -228,6 +287,13 @@ class GeminiCourseService {
       }
 
       try {
+        // Check if aborted before video search
+        if (abortSignal?.aborted) {
+          const error = new Error("Generation was aborted by user");
+          error.name = "AbortError";
+          throw error;
+        }
+
         // Notify video search start
         if (callbacks?.onLessonVideosStart) {
           callbacks.onLessonVideosStart(i);
@@ -260,6 +326,13 @@ class GeminiCourseService {
         // Generate comprehensive quiz questions using Gemini AI
         let quizQuestions: any[] = [];
         if (includeQuizzes) {
+          // Check if aborted before quiz generation
+          if (abortSignal?.aborted) {
+            const error = new Error("Generation was aborted by user");
+            error.name = "AbortError";
+            throw error;
+          }
+
           // Notify quiz generation start
           if (callbacks?.onLessonQuizStart) {
             callbacks.onLessonQuizStart(i);
@@ -283,7 +356,9 @@ class GeminiCourseService {
               courseStructure.mainTopic,
               subtopic.title,
               lessonContent,
-              questionsPerLesson
+              questionsPerLesson,
+              geminiApiKey,
+              abortSignal
             );
             console.log(`  🤖 AI returned ${generatedQuiz.length} questions`);
 
@@ -317,14 +392,12 @@ class GeminiCourseService {
 
             try {
               // Generate basic quiz using Gemini without comprehensive mode
-              const basicQuizContent = `${subtopic.title}: ${
-                subtopic.description
-              }\nKey Points: ${subtopic.keyPoints.join(", ")}`;
               const basicQuiz = await geminiAPI.generateQuizQuestions(
                 courseStructure.mainTopic,
                 subtopic.title,
                 subtopic.keyPoints,
-                questionsPerLesson
+                questionsPerLesson,
+                geminiApiKey
               );
 
               if (basicQuiz.length > 0) {
@@ -435,6 +508,13 @@ class GeminiCourseService {
           created_at: new Date().toISOString(),
         };
 
+        // Check if aborted before completing lesson
+        if (abortSignal?.aborted) {
+          const error = new Error("Generation was aborted by user");
+          error.name = "AbortError";
+          throw error;
+        }
+
         enrichedLessons.push(lesson);
 
         // Notify lesson completion
@@ -442,8 +522,10 @@ class GeminiCourseService {
           callbacks.onLessonComplete(i);
         }
 
-        // Add delay to avoid rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Add delay to avoid rate limiting (but check for abort first)
+        if (!abortSignal?.aborted) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
       } catch (error) {
         console.error(`❌ Failed to enrich lesson "${subtopic.title}":`, error);
         // Continue with minimal content rather than failing completely
@@ -617,7 +699,7 @@ class GeminiCourseService {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         summary: courseData.course.description || "",
-        generated_content: courseData
+        generated_content: courseData,
       };
 
       toast.success("Course saved successfully! (Demo mode)");
@@ -632,7 +714,7 @@ class GeminiCourseService {
           ...courseData.course,
           creator_id: user.id,
           summary: courseData.course.description || "",
-          generated_content: courseData
+          generated_content: courseData,
         })
         .select(
           `
