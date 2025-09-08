@@ -147,25 +147,25 @@ export const EnhancedDashboard: React.FC = () => {
       label: "Total Courses",
       value: courses.length,
       icon: BookOpen,
-      color: "from-brand-500 to-brand-600",
+      color: "bg-blue-600",
     },
     {
       label: "Published",
       value: courses.filter((c) => c.is_published).length,
       icon: Eye,
-      color: "from-accent-500 to-accent-600",
+      color: "bg-green-600",
     },
     {
       label: "Drafts",
       value: courses.filter((c) => !c.is_published).length,
       icon: EyeOff,
-      color: "from-warning-500 to-warning-600",
+      color: "bg-orange-600",
     },
     {
       label: "Total Likes (Published)",
       value: loadingLikes ? "..." : totalLikes,
       icon: Star,
-      color: "from-success-500 to-success-600",
+      color: "bg-yellow-600",
     },
   ];
 
@@ -185,7 +185,7 @@ export const EnhancedDashboard: React.FC = () => {
             </p>
             <Link
               to="/signin"
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+              className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl font-medium"
             >
               <span>Sign In</span>
             </Link>
@@ -213,7 +213,7 @@ export const EnhancedDashboard: React.FC = () => {
           </div>
           <button
             onClick={handleCreateCourse}
-            className="flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+            className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl font-medium"
           >
             <Plus className="h-5 w-5" />
             <span>Create Course</span>
@@ -239,7 +239,7 @@ export const EnhancedDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div
-                  className={`bg-gradient-to-r ${stat.color} p-3 rounded-xl`}
+                  className={`${stat.color} p-3 rounded-lg`}
                 >
                   <stat.icon className="h-6 w-6 text-white" />
                 </div>
@@ -272,7 +272,7 @@ export const EnhancedDashboard: React.FC = () => {
             </p>
             <button
               onClick={handleCreateCourse}
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl hover:from-brand-600 hover:to-accent-600 transition-all duration-200 font-medium"
+              className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
             >
               <Plus className="h-5 w-5" />
               <span>Create Course</span>
@@ -344,7 +344,7 @@ export const EnhancedDashboard: React.FC = () => {
                     onClick={() =>
                       handleViewCourse(course.id, course.is_published)
                     }
-                    className="w-full bg-gradient-to-r from-brand-500 to-accent-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:from-brand-600 hover:to-accent-600 transition-all duration-200 flex items-center justify-center space-x-2"
+                    className="w-full bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
                   >
                     <Play className="h-4 w-4" />
                     <span>View Course</span>

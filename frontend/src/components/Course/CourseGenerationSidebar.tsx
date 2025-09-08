@@ -121,13 +121,13 @@ export const CourseGenerationSidebar: React.FC<
         >
           {isMinimized ? (
             /* Minimized State */
-            <div className="w-full h-full bg-gradient-to-r from-brand-500 to-accent-500 flex items-center justify-center text-white rounded-2xl">
+            <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white rounded-2xl">
               <Wand2 className="h-6 w-6" />
             </div>
           ) : (
             <>
               {/* Header */}
-              <div className="bg-gradient-to-r from-brand-500 to-accent-500 px-4 py-3 text-white flex items-center justify-between">
+              <div className="bg-blue-600 px-4 py-3 text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Wand2 className="h-5 w-5" />
                   <h3 className="font-semibold text-sm">Course Generation</h3>
@@ -160,7 +160,7 @@ export const CourseGenerationSidebar: React.FC<
                 </div>
                 <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                   <motion.div
-                    className="bg-gradient-to-r from-brand-500 to-accent-500 h-full rounded-full"
+                    className="bg-blue-600 h-full rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${getProgressPercentage()}%` }}
                     transition={{ duration: 0.5 }}

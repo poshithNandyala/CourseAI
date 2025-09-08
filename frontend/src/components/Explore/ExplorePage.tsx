@@ -166,7 +166,7 @@ export const ExplorePage: React.FC = () => {
         className="text-center mb-12"
       >
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
-          Explore <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">Courses</span>
+          Explore <span className="text-blue-600 dark:text-blue-400">Courses</span>
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
           Discover amazing courses created by our community - accessible to everyone!
@@ -190,7 +190,7 @@ export const ExplorePage: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -198,7 +198,7 @@ export const ExplorePage: React.FC = () => {
                 onClick={() => setShowFilters(!showFilters)}
                 className={`p-3 border border-gray-300 dark:border-gray-700 rounded-xl transition-colors ${
                   showFilters 
-                    ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400' 
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400' 
                     : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}
                 title="Filter courses"
@@ -208,7 +208,7 @@ export const ExplorePage: React.FC = () => {
               <select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 title="Select difficulty level"
               >
                 {difficulties.map(difficulty => (
@@ -340,7 +340,7 @@ export const ExplorePage: React.FC = () => {
       {/* Course Grid */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading published courses...</p>
         </div>
       ) : filteredCourses.length === 0 ? (
@@ -415,7 +415,7 @@ export const ExplorePage: React.FC = () => {
                             className="h-6 w-6 rounded-full"
                           />
                         ) : (
-                          <div className="h-6 w-6 bg-gradient-to-r from-brand-500 to-accent-500 rounded-full"></div>
+                          <div className="h-6 w-6 bg-blue-600 rounded-full"></div>
                         )}
                         <span className="text-sm text-gray-600 dark:text-gray-400">
                           {course.creator?.name || 'Anonymous'}
@@ -436,7 +436,7 @@ export const ExplorePage: React.FC = () => {
                       {course.tags.slice(0, 3).map((tag, tagIndex) => (
                         <span
                           key={tagIndex}
-                          className="px-2 py-1 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg text-xs"
+                          className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs"
                         >
                           {tag}
                         </span>

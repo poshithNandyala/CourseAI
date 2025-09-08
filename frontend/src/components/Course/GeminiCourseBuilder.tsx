@@ -703,7 +703,7 @@ export const GeminiCourseBuilder: React.FC = () => {
           className="text-center mb-12"
         >
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="bg-gradient-to-r from-brand-500 to-accent-500 p-3 rounded-2xl">
+            <div className="bg-blue-600 p-3 rounded-2xl">
               <Sparkles className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -767,7 +767,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                   onChange={(e) => setUserPrompt(e.target.value)}
                   placeholder="E.g., Psychology - Introduction to Human Behavior and Mental Processes, covering research methods, cognitive psychology, social psychology, and practical applications..."
                   rows={4}
-                  className="w-full px-6 py-4 rounded-2xl border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 text-lg"
+                  className="w-full px-6 py-4 rounded-2xl border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 text-lg"
                   disabled={isGenerating}
                 />
                 <motion.button
@@ -784,7 +784,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                   className={`absolute bottom-4 right-4 text-white p-3 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl ${
                     isGenerating
                       ? "bg-red-500 hover:bg-red-600 animate-pulse border-2 border-red-300"
-                      : "bg-gradient-to-r from-brand-500 to-accent-500 hover:from-brand-600 hover:to-accent-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   }`}
                   title={
                     isGenerating
@@ -804,7 +804,7 @@ export const GeminiCourseBuilder: React.FC = () => {
             {/* Course Settings */}
             <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft-lg border border-gray-200 dark:border-gray-800">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center space-x-2">
-                <Settings className="h-5 w-5 text-brand-600 dark:text-brand-400" />
+                <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <span>Course Settings</span>
               </h3>
 
@@ -827,7 +827,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                         ),
                       })
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                     aria-label="Number of questions per lesson"
                     title="Set the number of quiz questions to generate for each lesson"
                   />
@@ -840,7 +840,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Include Interactive Quizzes
                   </label>
-                  <div className="flex items-center space-x-3 pt-3">
+                  <div className="flex items-center space-x-4 pt-3">
                     <button
                       onClick={() =>
                         setCourseSettings({
@@ -848,9 +848,9 @@ export const GeminiCourseBuilder: React.FC = () => {
                           includeQuizzes: !courseSettings.includeQuizzes,
                         })
                       }
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-200 ${
                         courseSettings.includeQuizzes
-                          ? "bg-brand-500"
+                          ? "bg-blue-600 shadow-lg"
                           : "bg-gray-300 dark:bg-gray-600"
                       }`}
                       title={`${
@@ -858,14 +858,18 @@ export const GeminiCourseBuilder: React.FC = () => {
                       } interactive quizzes`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition-all duration-200 ${
                           courseSettings.includeQuizzes
-                            ? "translate-x-6"
+                            ? "translate-x-7"
                             : "translate-x-1"
                         }`}
                       />
                     </button>
-                    <span className="text-gray-700 dark:text-gray-300">
+                    <span className={`text-base font-medium ${
+                      courseSettings.includeQuizzes 
+                        ? "text-blue-700 dark:text-blue-300" 
+                        : "text-gray-700 dark:text-gray-300"
+                    }`}>
                       {courseSettings.includeQuizzes ? "Yes" : "No"}
                     </span>
                   </div>
@@ -879,7 +883,7 @@ export const GeminiCourseBuilder: React.FC = () => {
             {/* Example Prompts */}
             <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-soft-lg border border-gray-200 dark:border-gray-800">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center space-x-2">
-                <Target className="h-5 w-5 text-brand-600 dark:text-brand-400" />
+                <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <span>Example Course Ideas</span>
               </h3>
               <div className="grid md:grid-cols-2 gap-3">
@@ -889,7 +893,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setUserPrompt(example)}
-                    className="p-4 bg-gradient-to-r from-brand-50 to-accent-50 dark:from-brand-900/20 dark:to-accent-900/20 text-brand-700 dark:text-brand-300 rounded-2xl text-left hover:from-brand-100 hover:to-accent-100 dark:hover:from-brand-800/30 dark:hover:to-accent-800/30 transition-all duration-200 border border-brand-200 dark:border-brand-800"
+                    className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-2xl text-left hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-all duration-200 border border-blue-200 dark:border-blue-800"
                   >
                     <div className="font-medium">{example}</div>
                   </motion.button>
@@ -903,7 +907,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                 animate={{ opacity: 1 }}
                 className="text-center py-16"
               >
-                <div className="bg-gradient-to-r from-brand-500 to-accent-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Sparkles className="h-10 w-10 text-white animate-pulse" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
@@ -945,7 +949,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                         key={index}
                         className={`w-3 h-3 rounded-full transition-all duration-300 ${
                           index <= currentStep
-                            ? "bg-brand-500 scale-110"
+                            ? "bg-blue-600 scale-110"
                             : "bg-gray-300 dark:bg-gray-600"
                         }`}
                       />
@@ -958,7 +962,7 @@ export const GeminiCourseBuilder: React.FC = () => {
 
                 <div className="flex flex-col items-center justify-center space-y-4">
                   <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-500"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     <span>
                       This may take 2-10 minutes for quality content...
                     </span>
@@ -1014,19 +1018,19 @@ export const GeminiCourseBuilder: React.FC = () => {
                   </p>
 
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                    <div className="bg-brand-50 dark:bg-brand-900/20 rounded-xl p-3 text-center">
-                      <div className="text-2xl font-bold text-brand-600 dark:text-brand-400">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {generatedCourse.lessons.length}
                       </div>
-                      <div className="text-sm text-brand-700 dark:text-brand-300">
+                      <div className="text-sm text-blue-700 dark:text-blue-300">
                         Lessons
                       </div>
                     </div>
-                    <div className="bg-accent-50 dark:bg-accent-900/20 rounded-xl p-3 text-center">
-                      <div className="text-2xl font-bold text-accent-600 dark:text-accent-400">
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                         {generatedCourse.metadata.videoCount}
                       </div>
-                      <div className="text-sm text-accent-700 dark:text-accent-300">
+                      <div className="text-sm text-red-700 dark:text-red-300">
                         Real Videos
                       </div>
                     </div>

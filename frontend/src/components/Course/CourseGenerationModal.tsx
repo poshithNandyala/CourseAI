@@ -116,7 +116,7 @@ export const CourseGenerationModal: React.FC<CourseGenerationModalProps> = ({
             className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-brand-500 to-accent-500 px-8 py-6 text-white">
+            <div className="bg-blue-600 px-8 py-6 text-white">
               <div className="flex items-center space-x-3 mb-2">
                 <div className="bg-white/20 p-2 rounded-xl">
                   <Sparkles className="h-6 w-6" />

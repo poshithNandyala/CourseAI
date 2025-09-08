@@ -46,7 +46,7 @@ export const HomePage: React.FC = () => {
             className="space-y-8"
           >
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-brand-600 via-accent-600 to-brand-600 bg-clip-text text-transparent">
+              <span className="text-blue-600 dark:text-blue-400">
                 Create Courses
               </span>
               <br />
@@ -61,7 +61,7 @@ export const HomePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
               <Link
                 to="/create"
-                className="group inline-flex items-center justify-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="group inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <span>Start Creating</span>
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -85,10 +85,10 @@ export const HomePage: React.FC = () => {
             className="mt-16"
           >
             <div className="relative max-w-4xl mx-auto">
-              <div className="bg-gradient-to-r from-brand-500 to-accent-500 rounded-3xl p-1">
+              <div className="bg-blue-600 rounded-3xl p-1">
                 <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 text-center">
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-12 space-y-4">
-                    <div className="bg-gradient-to-r from-brand-500 to-accent-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-12 space-y-4">
+                    <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
                       <Play className="h-8 w-8 text-white" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Watch CourseAI in Action</h3>
@@ -114,7 +114,7 @@ export const HomePage: React.FC = () => {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="text-center"
                 >
-                  <div className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
+                  <div className="text-3xl lg:text-4xl font-bold text-blue-600 dark:text-blue-400">
                     {stat.value}
                   </div>
                   <div className="text-gray-600 dark:text-gray-400 font-medium mt-2">{stat.label}</div>
@@ -136,7 +136,7 @@ export const HomePage: React.FC = () => {
           >
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
               Everything you need to create
-              <span className="bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent"> amazing courses</span>
+              <span className="text-blue-600 dark:text-blue-400"> amazing courses</span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Powerful features designed to help educators and creators build engaging learning experiences
@@ -152,8 +152,8 @@ export const HomePage: React.FC = () => {
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-soft border border-gray-200 dark:border-gray-800 hover:shadow-soft-lg hover:border-brand-200 dark:hover:border-brand-800 transition-all duration-200"
               >
-                <div className="bg-gradient-to-r from-brand-100 to-accent-100 dark:from-brand-900/30 dark:to-accent-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-brand-600 dark:text-brand-400" />
+                <div className="bg-blue-100 dark:bg-blue-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
+                  <feature.icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
                 <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
@@ -170,7 +170,7 @@ export const HomePage: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
-            className="bg-gradient-to-r from-brand-500 to-accent-500 rounded-3xl p-8 lg:p-12 text-center text-white shadow-2xl"
+            className="bg-blue-600 rounded-3xl p-8 lg:p-12 text-center text-white shadow-2xl"
           >
             <h2 className="text-3xl lg:text-4xl font-bold mb-4 tracking-tight">
               Ready to start creating?
@@ -181,7 +181,7 @@ export const HomePage: React.FC = () => {
             
             <Link
               to="/create"
-              className="inline-flex items-center space-x-2 bg-white text-brand-600 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center space-x-2 bg-white text-blue-600 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <span>Create Your First Course</span>
               <ArrowRight className="h-5 w-5" />

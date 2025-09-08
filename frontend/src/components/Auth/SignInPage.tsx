@@ -118,11 +118,11 @@ export const SignInPage: React.FC = () => {
           >
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="bg-gradient-to-r from-brand-500 to-accent-500 p-2.5 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-200"
+              className="bg-blue-600 p-2.5 rounded-lg shadow-lg group-hover:shadow-xl transition-all duration-200"
             >
               <Brain className="h-6 w-6 text-white" />
             </motion.div>
-            <span className="text-xl font-bold bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-blue-700 dark:text-blue-400">
               CourseAI
             </span>
           </Link>
@@ -154,7 +154,7 @@ export const SignInPage: React.FC = () => {
               >
                 <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
                   Welcome to the Future of
-                  <span className="block bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
+                  <span className="block text-blue-600 dark:text-blue-400">
                     Course Creation
                   </span>
                 </h1>
@@ -173,9 +173,9 @@ export const SignInPage: React.FC = () => {
                   transition={{ duration: 0.6, delay: 0.3 + index * 0.1 }}
                   className="group"
                 >
-                  <div className="flex items-start space-x-4 p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-brand-200 dark:hover:border-brand-800 hover:shadow-soft transition-all duration-200">
-                    <div className="bg-gradient-to-r from-brand-100 to-accent-100 dark:from-brand-900/30 dark:to-accent-900/30 p-2.5 rounded-xl group-hover:scale-110 transition-transform duration-200">
-                      <feature.icon className="h-5 w-5 text-brand-600 dark:text-brand-400" />
+                  <div className="flex items-start space-x-4 p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg transition-all duration-200">
+                    <div className="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-xl group-hover:scale-110 transition-transform duration-200">
+                      <feature.icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
@@ -228,7 +228,7 @@ export const SignInPage: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         disabled={loading}
-                        className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -249,7 +249,7 @@ export const SignInPage: React.FC = () => {
                       onChange={handleInputChange}
                       required
                       disabled={loading}
-                      className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full pl-10 pr-4 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Enter your email"
                     />
                   </div>
@@ -269,7 +269,7 @@ export const SignInPage: React.FC = () => {
                       onChange={handleInputChange}
                       required
                       disabled={loading}
-                      className="w-full pl-10 pr-12 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full pl-10 pr-12 py-3.5 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Enter your password"
                     />
                     <button
@@ -288,7 +288,7 @@ export const SignInPage: React.FC = () => {
                   whileTap={{ scale: loading ? 1 : 0.98 }}
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-brand-500 to-accent-500 text-white py-3.5 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                  className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-semibold hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                 >
                   {loading ? (
                     <div className="flex items-center justify-center space-x-2">

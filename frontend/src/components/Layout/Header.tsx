@@ -78,11 +78,11 @@ export const Header: React.FC = () => {
           <Link to="/" className="flex items-center space-x-3 group">
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="bg-gradient-to-r from-brand-500 to-accent-500 p-2.5 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-200"
+              className="bg-blue-600 p-2.5 rounded-lg shadow-lg group-hover:shadow-xl transition-all duration-200"
             >
               <Brain className="h-6 w-6 text-white" />
             </motion.div>
-            <span className="text-xl font-bold bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-blue-700 dark:text-blue-400">
               CourseAI
             </span>
           </Link>
@@ -152,7 +152,7 @@ export const Header: React.FC = () => {
                       className="h-8 w-8 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-r from-brand-500 to-accent-500 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                       <User className="h-4 w-4 text-white" />
                     </div>
                   )}
@@ -204,7 +204,7 @@ export const Header: React.FC = () => {
             ) : (
               <Link
                 to="/signin"
-                className="bg-gradient-to-r from-brand-500 to-accent-500 text-white px-4 py-2.5 rounded-xl font-medium hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
               >
                 Sign In
               </Link>
