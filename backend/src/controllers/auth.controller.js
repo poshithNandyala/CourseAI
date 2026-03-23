@@ -52,7 +52,7 @@ export const googleCallback = asyncHandler(async (req, res) => {
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
     // Redirect to frontend with success
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard?auth=success`);
+    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback`);
   } catch (error) {
     console.error('Google callback error:', error);
     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/signin?error=server_error`);
@@ -88,7 +88,7 @@ export const githubCallback = asyncHandler(async (req, res) => {
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
     // Redirect to frontend with success
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard?auth=success`);
+    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback`);
   } catch (error) {
     console.error('GitHub callback error:', error);
     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/signin?error=server_error`);

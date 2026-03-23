@@ -15,6 +15,7 @@ import { ExplorePage } from "./components/Explore/ExplorePage";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { SignInPage } from "./components/Auth/SignInPage";
 import { VerificationPage } from "./components/Auth/VerificationPage";
+import { OAuthCallbackPage } from "./components/Auth/OAuthCallbackPage";
 import ProfessionalSettings from "./components/Settings/ProfessionalSettings";
 import { useTheme } from "./hooks/useTheme";
 import { useAuthStore } from "./store/authStore";
@@ -54,6 +55,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/signin" element={<SignInPage />} />
+          <Route path="/auth/callback" element={<OAuthCallbackPage />} />
           <Route path="/verify" element={<VerificationPage />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/course/:id" element={<PublicCourseViewer />} />
