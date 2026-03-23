@@ -65,5 +65,7 @@ ACCESS_TOKEN_SECRET=your_jwt_secret
 REFRESH_TOKEN_SECRET=your_refresh_secret
 ACCESS_TOKEN_EXPIRY=1d
 REFRESH_TOKEN_EXPIRY=10d
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM=Course AI <noreply@your-domain.com>
 NODE_ENV=development
 ```
