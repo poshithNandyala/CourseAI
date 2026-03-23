@@ -2,6 +2,9 @@
 import { userApiKeyService } from "./userApiKeyService";
 import { ImprovedJsonParser } from "./improved_json_parser";
 
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
 export interface GeminiCourseRequest {
   topic: string;
   difficulty: "beginner" | "intermediate" | "advanced";
@@ -49,8 +52,7 @@ export interface GeminiQuizQuestion {
 class GeminiAPIService {
   // Comment out old API key approach - now using user's keys
   // private apiKey: string;
-  private baseUrl =
-    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
+  private baseUrl = GEMINI_API_URL;
   private lastApiCallTime: number = 0;
   private minDelayBetweenCalls: number = 1000; // 1 second minimum delay between API calls
 
@@ -991,10 +993,11 @@ Make each question a valuable learning opportunity that reinforces key concepts,
     this.lastApiCallTime = Date.now();
 
     try {
-      const response = await fetch(`${this.baseUrl}?key=${apiKey}`, {
+      const response = await fetch(this.baseUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
         body: JSON.stringify({
           contents: [

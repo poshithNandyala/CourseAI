@@ -3,16 +3,19 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
 // Validate Gemini API key
 const validateGeminiApiKey = async (apiKey) => {
     try {
         console.log('🔍 Validating Gemini API key...');
         
-        // Use generateContent endpoint instead of blocked ListModels
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(GEMINI_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey,
             },
             body: JSON.stringify({
                 contents: [{

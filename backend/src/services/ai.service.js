@@ -1,10 +1,12 @@
 import fetch from "node-fetch";
 
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
 class AIService {
   constructor() {
     this.openaiBaseUrl = "https://api.openai.com/v1";
-    this.geminiBaseUrl =
-      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
+    this.geminiBaseUrl = GEMINI_API_URL;
   }
 
   // OpenAI Course Generation
@@ -305,7 +307,7 @@ Requirements:
       `🔑 Using API key: ${apiKey ? `${apiKey.substring(0, 10)}...` : "NOT PROVIDED"}`
     );
     console.log(
-      `🌐 Gemini API URL: ${this.geminiBaseUrl}?key=${apiKey ? "PROVIDED" : "MISSING"}`
+      `🌐 Gemini API URL: ${this.geminiBaseUrl}`
     );
 
     if (!apiKey) {
@@ -335,10 +337,11 @@ Requirements:
     );
 
     try {
-      const response = await fetch(`${this.geminiBaseUrl}?key=${apiKey}`, {
+      const response = await fetch(this.geminiBaseUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
         body: JSON.stringify(requestBody),
       });
