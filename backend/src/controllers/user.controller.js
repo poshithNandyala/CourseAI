@@ -15,6 +15,12 @@ const cookieOptions = {
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
 };
 
+const clearCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+};
+
 export const generateAccessAndRefreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId);
@@ -104,8 +110,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .clearCookie("accessToken", cookieOptions)
-        .clearCookie("refreshToken", cookieOptions)
+        .clearCookie("accessToken", clearCookieOptions)
+        .clearCookie("refreshToken", clearCookieOptions)
         .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
@@ -308,8 +314,8 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
         console.log('✅ Account deletion completed for user:', userId);
 
         // Clear cookies
-        res.clearCookie('accessToken', cookieOptions);
-        res.clearCookie('refreshToken', cookieOptions);
+        res.clearCookie('accessToken', clearCookieOptions);
+        res.clearCookie('refreshToken', clearCookieOptions);
 
         return res.status(200).json(
             new ApiResponse(200, {}, "Account deleted successfully")
