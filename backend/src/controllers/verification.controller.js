@@ -4,6 +4,7 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { Verification } from '../models/verification.model.js';
 import { User } from '../models/user.model.js';
 import { generateOTP, sendVerificationEmail, sendPasswordResetEmail } from '../services/emailService.js';
+import { cookieOptions } from '../utils/httpConfig.js';
 
 // Send verification code for signup
 export const sendSignupVerification = asyncHandler(async (req, res) => {
@@ -148,13 +149,6 @@ export const verifySignupCode = asyncHandler(async (req, res) => {
         createdUser.name = createdUser.fullname;
 
         console.log('✅ User created and verified:', createdUser.email);
-
-        const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        };
 
         return res
             .status(201)

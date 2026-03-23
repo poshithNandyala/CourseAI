@@ -2,6 +2,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 import { User } from '../models/user.model.js';
+import { cookieOptions } from '../utils/httpConfig.js';
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -20,13 +21,6 @@ const generateAccessAndRefreshTokens = async (userId) => {
     console.error('Token generation error:', error);
     throw new ApiError(500, "Something went wrong while generating tokens");
   }
-};
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
 };
 
 export const googleAuth = asyncHandler(async (req, res) => {

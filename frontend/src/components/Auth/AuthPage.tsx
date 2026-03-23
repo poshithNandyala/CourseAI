@@ -176,6 +176,7 @@ export const AuthPage: React.FC = () => {
                       type="text"
                       id="name"
                       name="name"
+                      autoComplete="name"
                       value={formData.name}
                       onChange={handleInputChange}
                       required
@@ -196,6 +197,7 @@ export const AuthPage: React.FC = () => {
                     type="email"
                     id="email"
                     name="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     required
@@ -216,6 +218,7 @@ export const AuthPage: React.FC = () => {
                       type={showPassword ? 'text' : 'password'}
                       id="password"
                       name="password"
+                      autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
                       value={formData.password}
                       onChange={handleInputChange}
                       required

@@ -7,19 +7,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
 import { CourseLike } from "../models/course_like.model.js";
 import { Course } from '../models/course.model.js';
-
-const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-};
-
-const clearCookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
-};
+import { clearCookieOptions, cookieOptions } from "../utils/httpConfig.js";
 
 export const generateAccessAndRefreshTokens = async (userId) => {
     try {
