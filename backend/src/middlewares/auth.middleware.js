@@ -56,7 +56,9 @@ export const OptionalVerifyJWT = asyncHandler(async (req, res, next) => {
             const user = await User.findById(decodedToken?._id).select("-password_hash -refresh_token")
             
             if (user) {
-                req.user = user
+                const userObject = user.toObject();
+                userObject.name = userObject.fullname;
+                req.user = userObject;
             }
         }
         

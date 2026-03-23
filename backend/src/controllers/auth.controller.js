@@ -51,13 +51,6 @@ export const googleCallback = asyncHandler(async (req, res) => {
     res.cookie('accessToken', accessToken, cookieOptions);
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
-    // Store user data in session for pickup by frontend
-    req.session.oauthUser = {
-      user: loggedInUser,
-      accessToken,
-      refreshToken
-    };
-
     // Redirect to frontend with success
     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard?auth=success`);
   } catch (error) {
@@ -94,13 +87,6 @@ export const githubCallback = asyncHandler(async (req, res) => {
     res.cookie('accessToken', accessToken, cookieOptions);
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
-    // Store user data in session for pickup by frontend
-    req.session.oauthUser = {
-      user: loggedInUser,
-      accessToken,
-      refreshToken
-    };
-
     // Redirect to frontend with success
     res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard?auth=success`);
   } catch (error) {
@@ -117,6 +103,18 @@ export const getAuthStatus = asyncHandler(async (req, res) => {
 
 export const getOAuthUser = asyncHandler(async (req, res) => {
   try {
+    if (req.user) {
+      const currentUser = req.user.toObject ? req.user.toObject() : { ...req.user };
+      currentUser.name = currentUser.fullname;
+
+      return res.status(200).json(
+        new ApiResponse(200, {
+          user: currentUser,
+          accessToken: req.cookies?.accessToken || null
+        }, 'OAuth user data retrieved')
+      );
+    }
+
     if (req.session.oauthUser) {
       const userData = req.session.oauthUser;
       // Clear the session data after retrieval

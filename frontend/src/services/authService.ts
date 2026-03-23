@@ -21,7 +21,7 @@ const testBackendConnection = async () => {
     throw new Error('Health check failed');
   } catch (error) {
     console.error('❌ Backend connection failed:', error);
-    toast.error('Cannot connect to server. Please make sure the backend is running on port 8000.');
+    toast.error('Cannot connect to the backend server.');
     return false;
   }
 };
@@ -217,15 +217,17 @@ export const signOut = async () => {
     
     // Call backend logout
     const token = localStorage.getItem('accessToken');
-    if (token) {
-      await fetch(`${API_BASE_URL}/users/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: 'include',
-      });
-    }
+    await fetch(`${API_BASE_URL}/users/logout`, {
+      method: 'POST',
+      headers: token
+        ? {
+            'Authorization': `Bearer ${token}`,
+          }
+        : undefined,
+      credentials: 'include',
+    }).catch((error) => {
+      console.warn('Logout request failed, clearing local auth state anyway:', error);
+    });
     
     // Clear local storage
     localStorage.removeItem('accessToken');
@@ -253,20 +255,21 @@ export const signOut = async () => {
 
 export const getCurrentUser = async (): Promise<User | null> => {
   const token = localStorage.getItem('accessToken');
-  if (!token) {
-    return null;
-  }
 
   try {
     const response = await fetch(`${API_BASE_URL}/users/profile`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: token
+        ? {
+            'Authorization': `Bearer ${token}`,
+          }
+        : undefined,
       credentials: 'include',
     });
 
     if (!response.ok) {
-      localStorage.removeItem('accessToken');
+      if (token) {
+        localStorage.removeItem('accessToken');
+      }
       return null;
     }
 
@@ -280,7 +283,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
         avatar_url: data.data.avatar_url,
         provider: data.data.provider || 'email',
         created_at: data.data.created_at || new Date().toISOString(),
-        accessToken: token
+        accessToken: token || undefined
       };
     }
 
@@ -303,7 +306,7 @@ export const handleOAuthCallback = async () => {
     
     const data = await response.json();
     
-    if (data.success && data.data) {
+    if (data.success && data.data?.user) {
       const { user, accessToken } = data.data;
       
       console.log('✅ OAuth authentication successful:', user.email);
@@ -331,10 +334,27 @@ export const handleOAuthCallback = async () => {
       toast.success('Successfully signed in!');
       return true;
     }
-    
+
+    const currentUser = await getCurrentUser();
+    if (currentUser) {
+      useAuthStore.getState().setUser(currentUser);
+      useAuthStore.getState().setLoading(false);
+      toast.success('Successfully signed in!');
+      return true;
+    }
+
     return false;
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
+
+    const currentUser = await getCurrentUser();
+    if (currentUser) {
+      useAuthStore.getState().setUser(currentUser);
+      useAuthStore.getState().setLoading(false);
+      toast.success('Successfully signed in!');
+      return true;
+    }
+
     return false;
   }
 };
@@ -347,6 +367,20 @@ export const initializeAuth = async () => {
     
     // Check for OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
+    const authError = urlParams.get('error');
+
+    if (authError) {
+      const authErrorMessages: Record<string, string> = {
+        google_auth_failed: 'Google sign-in failed.',
+        github_auth_failed: 'GitHub sign-in failed.',
+        authentication_failed: 'Authentication failed.',
+        server_error: 'Authentication could not be completed.'
+      };
+
+      toast.error(authErrorMessages[authError] || 'Authentication failed.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     if (urlParams.get('auth') === 'success') {
       const success = await handleOAuthCallback();
       if (success) {
