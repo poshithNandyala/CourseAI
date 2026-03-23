@@ -4,6 +4,19 @@ import toast from 'react-hot-toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
+const getOAuthTokenFromHash = () => {
+  const hash = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+
+  if (!hash) {
+    return null;
+  }
+
+  const params = new URLSearchParams(hash);
+  return params.get('accessToken');
+};
+
 // Test backend connection
 const testBackendConnection = async () => {
   try {
@@ -299,6 +312,20 @@ export const handleOAuthCallback = async () => {
   console.log('🔐 Handling OAuth callback...');
   
   try {
+    const accessTokenFromHash = getOAuthTokenFromHash();
+
+    if (accessTokenFromHash) {
+      localStorage.setItem('accessToken', accessTokenFromHash);
+
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        useAuthStore.getState().setUser(currentUser);
+        useAuthStore.getState().setLoading(false);
+        toast.success('Successfully signed in!');
+        return true;
+      }
+    }
+
     // Get OAuth user data from session
     const response = await fetch(`${API_BASE_URL}/auth/oauth-user`, {
       credentials: 'include',

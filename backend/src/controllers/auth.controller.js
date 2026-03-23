@@ -4,6 +4,13 @@ import { ApiError } from '../utils/ApiError.js';
 import { User } from '../models/user.model.js';
 import { cookieOptions } from '../utils/httpConfig.js';
 
+const getFrontendBaseUrl = () => (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+
+const buildOAuthCallbackUrl = (accessToken) => {
+  const frontendBaseUrl = getFrontendBaseUrl();
+  return `${frontendBaseUrl}/auth/callback#accessToken=${encodeURIComponent(accessToken)}`;
+};
+
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -52,10 +59,10 @@ export const googleCallback = asyncHandler(async (req, res) => {
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
     // Redirect to frontend with success
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback`);
+    res.redirect(buildOAuthCallbackUrl(accessToken));
   } catch (error) {
     console.error('Google callback error:', error);
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/signin?error=server_error`);
+    res.redirect(`${getFrontendBaseUrl()}/signin?error=server_error`);
   }
 });
 
@@ -88,10 +95,10 @@ export const githubCallback = asyncHandler(async (req, res) => {
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
     // Redirect to frontend with success
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback`);
+    res.redirect(buildOAuthCallbackUrl(accessToken));
   } catch (error) {
     console.error('GitHub callback error:', error);
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/signin?error=server_error`);
+    res.redirect(`${getFrontendBaseUrl()}/signin?error=server_error`);
   }
 });
 
