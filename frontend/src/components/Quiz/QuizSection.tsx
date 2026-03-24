@@ -151,7 +151,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
               onClick={() => handleLessonSwitch(index)}
               className={`px-5 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 shadow-sm ${
                 selectedLessonIndex === index
-                  ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg ring-2 ring-brand-300"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg ring-2 ring-blue-300"
                   : "bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-500"
               }`}
             >
@@ -299,7 +299,7 @@ export const QuizSection: React.FC<QuizSectionProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={restartQuiz}
-            className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 flex items-center justify-center space-x-2"
+            className="flex flex-1 items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-semibold text-white transition-all duration-200 hover:from-blue-700 hover:to-indigo-700"
           >
             <RotateCcw className="h-5 w-5" />
             <span>Retake Quiz</span>

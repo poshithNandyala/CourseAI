@@ -288,7 +288,7 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
               onClick={() => handleLessonSwitch(index)}
               className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
                 selectedLessonIndex === index
-                  ? "bg-brand-500 text-white shadow-lg"
+                  ? "bg-blue-600 text-white shadow-lg"
                   : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
@@ -366,7 +366,7 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleStartQuiz}
-            className="bg-gradient-to-r from-brand-500 to-accent-500 text-white px-8 py-4 rounded-2xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl text-lg flex items-center space-x-2 mx-auto"
+            className="mx-auto flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-200 hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl"
           >
             <Play className="h-5 w-5" />
             <span>Start Quiz</span>
@@ -613,7 +613,7 @@ export const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={restartQuiz}
-            className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 flex items-center justify-center space-x-2"
+            className="flex flex-1 items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-semibold text-white transition-all duration-200 hover:from-blue-700 hover:to-indigo-700"
           >
             <RotateCcw className="h-5 w-5" />
             <span>Retake Quiz</span>
