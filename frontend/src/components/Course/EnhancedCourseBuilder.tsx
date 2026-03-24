@@ -229,7 +229,7 @@ export const EnhancedCourseBuilder: React.FC = () => {
                 <div className="flex items-center space-x-3 pt-3">
                   <button
                     onClick={() => setCourseSettings(prev => ({ ...prev, includeProjects: !prev.includeProjects }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full ring-1 ring-black/10 transition-colors dark:ring-white/15 ${
                       courseSettings.includeProjects ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   >

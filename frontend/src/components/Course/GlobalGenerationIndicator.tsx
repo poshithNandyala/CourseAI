@@ -143,17 +143,17 @@ export const GlobalGenerationIndicator: React.FC = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={handleViewDetails}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
               title="View Details"
             >
-              <Maximize2 className="h-4 w-4 text-gray-500" />
+              <Maximize2 className="h-4 w-4" />
             </button>
             <button
               onClick={handleClose}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="rounded p-1 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
               title="Stop & Close"
             >
-              <X className="h-4 w-4 text-gray-500" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>

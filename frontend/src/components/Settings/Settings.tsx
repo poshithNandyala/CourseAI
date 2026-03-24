@@ -222,7 +222,7 @@ const Settings: React.FC = () => {
               {location.state?.from && (
                 <button
                   onClick={() => navigate(-1)}
-                  className="flex items-center space-x-2 text-white hover:text-indigo-200 transition-colors"
+                  className="flex items-center space-x-2 rounded-lg px-3 py-2 text-white transition-colors hover:bg-white/10 hover:text-indigo-100"
                 >
                   <ArrowLeft className="h-5 w-5" />
                   <span>Back</span>
@@ -276,7 +276,7 @@ const Settings: React.FC = () => {
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                   <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">🧠 Gemini AI API Key</h3>
                   <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                    <li>1. Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center">AI Studio <ExternalLink className="h-3 w-3 ml-1" /></a></li>
+                    <li>1. Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center underline text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200">AI Studio <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                     <li>2. Sign in with your Google account</li>
                     <li>3. Create a new API key</li>
                     <li>4. Copy and paste it below</li>
@@ -287,7 +287,7 @@ const Settings: React.FC = () => {
                 <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
                   <h3 className="font-medium text-red-900 dark:text-red-100 mb-2">📺 YouTube Data API Key</h3>
                   <ol className="text-sm text-red-800 dark:text-red-200 space-y-1">
-                    <li>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center">Google Cloud Console <ExternalLink className="h-3 w-3 ml-1" /></a></li>
+                    <li>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="inline-flex items-center underline text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200">Google Cloud Console <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                     <li>2. Create/select a project</li>
                     <li>3. Enable YouTube Data API v3</li>
                     <li>4. Create credentials (API key)</li>

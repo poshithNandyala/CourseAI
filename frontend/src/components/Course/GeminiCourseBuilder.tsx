@@ -848,7 +848,7 @@ export const GeminiCourseBuilder: React.FC = () => {
                           includeQuizzes: !courseSettings.includeQuizzes,
                         })
                       }
-                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-200 ${
+                      className={`relative inline-flex h-8 w-14 items-center rounded-full ring-1 ring-black/10 transition-all duration-200 dark:ring-white/15 ${
                         courseSettings.includeQuizzes
                           ? "bg-blue-600 shadow-lg"
                           : "bg-gray-300 dark:bg-gray-600"

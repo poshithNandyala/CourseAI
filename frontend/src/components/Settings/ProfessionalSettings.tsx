@@ -663,7 +663,7 @@ const ProfessionalSettings: React.FC = () => {
                             <span>Gemini AI API Key</span>
                           </h4>
                           <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                            <li>1. Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center">AI Studio <ExternalLink className="h-3 w-3 ml-1" /></a></li>
+                            <li>1. Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex items-center underline text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200">AI Studio <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                             <li>2. Sign in with your Google account</li>
                             <li>3. Create a new API key</li>
                             <li>4. Copy and paste it below</li>
@@ -676,7 +676,7 @@ const ProfessionalSettings: React.FC = () => {
                             <span>YouTube Data API Key</span>
                           </h4>
                           <ol className="text-sm text-red-800 dark:text-red-200 space-y-1">
-                            <li>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center">Google Cloud Console <ExternalLink className="h-3 w-3 ml-1" /></a></li>
+                            <li>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="inline-flex items-center underline text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200">Google Cloud Console <ExternalLink className="h-3 w-3 ml-1" /></a></li>
                             <li>2. Create/select a project</li>
                             <li>3. Enable YouTube Data API v3</li>
                             <li>4. Create credentials (API key)</li>

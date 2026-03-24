@@ -240,7 +240,7 @@ export const QuizComponent: React.FC<QuizComponentProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={restartQuiz}
-            className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 flex items-center justify-center space-x-2"
+            className="flex flex-1 items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-semibold text-white transition-all duration-200 hover:from-blue-700 hover:to-indigo-700"
           >
             <RotateCcw className="h-5 w-5" />
             <span>Retake Quiz</span>

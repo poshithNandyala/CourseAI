@@ -136,7 +136,7 @@ export const CourseGenerationSidebar: React.FC<
                   {isGenerating && onStop && (
                     <button
                       onClick={onStop}
-                      className="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors group"
+                      className="group rounded-lg bg-red-500/20 p-1.5 text-red-50 transition-colors hover:bg-red-500/30"
                       title="Stop Generation"
                     >
                       <Square className="h-3.5 w-3.5 fill-current" />
@@ -144,7 +144,7 @@ export const CourseGenerationSidebar: React.FC<
                   )}
                   <button
                     onClick={onClose}
-                    className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                    className="rounded-lg p-1 text-white transition-colors hover:bg-white/20"
                     title="Minimize"
                   >
                     <X className="h-4 w-4" />
