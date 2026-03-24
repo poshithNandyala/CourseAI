@@ -165,7 +165,7 @@ const ApiKeyWarning: React.FC<ApiKeyWarningProps> = ({ onValidationChange }) => 
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 to="/settings"
-                className="inline-flex items-center justify-center space-x-2 bg-gradient-to-r from-brand-500 to-accent-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-brand-600 hover:to-accent-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="inline-flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-semibold text-white no-underline shadow-lg transition-all duration-200 hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl"
               >
                 <Settings className="h-4 w-4" />
                 <span>Configure API Keys</span>
